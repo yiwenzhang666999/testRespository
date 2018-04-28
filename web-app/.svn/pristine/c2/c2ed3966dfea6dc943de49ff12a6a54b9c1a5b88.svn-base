@@ -1,0 +1,10 @@
+mini.fsConfigs = {
+	//回车键可移动输入项焦点（像tab键一样）
+	enter_as_tab : false,
+
+	//是否防止vtype="number..."的textbox输入错误内容（若启用则粘贴等快捷键不可用）
+	force_digit_ipt : false,
+
+	//一次性载入过大数据量时将发出性能警告，这里配置数据量界限值，目前仅用于FsTree
+	BIG_DATA_WARNING_LINE : 2000
+}

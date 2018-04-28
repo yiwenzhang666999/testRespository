@@ -1,0 +1,60 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>treelist.html</title>
+    
+    <meta http-equiv="keywords" content="keyword1,keyword2,keyword3">
+    <meta http-equiv="description" content="this is my page">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link href="themes/default/skin.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="../boot.js"></script>
+  </head>
+  <body style="padding:20px;">
+	<form action="" method="post" enctype="multipart/form-data" class="fs-importxls-form" target:'if'>
+		<h3>请选择要导入的数据文件，必须为xls格式：</h3>
+		<input type="hidden" name="tableName"/>
+		<input type="hidden" name="configFile"/>
+		<input type="hidden" name="defaultData"/>
+		<input class="file-chooser" type="file" name="file" accept=".xls"/>
+		<br/>
+		<input class="ok-btn fore-core-file-up-btn" type="submit" value="开始导入">
+	</form>
+	<script type="text/javascript">
+$(function(){
+	var paramStr = location.href.split('?')[1];
+	if(!paramStr) window.close();
+	var parts = paramStr.split('&');
+	var args = {};
+	for(var i=0; i<parts.length; i++){
+		var kv = parts[i].split('=');
+		args[kv[0]] = kv[1];
+	}
+	var url = args.serviceUrl || mini.urls.importExcel;
+	$('form').attr('action', url);
+	$('input[name=tableName]').val(args.tableName);
+	if(args.configFile)
+		$('input[name=configFile]').val(args.configFile);
+	else
+		$('input[name=configFile]').remove();
+	if(args.defaultData)
+		$('input[name=defaultData]').val(args.defaultData);
+	else
+		$('input[name=defaultData]').remove();
+	$('form').submit(function(){
+		var value = this.file.value;
+		if(!value){
+			mini.alert('请选择要导入的xls格式文件');
+			return false;
+		}
+		var parts = value.split('.');
+		var suff = parts[parts.length-1].toLowerCase();
+		if(suff !== 'xls'){
+			mini.alert('只能上传xls格式的文件');
+			return false;
+		}
+	});
+});
+
+	</script>
+  </body>
+ </html>

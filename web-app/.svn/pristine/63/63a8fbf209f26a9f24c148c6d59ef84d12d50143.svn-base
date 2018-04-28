@@ -1,0 +1,20 @@
+require(['printCanvas','ztLayerCro','severZtree','zyjg','loadTree'], function (printCanvas,ztLayerCro,severZtree,zyjg,loadTree) {
+    'use strict';
+	printCanvas.init();
+	//右下角地图控制
+	ztLayerCro.init();
+	//左侧树控制
+	severZtree.init();
+	//初始化政区
+    zyjg.init();
+    //初始化 加载树
+	loadTree.init();
+});
+//require(['printCanvas','map'], function (printCanvas,map) {
+//    'use strict';
+//	printCanvas.mapSize(zz);
+//	printCanvas.paintImage();
+//	printCanvas.delElementAll();
+//	//初始化地图
+//	map.init();
+//});

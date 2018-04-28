@@ -1,0 +1,17 @@
+<div id="tjdkbhsj-ibox">
+	<p class="line search">
+		<span class="txt">工作年度</span>
+		<select class="zs-select" id="bhdkNd">
+			<option>2017</option>
+		</select>
+		<span class="txt">县名</span>
+		<input type="text" class="zs-input" value="" id="xianName"/>
+		<a href="javascript:;" class="cancel">清空</a>
+	</p>
+	<span id="bhdk_item"></span>
+</div>
+<script type="text/javascript">
+	require(["bhdk"], function (bhdk) {
+		bhdk.init();
+	})
+</script>

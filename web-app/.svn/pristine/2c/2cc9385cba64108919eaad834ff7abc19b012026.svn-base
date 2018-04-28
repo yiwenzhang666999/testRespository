@@ -1,0 +1,29 @@
+package com.forestar.util;
+
+import java.util.Calendar;
+import java.util.Date;
+
+import com.forestar.core.Config;
+
+public class Util {
+	public static String getDefineND(){
+		String result = "";
+		//获取当前日期
+		Date date = new Date();
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		//获取当前年度
+		int year = c.get(Calendar.YEAR);
+		int month_start = Integer.parseInt(Config.getValue("defineNd_start"));
+		int month_end = Integer.parseInt(Config.getValue("defineNd_end"));
+		//获取当前也分
+		int month = c.get(Calendar.MONTH)+1;
+		if(month>month_start){
+			result = String.valueOf(year);
+		}
+		if(month<=month_end){
+			result = String.valueOf(year-1);
+		}
+		return result;
+	}
+}

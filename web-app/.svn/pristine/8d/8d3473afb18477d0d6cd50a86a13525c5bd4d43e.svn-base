@@ -1,0 +1,174 @@
+package com.forestar.safe.model.system;
+
+import com.forestar.data.general.GlobalDataType;
+import com.forestar.data.metadata.MetadataField;
+import com.forestar.data.metadata.RelationNode;
+import com.forestar.data.metadata.systable.ISystemTable;
+import com.forestar.data.metadata.systable.SysTableBase;
+import java.util.HashMap;
+import org.springframework.stereotype.Component;
+
+@Component("SystemUserService")
+public class SystemUserService extends SysTableBase
+  implements ISystemTable
+{
+  public static final String TABLE_NAME = "FS_YW_BASE_USER";
+  private HashMap<String, MetadataField> fields;
+
+  private SystemUserService()
+  {
+    super("FS_YW_BASE_USER");
+  }
+
+  public HashMap<String, MetadataField> getTableFields()
+  {
+    if (this.fields == null) {
+      this.fields = new HashMap();
+
+      MetadataField itemField = new MetadataField();
+
+      itemField = new MetadataField();
+      itemField.setFieldName("I_USERID");
+      itemField.setDataType(GlobalDataType.Int32);
+      itemField.setFieldID(2);
+      itemField.setFieldAliasName("用户主键");
+      itemField.setIsKey(true);
+      itemField.setIsAuto(true);
+      itemField.setCanShow(true);
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+
+      itemField = new MetadataField();
+      itemField.setFieldName("C_USERNAME");
+      itemField.setDataType(GlobalDataType.String);
+      itemField.setFieldID(3);
+      itemField.setFieldAliasName("用户名");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      itemField.setUniqueGroup("C_USERNAME");
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+
+      itemField = new MetadataField();
+      itemField.setFieldName("C_PWD");
+      itemField.setDataType(GlobalDataType.String);
+      itemField.setFieldID(4);
+      itemField.setFieldAliasName("用户密码");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+
+      itemField = new MetadataField();
+      itemField.setFieldName("C_USEREALNAME");
+      itemField.setDataType(GlobalDataType.String);
+      itemField.setFieldID(5);
+      itemField.setFieldAliasName("用户真实姓名");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+
+      itemField = new MetadataField();
+      itemField.setFieldName("C_USERTEL");
+      itemField.setDataType(GlobalDataType.String);
+      itemField.setFieldID(6);
+      itemField.setFieldAliasName("用户电话");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+
+      itemField = new MetadataField();
+      itemField.setFieldName("C_USEREMIL");
+      itemField.setDataType(GlobalDataType.String);
+      itemField.setFieldID(7);
+      itemField.setFieldAliasName("用户邮箱");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+
+      itemField = new MetadataField();
+      itemField.setFieldName("I_ORGID");
+      itemField.setDataType(GlobalDataType.Int32);
+      itemField.setFieldID(8);
+      itemField.setFieldAliasName("组织机构ID");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      itemField.setCodeTablePK("FS_YW_BASE_ORG");
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+
+      itemField = new MetadataField();
+      itemField.setFieldName("I_ORDER");
+      itemField.setDataType(GlobalDataType.Int32);
+      itemField.setFieldID(9);
+      itemField.setFieldAliasName("排序字段");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+
+      itemField = new MetadataField();
+      itemField.setFieldName("C_ZQCODE");
+      itemField.setDataType(GlobalDataType.String);
+      itemField.setFieldID(10);
+      itemField.setFieldAliasName("政区编码");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      itemField.setCodeTablePK("FL_SYS_ZQSJZD");
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+      
+      itemField = new MetadataField();
+      itemField.setFieldName("C_SFSH");
+      itemField.setDataType(GlobalDataType.String);
+      itemField.setFieldID(11);
+      itemField.setFieldAliasName("审核状态");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+      
+      itemField = new MetadataField();
+      itemField.setFieldName("C_PARID");
+      itemField.setDataType(GlobalDataType.String);
+      itemField.setFieldID(12);
+      itemField.setFieldAliasName("父节点");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+      
+      itemField = new MetadataField();
+      itemField.setFieldName("C_USERJB");
+      itemField.setDataType(GlobalDataType.String);
+      itemField.setFieldID(13);
+      itemField.setFieldAliasName("用户级别");
+      itemField.setCanShow(true);
+      itemField.setAllowNull(true);
+      this.fields.put(itemField.getFieldName().toUpperCase().trim(), itemField);
+    }
+
+    return this.fields;
+  }
+
+  public String getBaseInfo() {
+    return null;
+  }
+
+  public RelationNode getTableRelation()
+  {
+    return null;
+  }
+
+  public String getCodeFieldName()
+  {
+    return "I_USERID";
+  }
+
+  public String getCaptionFieldName()
+  {
+    return "C_USEREALNAME";
+  }
+
+  public String getIDFieldName()
+  {
+    return "I_USERID";
+  }
+
+  public boolean getIsCodeTable()
+  {
+    return true;
+  }
+}

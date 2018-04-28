@@ -1,0 +1,65 @@
+  #label{
+    border:1px solid #333;
+    background-color:#eee;
+    text-align:center;
+    height:793px;
+    width:1122px;
+    margin: 0 auto;
+    position:relative;
+  }
+  #label #ditu{
+  	position:absolute;
+  	border: 1px solid;
+  	background-color:#fff;
+  }
+  select{
+  	width: 200px;
+  }
+  ul li{
+	cursor: pointer;
+  }
+  h2{
+	margin: 0;
+  }
+  h2 hover{
+	cursor: default;
+  }
+  select,input{
+      width: 80px;
+  }
+  h2 {
+	-webkit-touch-callout: none; /* iOS Safari */
+	-webkit-user-select: none; /* Chrome/Safari/Opera */
+	-khtml-user-select: none; /* Konqueror */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	user-select: none; /* Non-prefixed version, currently
+	not supported by any browser */
+	}
+  #edit_pic{position:absolute;display:none;background:#000;}
+  #cover_box{position: absolute;z-index: 9;display:none;top:0px;left:0px;}
+  #show_edit{margin: 0 auto;display:inline-block;}
+  #show_pic{
+    height:100px;
+    width:100px;
+    border:2px solid #000;
+    overflow:hidden;
+/*     margin:0 auto; */
+    display:inline-block;
+  }
+  #rRightDown,#rLeftDown,#rLeftUp,#rRightUp,#rRight,#rLeft,#rUp,#rDown{position:absolute;background:#C00;width:6px;height:6px;z-index:5;font-size:0;} 
+  #rLeftDown,#rRightUp{cursor:ne-resize;} 
+  #rRightDown,#rLeftUp{cursor:nw-resize;} 
+  #rRight,#rLeft{cursor:e-resize;} 
+  #rUp,#rDown{cursor:n-resize;} 
+  #rRightDown{ bottom:-3px; right:-3px;} 
+  #rLeftDown{ bottom:-3px; left:-3px;} 
+  #rRightUp{ top:-3px; right:-3px;} 
+  #rLeftUp{ top:-3px; left:-3px;} 
+  #rRight{ right:-3px; top:50%} 
+  #rLeft{ left:-3px; top:50%} 
+  #rUp{ top:-3px; left:50%} 
+  #rDown{ bottom:-3px; left:50%}
+  .map-wrapper{
+  	 overflow:auto;
+  }

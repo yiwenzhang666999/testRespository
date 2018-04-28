@@ -1,0 +1,187 @@
+package com.forestar.save;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSON;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.hibernate.datasource.HSessionFactory;
+import com.forestar.data.metadata.IMetadataTable;
+import com.forestar.data.service.BaseService;
+
+@Controller
+public class dataController {
+	
+	
+	@Autowired
+	BaseService baseService;
+	String tableName;
+	
+	
+	@RequestMapping(value = "dataService.do")
+	@ResponseBody
+	public HashMap switchTool(String jsonStr){
+		HashMap result = new HashMap();
+		result.put("success",true);
+		IMetadataTable iTable = null;
+		HashMap dataMap = JSON.parseObject(jsonStr, result.getClass());
+		this.tableName = dataMap.get("tableName").toString();
+		try {
+			iTable = baseService.openTable(tableName);
+		} catch (ServiceException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}
+		HashMap addRow = null;
+		if(null!=dataMap.get("addRow")){
+			addRow = JSON.parseObject(dataMap.get("addRow").toString(),result.getClass());
+			addRow.put("I_CREATEUSERID","1");
+		}
+		HashMap updateRow = null;
+		if(null!=dataMap.get("updateRow")){
+			updateRow = JSON.parseObject(dataMap.get("updateRow").toString(),result.getClass());
+		}
+		HashMap delRow = null;
+		if(null!=dataMap.get("delRow")){
+			delRow = JSON.parseObject(dataMap.get("delRow").toString(),result.getClass());
+		}
+		boolean bool = false;
+		boolean b =true;
+		iTable.startEditing();
+		if(null!=addRow){
+			int objectId = insert(addRow);
+			if(0== objectId){
+				b=false;
+			}else{
+				result.put("rowId",objectId);
+			}
+		}
+		if(b){
+			b = update(updateRow);
+			if(b){
+				b = delete(delRow);
+				if(b){
+					bool =true;
+				}
+			}
+		}
+		if(bool){
+			//TODO 提交
+			iTable.stopEditing(true);
+		}else{
+			//TODO 回滚
+			iTable.stopEditing(false);
+		}
+		result.put("success",bool);
+		return result;
+	}
+	private int insert(HashMap row){
+		boolean bool = true;
+		int objectId = 0;
+		if(null!=row){
+		try {
+			RowBase rowBase = new RowBase();
+			objectId = getMaxOBJECTID();
+			Iterator entries  =  row.entrySet().iterator();
+			String sql = "insert into "+tableName+" ";
+			String sets = "(ID,";
+			String values = "("+objectId+",";
+			while (entries.hasNext()){
+				Map.Entry entry = (Map.Entry)entries.next();
+				String key = entry.getKey().toString();
+				String value = entry.getValue().toString();
+				if(!"wkt".equals(key)&&!"".equals(value)){
+					sets+=key+",";
+					values+="'"+value+"',";
+				}/*else if("wkt".equals(key)) {
+					sets+="shape,";
+					values+="sde.st_geometry('"+value+"',4490),";
+				}*/
+			}
+			sets = sets.substring(0,sets.lastIndexOf(","))+")";
+			values = values.substring(0,values.lastIndexOf(","))+")";
+			sql = "insert into "+tableName+" "+sets+" values "+values;
+			baseService.executeSql(tableName,sql);
+			String updateSql="update "+tableName+" set shape=sde.st_geometry(C_OBJINFO,4490) where ID ="+objectId;
+			baseService.executeSql(tableName, updateSql);
+		} catch (Exception e) {
+				// TODO Auto-generated catch block
+				bool=false;
+				objectId=0;
+				e.printStackTrace();
+			}
+			
+		}
+		return objectId;
+	}
+	private boolean update(HashMap row){
+		// TODO Auto-generated method stub
+		boolean bool = true;
+		RowBase rowBase = new RowBase();
+		int numRes = 0;
+		RowBase result = null;
+		if(null!=row&&null!=row.get("ID")){
+			try {
+				HashMap oldMap = new HashMap();
+				oldMap.put("ID",row.get("ID"));
+				rowBase.setCurrentObjects(row);
+				rowBase.setOriginalObjects(oldMap);
+				result = baseService.save(tableName,rowBase);
+				
+				String sql = "update "+tableName+" set shape=sde.st_geometry(C_OBJINFO,4490) where ID="+result.getOriginalObjects().get("ID");
+				numRes = baseService.executeSql(tableName,sql);
+				
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				bool=false;
+				e.printStackTrace();
+			}finally{
+				if(numRes>0&&null!=result){
+					bool=true;
+				}else{
+					bool=false;
+				}
+			}
+		}
+		return bool;
+	}
+	private boolean delete(HashMap row){
+		boolean bool = true;
+		if(null!=row){
+			try {
+				String id = row.get("ID").toString();
+				QueryFilter queryFilter = new QueryFilter();
+				queryFilter.setWhereString("ID="+id);
+				bool = baseService.del(tableName,queryFilter);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				bool=false;
+				e.printStackTrace();
+			}
+		}
+		return bool;
+	}
+	private int getMaxOBJECTID(){
+		List<RowBase> list = null;
+		int objectId = 0;
+		try {
+			list = baseService.getDataTableSql(tableName,"select sde.GDB_UTIL.NEXT_ROWID('ldgx_36_jiangxi','ZYJG_BHTB') as OBJECTID  from dual",null);
+		} catch (ServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if(null!=list){
+			objectId = Integer.parseInt(list.get(0).getOriginalObjects().get("OBJECTID").toString());
+		}
+		return objectId;
+	}
+}

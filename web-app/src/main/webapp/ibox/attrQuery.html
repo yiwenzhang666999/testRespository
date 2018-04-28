@@ -1,0 +1,260 @@
+<div class="zs-nicescroll zs-data-table" style="width: 310px;">
+	<form id="popIbox_sxcx" style="width: 300px; display: block;">
+		<table class="fore-common-form-tabs">
+			<tbody>
+				<tr>
+					<td class="text">
+						省
+					</td>
+					<td class="input">
+						<input type="hidden" value="" name="C_SHENG">
+						<select id="attrShengData" style="width:160px;" onchange="window.attrQuery_.shengChange(this)">
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						市
+					</td>
+					<td class="input">
+						<input type="hidden" value="" name="C_SHI">
+						<select id="attrShiData" style="width:160px;" onchange="window.attrQuery_.shiChange(this)">
+						</select>
+					</td>
+				</tr>
+				
+				<tr>
+					<td class="text">
+						县
+					</td>
+					<td class="input">
+						<!-- <input type="hidden" style="width:160px;" value="" name="C_XIAN"> -->
+						<!-- <input type="text" style="width:160px;" value="" name="C_XIANNAME"> -->
+						<input type="hidden" value="" name="C_XIAN">
+						<select id="attrXianData" style="width:160px;" onchange="window.attrQuery_.xianChange(this)">
+							
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						乡
+					</td>
+					<td class="input">
+						<!-- <input type="text" style="width:160px;" value="" name="C_XIANG"> -->
+						<input type="hidden" value="" name="C_XIANG">
+						<select id="attrXiangData" style="width:160px;" onchange="window.attrQuery_.xiangChange(this)">
+							
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						村
+					</td>
+					<td class="input">
+						<!-- <input type="text" style="width:160px;" value="" name="C_CUN"> -->
+						<input type="hidden" value="" name="C_CUN">
+						<select id="attrCunData" style="width:160px;" onchange="window.attrQuery_.cunChange(this)">
+							
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						小班
+					</td>
+					<td class="input">
+						<input type="text" style="width:160px;" value="" name="C_XIAOBAN">
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						年度
+					</td>
+					<td class="input">
+						<input type="text" style="width:160px;" value="" name="C_WORKYEAR">
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						面积
+					</td>
+					<td class="input">
+						<input type="text" class="left" style="width:72px;" value="" name="D_AREA">—<input type="text" class="right" style="width:73px;" value="" name="D_AREA">
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						疑似变化原因
+					</td>
+					<td class="input">
+						<input type="hidden" value="" name="C_YSBHYY">
+						<select id="ysbhyy" style="width:160px;" onchange="optionClick(this)">
+							<option value="">
+								--请选择--
+							</option>
+							<option value="采伐">
+								采伐
+							</option>
+							<option value="占地">
+								占地
+							</option>
+							<option value="毁林开垦">
+								毁林开垦
+							</option>
+							<option value="灾害">
+								灾害
+							</option>
+							<option value="造林">
+								造林
+							</option>
+							<option value="其他减少">
+								其他减少
+							</option>
+							<option value="其他增加">
+								其他增加
+							</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						核实变化原因
+					</td>
+					<td class="input">
+						<input type="hidden" value="" name="C_HSBHYY">
+						<select id="hsbhyy" style="width:160px;" onchange="optionClick(this)">
+							<option value="">
+								--请选择--
+							</option>
+							<option value="造林更新">
+								造林更新
+							</option>
+							<option value="森林采伐">
+								森林采伐
+							</option>
+							<option value="规划调整">
+								规划调整
+							</option>
+							<option value="经审批使用林地">
+								经审批使用林地
+							</option>
+							<option value="未审批使用林地">
+								未审批使用林地
+							</option>
+							<option value="毁林开垦">
+								毁林开垦
+							</option>
+							<option value="火灾">
+								火灾
+							</option>
+							<option value="地质灾害">
+								地质灾害
+							</option>
+							<option value="其它灾害因素">
+								其它灾害因素
+							</option>
+							<option value="封山育林">
+								封山育林
+							</option>
+							<option value="其他自然更新">
+								其他自然更新
+							</option>
+							<option value="漏划">
+								漏划
+							</option>
+							<option value="错划">
+								错划
+							</option>
+							<option value="其它调查因素">
+								其它调查因素
+							</option>
+							<option value="行政界线调整">
+								行政界线调整
+							</option>
+							<option value="管理因子变化">
+								管理因子变化
+							</option>
+							<option value="人工造林或飞播造林">
+								人工造林或飞播造林
+							</option>
+							<option value="人工更新">
+								人工更新
+							</option>
+							<option value="新增管理界线">
+								新增管理界线
+							</option>
+							<option value="边界引起的细碎合并">
+								边界引起的细碎合并
+							</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						依据
+					</td>
+					<td class="input">
+						<input type="text" style="width:160px;" value="" name="C_YIJU">
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						判读人
+					</td>
+					<td class="input">
+						<input type="text" style="width:160px;" value="" name="C_USERNAME">
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						审核人
+					</td>
+					<td class="input">
+						<input type="text" style="width:160px;" value="" name="C_CHECKUSERNAME">
+					</td>
+				</tr>
+				<tr>
+					<td class="text">
+						审核状态
+					</td>
+					<td class="input">
+						<input type="hidden" value="" name="C_STATUS">
+						<select id="shzt" style="width:160px;" onchange="optionClick(this)">
+							<option value="">
+								--请选择--
+							</option>
+							<option value="0">
+								未审核
+							</option>
+							<option value="1">
+								通过
+							</option>
+							<option value="2">
+								通过(有修改)
+							</option>
+							<option value="3">
+								重做
+							</option>
+						</select>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</form>
+	<div id="sxcx-btn" class="fore-core-btnboxs" style="display: block;">
+		<button class="zs-btn reset-button">
+			重置
+		</button>
+		<button class="zs-btn query-button">
+			查询
+		</button>
+	</div>
+</div>
+<script>
+	//select标签的change事件
+	function optionClick(e) {
+		$(e).siblings("input").val(e.value);
+	}
+</script>

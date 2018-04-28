@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" 
+	xmlns:tx="http://www.springframework.org/schema/tx" 
+	xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/mvc 
+        http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd 
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-3.0.xsd
+		http://www.springframework.org/schema/tx 
+		http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+        http://cxf.apache.org/jaxws   
+        http://cxf.apache.org/schemas/jaxws.xsd
+        http://cxf.apache.org/jaxrs 
+        http://cxf.apache.org/schemas/jaxrs.xsd">
+	<!-- 加载配置文件 -->
+	<context:property-placeholder location="classpath:config.properties"/>
+	  	
+	<context:annotation-config />
+	<context:component-scan base-package="com.forestar"></context:component-scan>
+	<mvc:annotation-driven />
+	
+	<!-- Session 缓存工厂配置支持httpSession,cacheSession -->
+	<bean id="sessionFactory" class="com.forestar.core.session.SessionFactory">
+		<property name="session" ref="httpSession"/>
+	</bean>
+	
+	<!-- 注意：FreeMarker与SpringMVC集成时，其配置一定要放在SpringMVC的配置之前 -->
+	<!-- 否则：在访问"/getUser"时服务器就会报告[HTTP Status 404 - /WEB-INF/jsp/myfree.jsp] -->
+	<!-- 自定义标签 -->
+	<bean id="freemarkerConfig" class="org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer">
+		<!-- 指定FreeMarker模板根目录 -->
+		<property name="templateLoaderPath" value="/WEB-INF/view"/>
+		<property name="defaultEncoding" value="UTF-8"></property>
+		<!--  
+		<property name="freemarkerVariables">
+			<map>
+				<entry key="fs_pt_ftl_prufix" value="WEB-INF/classes/"/>
+				<entry key="fs_pro_ftl_prufix" value="view/"/>
+			</map>
+		</property>
+		-->
+		<!-- 设置freemarker相关属性 -->
+		<property name="freemarkerSettings">
+			<props>
+				<prop key="template_update_delay">1</prop><!-- 以秒为单位 -->
+    			<prop key="locale">zh_CN</prop>
+    			<prop key="datetime_format">yyyy-MM-dd </prop><!-- 时间渲染形式 -->
+    			<prop key="date_format">yyyy-MM-dd</prop><!-- 日期渲染形式 -->
+    			<prop key="number_format">#</prop>
+    		</props>
+		</property>
+		<!-- 自定义标签配置形式 start -->
+		<!-- <property name="freemarkerVariables">
+			<map>
+				<entry key="FsComponent"  value-ref="fsCustomTag"/>
+			</map>
+		</property> -->
+		<!-- 自定义标签配置形式 end -->
+	</bean>
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver">
+		<property name="viewClass" value="com.forestar.fremarker.FreeMarkerView"/>
+		<property name="suffix" value=".html"/>
+		<property name="contentType" value="text/html; charset=UTF-8"/>
+		<property name="cache" value="false"/><!-- 解析器使用缓存 -->
+		<property name="allowSessionOverride" value="true"/>
+		<property name="exposeRequestAttributes" value="true" />
+  		<property name="exposeSessionAttributes" value="true" />
+  		<property name="exposeSpringMacroHelpers" value="true" />
+	</bean>
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<ref bean="mappingJacksonHttpMessageConverter" />
+			</list>
+		</property>
+	</bean>
+	<bean id="mappingJacksonHttpMessageConverter"
+		class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">
+		<property name="supportedMediaTypes">
+			<list>
+				<value>text/html;charset=UTF-8</value>
+			</list>
+		</property>
+	</bean>
+	<bean id="multipartResolver"  class="org.springframework.web.multipart.commons.CommonsMultipartResolver">  
+        <!-- 设置上传文件的最大尺寸为1MB -->  
+	    <property name="maxUploadSize">  
+	        <value>151048576</value>  
+	    </property>  
+	</bean>
+	<!-- 装配拦截器[日志管理] -->  
+	<mvc:interceptors>
+	    <mvc:interceptor>  
+	    <mvc:mapping path="/*"/>
+	        <bean class="com.forestar.safe.csrf.CsrfInterceptor"></bean>  
+	    </mvc:interceptor>		  
+	    <mvc:interceptor>  
+	    <mvc:mapping path="/*"/>  
+	        <bean class="com.forestar.safe.log.LogHandlerInterceptor"></bean>  
+	    </mvc:interceptor>  
+	</mvc:interceptors>	 
+	<!-- 系统错误转发配置[并记录错误日志]   -->
+	<bean class="com.forestar.safe.exception.SimpleMappingException">
+		<property name="defaultErrorView" value="/error/errorException"></property>   <!-- 默认为500，系统错误(error.jsp)  -->
+		<property name="defaultStatusCode" value="500"></property>
+		<property name="statusCodes"><!-- 配置多个statusCode -->
+		  <props>    
+		      <prop key="error">500</prop>  <!-- error.jsp -->
+		      <prop key="error">404</prop>    <!-- error1.jsp -->
+		  </props>    
+		</property>    
+		<property name="exceptionMappings">
+			<props>
+				<!-- 这里你可以根据需要定义N多个错误异常转发 -->
+				<prop key="java.sql.SQLException">/error/errorException</prop> <!-- 数据库错误(dbError.jsp) -->
+				<prop key="java.lang.Exception">/error/errorException</prop>  <!-- 其他错误为'未定义错误'(unknowError.jsp)  -->
+				<prop key="com.forestar.jni.WithoutPermissionException">/error/errorException</prop>  <!-- 其他错误为'未定义错误'(unknowError.jsp)  -->
+				<prop key="org.springframework.security.authentication.AuthenticationServiceException">/error/errorException</prop>  <!-- 其他错误为'未定义错误'(unknowError.jsp)  -->
+			</props>
+		</property>
+	</bean>	 
+</beans>

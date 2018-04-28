@@ -1,0 +1,586 @@
+.import_map{
+	width: 100%;
+	height: 100%;
+	z-index: 99 !important;
+	position: absolute;
+	/* top: 70px;
+	left: 320px; */
+	top: 0px;
+	display: none;
+	background: #fff;
+}
+.zip-select{
+	position: absolute;
+    width: 100px;
+    z-index: 999;
+    right: 300px;
+    cursor: pointer;
+}
+.zip-select input{
+	width: 100px;
+}
+.tool-qxhz{
+	background: url(../images/draw-cancle.png) no-repeat 12px center;
+}
+.tool-close{
+	background: url(../images/close.png) no-repeat 12px center;
+}
+.import-layer li{
+	font-size: 13px;
+    height: 85px;
+    line-height: 41px;
+}
+.import_pop{
+	width: 300px;
+    height: 340px;
+    z-index: 98 !important;
+    position: absolute;
+    display: none;
+    top: 200px;
+    left: 380px;
+    background: #fff;
+} 
+.import-btn-input{
+	width: 260px;
+    position: absolute;
+    z-index: 999;
+    top: 10px;
+    left: 24px;
+    opacity: 0;
+}
+#import-file-text{
+	/* width: 219px; */
+}
+
+.right-con .map-wrapper{
+	padding: 0;
+}
+.right-con .map-wrapper .inner{
+	padding: 0;
+}
+.right-con .map-wrapper .inner .map{
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+/* 右下角菜单 */
+.mapType-wrapper-import .mapType-import .clk  span.active{
+    background-color: #89BED9;
+}
+.mapType-wrapper-import label {
+    display: inline-block;
+}
+
+.mapType-wrapper-import {
+    font-size: 14px;
+    position: absolute;
+    bottom: 20px;
+    right: 0;
+    z-index:10;
+}
+.mapType-import {
+    height: 76px;
+    cursor: pointer;
+    -webkit-transition-property: width, background-color;
+    -ms-transition-property: width, background-color;
+    transition-property: width, background-color;
+    -webkit-transition-duration: .4s;
+    -ms-transition-duration: .4s;
+    transition-duration: .4s;
+    width: 110px;
+    -webkit-transition-duration: .4s;
+    -ms-transition-duration: .4s;
+    transition-delay: 0s;
+}
+.mapType-import .mapTypeCard span {
+    background-color: #000;
+    background-color: rgba(0,0,0,0.5);
+}
+.mapType-wrapper-import:hover .mapType-import .mapTypeCard:hover span {
+    background-color: #89BEDA;
+}
+.mapType-wrapper-import:hover .mapType-import .mapTypeCard.active,
+.mapType-import .mapTypeCard.active {
+     border: 2px solid #337fe5
+}
+.mapType-wrapper-import .mapType-import .second-import {
+    background-image: url("../images/layer/yingxiang.jpg");
+}
+.mapType-wrapper-import .mapType-import .ldxb-import {
+    background-image: url("../images/layer/ldxb.jpg");
+}
+.mapType-wrapper-import .mapType-import .dcfw-import {
+    background-image: url("../images/layer/dcfw.png");
+}
+.mapType-wrapper-import .mapType-import .ygyx-import {
+    background-image: url("../images/layer/ygyx.jpg");
+}
+.mapType-import .mapTypeCard {
+    height: 60px;
+    width: 86px;
+    position: absolute;
+    border-radius: 2px;
+    top: 8px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    background-color:#000;
+    background-color: rgba(0,0,0,.2);
+    -webkit-transition-property: right, background-image;
+    -ms-transition-property: right, background-image;
+    transition-property: right, background-image;
+    -webkit-transition-duration: .4s;
+    -ms-transition-duration: .4s;
+    transition-duration: .4s;
+    -webkit-transition-delay: 0s;
+    -ms-transition-delay: 0s;
+    transition-delay: 0s;
+}
+.mapType-import .mapTypeCard span {
+    position: absolute;
+    bottom: -1px;
+    left: -1px;
+    right: -1px;
+    display: inline-block;
+    padding: 3px 0px 2px 0px;
+    font-size: 12px;
+    height: 12px;
+    line-height: 12px;
+    color: #fff;
+    height: 16px;
+    text-align: center;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+.mapType-import .mapTypeCard.active span,
+.mapType-import .mapTypeCard:hover span {
+    background-color: #89BEDA;
+}
+.mapType-import .mapTypeCard:hover .sub-menu {
+    display: block;
+}
+.mapType-import .mapTypeCard:hover {
+     border: 2px solid #337fe5;
+}
+.mapType-import .mapTypeCard:hover .switch-box {
+    visibility: visible
+}
+.mapType-import .second:hover .switch-box {
+    visibility: visible
+}
+.mapType-import .first {
+    z-index: 10;
+    right: 10px;
+    background-image: url('../images/layer/03.png');
+}
+.mapType-import .second-import {
+    z-index: 9;
+    right: 15px;
+    background-color: #fff;
+    background-color: rgba(0,0,0,.2);
+}
+.mapType-import .card{
+    z-index: 8;
+    right: 10px;
+}
+
+.mapType-import .switch-box {
+    visibility: hidden;
+    position: absolute;
+    width: 100%;
+    height: 20px;
+    line-height: 22px;
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+    background-color: #fff;
+    background: rgba(0, 0, 0, .5)
+}
+.mapType-import .switch-box p {
+    display: inline-block;
+}
+.mapType-import .switch-box input.switch {
+    display: inline-block;
+    vertical-align: middle;
+    cursor: pointer;
+}
+.mapType-import .sub-menu {
+    display: none;
+    width: auto;
+    position: absolute;
+    left: 50%;
+    bottom: 57px;
+    transform: translateX(-50%);
+    -ms-transform: translateX(-50%);    /* IE 9 */
+    -moz-transform: translateX(-50%);   /* Firefox */
+    -webkit-transform: translateX(-50%); /* Safari 和 Chrome */
+    -o-transform: translateX(-50%);
+}
+.mapType-import .sub-menu label{
+    cursor: pointer;
+    width: 100%;
+}
+.mapType-import .sub-menu .trigon {
+  width: 0;
+  height: 0;
+  border-width: 10px;
+  border-bottom-width: 0;
+  border-style: solid;
+  margin: 0 auto;
+  border-color: #fff transparent transparent;
+}
+.mapType-import .sub-menu ul {
+    background-color: #fff;
+    padding: 8px;
+    border-radius: 5px;
+}
+.mapType-import .sub-menu li {
+    list-style: none;
+    line-height: 24px;
+}
+.mapType-import .sub-menu li input {
+    display: inline-block;
+    vertical-align: middle;
+}
+.mapType-import .sub-menu li span {
+    position: relative;
+    width: 30px;
+    height: 15px;
+    padding: 0;
+    vertical-align: middle;
+    margin: 0 4px;
+}
+.mapType-import .sub-menu li {
+    white-space: nowrap;
+}
+/* 统计报表 ——S*/
+.tj_close{
+	width: 22px;
+	height: 22px; 
+	position: absolute;
+	top: 10px;
+	right: 20px;
+	cursor: pointer;
+	background: url(../images/zs-tree-del.png) no-repeat center;
+	display: inline-block;
+}
+/* 统计报表弹框 */
+/* 方案报表样式 --S-*/
+#ReportThead tr:first-child td{
+	font-size: 20px;
+}
+#ReportThead tr:nth-child(2) td{
+	text-align: right;
+    padding-right: 20px;
+}
+.gyltjbb_tableBox table {
+    line-height: 20px;
+    background: #fff;
+    border-collapse:collapse;
+    text-align:center;  
+}
+.gyltjbb_tableBox table thead {
+	background:#E7EBEF repeat-x 0 0;
+	/* border-bottom: #c5c5c5 1px solid; */
+	position:relative;
+	border:1px solid #dfdfdf;
+	font-weight: bold;
+}
+.gyltjbb_tableBox table thead td{
+	border:1px solid #000;
+}
+
+.gyltjbb_tableBox table thead th{
+    width: 150px;
+    padding:5px 0px;
+    color: #555;
+    font-weight:bold;
+    overflow:hidden;
+  	border:1px solid #000;
+    /* background-color:#6CAA58; */
+}
+.gyltjbb_tableBox table thead tr:nth-child(2) th{
+	text-align: right;
+    padding-right: 20px;
+}
+.gyltjbb_tableBox table tr {
+    height:20px;
+    line-height: 20px;
+}
+.gyltjbb_tableBox table td{
+    width: 150px;
+    padding:5px 0px;    
+    border:1px solid #000;
+    overflow:hidden;
+    text-align: center;
+}
+/* 工具栏卷帘样式 ——S*/
+.xian_test .xian_text {
+	white-space:nowrap;  
+	margin-top: 31px;
+	margin-top: 20px;
+	display: inline-block;
+	color: #3d9b00;
+	font-size: 13px;
+	background: #ececee;
+	margin-left: -45px;
+	border: 1px solid #dfdfdf;
+}
+.xian_test i{
+	position: absolute;
+	width:10px;
+	left: 50%;
+	height:100vh;
+	margin-left: -7px;
+	cursor:e-resize;
+	top: 21px;
+	border: 7px transparent solid;
+	
+	
+}
+/* 工具栏卷帘样式 ——E-*/
+/* 自定义报表弹框——S-*/
+.customReport{
+	height:300px;
+}
+.customReport .zs-btn{
+    margin-left: 22px;
+}
+.tabelView{
+	margin:50px 0;
+}
+.tabelView td{
+	border:1px solid #000;
+	text-align: center;
+}
+.tabelView table {
+    line-height: 20px;
+    background: #fff;
+    border-collapse:collapse;
+    text-align:center;  
+}
+.tabelView table thead {
+	background:#E7EBEF repeat-x 0 0;
+	position:relative;
+	border:1px solid #dfdfdf;
+	font-weight: bold;
+}
+.tabelView table thead td{
+	border:1px solid #000;
+}
+
+.tabelView table thead th{
+    width: 150px;
+    padding:5px 0px;
+    color: #555;
+    font-weight:bold;
+    overflow:hidden;
+  	border:1px solid #DFDFDF;
+}
+.tabelView table tr {
+    height:20px;
+    line-height: 20px;
+}
+.tabelView table td{
+    width: 150px;
+    padding:5px 0px;    
+    border:1px solid #000;
+    overflow:hidden;
+    text-align: center;
+}
+/* 自定义报表弹框——E-*/
+/* 方案报表样式 --E-*/
+
+.gyltjbb_tableBox table{
+    line-height: 20px;
+    background: #fff;
+}
+
+.exportBtnRight{
+    text-align: right;
+    margin-bottom: 5px;
+}
+.tdStyle{
+	width:110px;
+}
+#tjzq_where{
+    cursor: pointer;
+    width: 165px;
+    margin-top: 10px;
+    margin-left: 22px;
+}
+#bd-tj .content .line label{
+    cursor: pointer;
+}
+#ExcelExport{
+	display:none;
+}
+.reportFormTitle{
+	width:100%;
+	text-align:center;
+	color:red;
+}
+.withOverlay .box-content{
+	padding-top:5px;
+}
+/* 统计报表 ——E*/
+/****警告框样式*****/
+#myAlert_{
+	display:none;
+	position:absolute;
+	width:300px;
+	top:50%;
+	left:50%;
+	border-radius:5px;
+	margin-left:-150px;
+	background-color:rgba(255,255,255,0);
+	z-index:10001;
+}
+#myAlert_ div{
+	margin: 0 auto;
+	width: 300px;
+	height: 60px;
+	line-height: 60px;
+	text-align: center;
+	background: url(../images/loading.gif) no-repeat center center;
+}
+#myAlert_mask{
+	display:none;
+	position:absolute;
+	top:0;
+	background-color:rgba(255,255,255,0.5);
+	z-index:10001;
+}
+#alertClose{
+	float:right;
+	font-weight:bold;
+	display:inline-block;
+	width:15px;
+	height:10px;
+	cursor:pointer;
+}
+
+/****警告框样式结束****/
+/*配准提交后的 提示框*/
+.check-alert-div{
+	display: none;
+	height: 25px;
+	width: 250px;
+	position: absolute;
+	bottom: 7%;
+	/* border: 1px solid red; */
+	z-index: 11;
+	left: 10px;
+	background: #61BA37;
+	color: #fff;
+	line-height: 25px;
+	font-size: 14px;
+}
+/* 配置误差评估结果样式 --S-*/
+.devDisplayText{
+	display: block;
+    height: auto;
+    padding: 2px 0;
+    line-height: 22px;
+    color: #f38b00;
+    font-size: 13px;
+}
+.devDisplayText span{
+	display:inline-block;
+}
+/*是否吸附 和追踪*/
+.is-buffer-snap{
+	display: none;
+	position:absolute;
+	width: 100px;
+	height: 40px;
+	/* border: 1px solid #F38B00; */
+	/* z-index: 12; */
+	top: 90px;
+	right: 50px;
+	background: #fff;
+	line-height: 40px;
+	box-shadow: 0 0 15px #ccc;
+	box-sizing: border-box;
+	font-size: 14px;
+}
+
+.is-buffer-snap i{
+	vertical-align: middle;
+    width: 13px;
+    height: 13px;
+    margin-right: 8px;
+    display: inline-block;
+    cursor: pointer;
+    border: 1px #f38e00 solid;
+}
+.is-buffer-snap span{
+	margin-left: 10px;
+}
+.is-snap-i.selected{
+	background: url(../images/zs-tree-checked.png) no-repeat center;
+}
+.is-snap-check{
+	display: none;
+}
+/* 禁止选中文本 */
+body.banSelect{
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+/* 提示信息样式 */
+#map_continer .map-tool .hintInfo{
+	width: 216px;
+	height: 21px;
+	color: #000;
+	line-height: 21px;
+	font-size: 12px;
+	background: rgba(0, 0, 0, 0.1);
+	border-radius: 11px;
+	position: absolute;
+	top: 50px;
+    left: 70px;
+	padding: 0 10px;
+	cursor: default;
+	z-index: 10;
+	display:none;
+}
+.xian_test{
+	position: absolute;
+    height: 20px;
+    width: 24px;
+    left: 0;
+    top: 1px;
+    box-shadow: 0 0 6px #666;
+    border-radius: 2px;
+    background: #fff url(../images/zs-middle-line-bg.png) no-repeat center;
+    cursor: pointer;
+}
+.xian_b .tips{
+	display: none;
+	position: absolute;
+	top: 29px;
+	left: 0;
+	height: 26px;
+	line-height: 26px;
+	padding: 0px 12px;
+	color: #fff;
+	border-radius: 2px;
+	background: rgba(0,0,0,0.68);
+}
+.xian_b .arr{
+	/* display: none; */
+	display: none;
+	position:absolute;
+    left: 50%;
+    top: 12px;
+    margin-left: -7px;
+    float: left;
+    border-width: 8px;
+    border-style: solid;
+    border-color: transparent transparent rgba(0,0,0,0.68) transparent;
+}

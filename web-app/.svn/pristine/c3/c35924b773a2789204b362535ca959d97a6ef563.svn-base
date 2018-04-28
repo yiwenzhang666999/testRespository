@@ -1,0 +1,1506 @@
+define(["publicObj","queryLayer","util","managerTool","treeHelper","config"], function (publicObj,queryLayer,util,managerTool,treeHelper,config) {
+	'use strict';
+	var total=0;
+	var Current=0;
+	var ids=[];
+	var xys={};
+	// 当前图斑数据，用于审核前对比图斑属性与图形是否存在改变
+	var newData={};
+	// 网格大小
+	var xDvalue=0;
+	var yDvalue=0;
+	var xDvalue_km=0;
+	var yDvalue_km=0;
+	var cc=0.5;
+	// 当前县范围
+	var xian_Extent=[];
+	//当前县feature
+	var xian_Feature={};
+	// 网格数据集合
+	var gridxy=[];
+	// 网格行列好集合
+	var gridtitl=[];
+	// 网格图形集合
+	var idIndex={};
+	// 当前选中网格下标
+	var gridIndex=0;
+	// 审核地块图层
+	var shdk_ywc_layer=null;//已完成
+	var shdk_wwc_layer=null;//未完成
+	var shdk_high_layer=null;//网格高亮
+	var high_layer=null;//小班高亮
+	// 转换工具
+	var geojsonFormat = new ol.format.GeoJSON();
+	// 高亮颜色
+	var selectStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: '#FF0000', width: 2 })// 红
+    });
+	var unselectStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: '#FFFF00', width: 2 })// 黄
+    });
+	var ywcStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: '#00FF00', width: 2 })// 绿
+    });
+	/**
+	 * 初始化
+	 */
+	function init() {
+		shdk_ywc_layer=map.getLayerByName("SHDK_YWC_LAYER").getSource();
+		shdk_wwc_layer=map.getLayerByName("SHDK_WWC_LAYER").getSource();
+		shdk_high_layer = map.getLayerByName("SHDK_HIGH_LAYER").getSource();
+		high_layer = map.getLayerByName("HIGH_LAYER").getSource();
+		
+		$(".zs-toolbar .btns a.tool-sh").click(function(e){
+			if($("#public_shdk_pop.plugin-with-box").length==0)
+				start();
+		});
+		//生成网格
+		$("#createGrid").click(function(e){
+			if(!$("#shdkSelect").val()){
+				mini.alert("请选择县！");
+				return;
+			}
+			mini.confirm("是否创建判图格网？","提示",function(e){
+				if(e=="ok"){
+					$(".close.iconfont.icon-zsicon-close").trigger("click");
+					zqoptionClick();
+				}
+			})
+		});
+		$("#viewGrid").click(function(e){
+			zqoptionClick(true);
+		})
+		$("#closeviewGrid").click(function(e){
+			getZqGridData();
+		})
+		$(".zs-grid-tool .line.wcqk input").click(function(e){
+			setGridVisible();
+		});
+		$(".zs-grid-tool .line.dhfw input").click(function(e){
+			reload();
+		});
+		$("#shtbSelect").change(function(e){
+			TboptionClick(e);
+		});
+		$("#shdkSelect").change(function(e){
+			getZqGridData();
+		});
+		$(".zs-btn.syg-button").click(function(e){
+			newData={};
+			NextData(true);
+		});
+		$(".zs-btn.xyg-button").click(function(e){
+			newData={};
+			NextData(false);
+		});
+		$(".zs-btn.syg-grid-button").click(function(e){
+			NextGrid(true);
+		});
+		$(".zs-btn.shwg-grid-button").click(function(e){
+			var idx=shdk_high_layer.idIndex_;
+			for(var key in idx){
+			    if(typeof key == "string"){
+                    check_ywc_layer(key,true);
+                    break;
+			    } 
+			}
+		});
+		$(".zs-btn.xyg-grid-button").click(function(e){
+			NextGrid(false);
+		});
+		$(".zs-btn.qt-grid-button").click(function(e){
+			ExtentGrid(true);
+		});
+		$(".zs-btn.fd-grid-button").click(function(e){
+			ExtentGrid(false);
+		});
+		$(".zs-grid-tool #reload").click(function(e){
+			reload();
+		});
+		$(".zs-grid-tool .zs-grid-size li").click(function(e){
+			var ck=$(this).find("span").html().split("*");
+			$("#grid_width").val(ck[0]);
+			$("#grid_height").val(ck[1]);
+		});
+		$("#shdk_grid_current").keydown(function(event){
+			if(event.keyCode == 13){
+				inputGridIndex();
+			}
+		});
+		$("#shdk_current").keydown(function(event){
+			if(event.keyCode == 13){
+				inputIndex();
+			}
+		});
+//		$("#shdk_grid_current").blur(function(){
+//			inputGridIndex();
+//		});
+//		$("#shdk_current").blur(function(){
+//			inputIndex();
+//		});
+//		map.getMap().on('click', function (event) {
+//			var xy=event.coordinate;
+//    		var left=xian_Extent[0];
+//    		var bottom=xian_Extent[1];
+//    		var right=xian_Extent[2];
+//    		var top=xian_Extent[3];
+//			if(xy[0]>left&&xy[0]<right&&xy[1]<top&&xy[1]>bottom){
+//				var x=Math.ceil(((xy[0]-left)/xDvalue));
+//				var y=Math.ceil(((top-xy[1])/yDvalue));
+//				gridIndex=(y-1)*gridxy.width+x;
+//				selectGrid(gridIndex,0);
+//				//全省则不再查询
+//				var radio=$(".zs-grid-tool .dhfw input:checked");
+//				if(radio.attr("value")=="part"){
+//					getExtent(gridIndex);
+//				}
+//			}
+//		});
+	}
+	/**
+	 * 审核入口
+	 */
+	function start(){
+		var template = {
+		        "ID":1,
+		        "C_TYPE":"default",
+		        "C_ZQCODE":"200000",
+		        "I_USERID":1,
+		        "C_NR":[
+		            {"FIELDNAME":"C_XIAN","DICTNAME":"县(林业局)","FIELDTYPE":"STRING","ZINDEX":1,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"C_XIANG","DICTNAME":"乡(林场)","FIELDTYPE":"STRING","ZINDEX":2,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"C_CUN","DICTNAME":"村(林班)","FIELDTYPE":"STRING","ZINDEX":3,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"C_XIAOBAN","DICTNAME":"小班","FIELDTYPE":"STRING","ZINDEX":5,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"C_WORKYEAR","DICTNAME":"工作年度","FIELDTYPE":"STRING","ZINDEX":6,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"I_LON_DEG","DICTNAME":"经度","FIELDTYPE":"DOUBLE","ZINDEX":7,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"I_LAT_DEG","DICTNAME":"纬度","FIELDTYPE":"DOUBLE","ZINDEX":8,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"D_AREA","DICTNAME":"面积","FIELDTYPE":"STRING","ZINDEX":9,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"C_YSBHYY","DICTNAME":"疑似变化原因","FIELDTYPE":"STRING","ZINDEX":10,"CANSHOW":"是","DICTITEM":[
+		                {"CODE":1,"NAME":"采伐"},{"CODE":2,"NAME":"占地"},{"CODE":3,"NAME":"毁林开垦"},{"CODE":4,"NAME":"灾害"},
+		                {"CODE":5,"NAME":"造林"},{"CODE":6,"NAME":"其他减少"},{"CODE":7,"NAME":"其他增加"}
+		            ]},
+		            {"FIELDNAME":"C_HSBHYY","DICTNAME":"核实变化原因","FIELDTYPE":"STRING","ZINDEX":11,"CANSHOW":"是","DICTITEM":[
+		                {"CODE":10,"NAME":"造林更新"},{"CODE":20,"NAME":"森林采伐"},{"CODE":30,"NAME":"规划调整"},{"CODE":41,"NAME":"经审批使用林地"},
+		                {"CODE":42,"NAME":"未审批使用林地"},{"CODE":50,"NAME":"毁林开垦"},{"CODE":71,"NAME":"火灾"},
+		                {"CODE":72,"NAME":"地质灾害"},{"CODE":73,"NAME":"其它灾害因素"},{"CODE":81,"NAME":"封山育林"},
+		                {"CODE":82,"NAME":"其他自然更新"},{"CODE":91,"NAME":"漏划"},{"CODE":92,"NAME":"错划"},
+		                {"CODE":93,"NAME":"其它调查因素"}, {"CODE":96,"NAME":"行政界线调整"}, {"CODE":99,"NAME":"管理因子变化"},
+		                {"CODE":11,"NAME":"人工造林或飞播造林"},
+		                {"CODE":12,"NAME":"人工更新"}, {"CODE":98,"NAME":"新增管理界线"}, {"CODE":97,"NAME":"边界引起的细碎合并"},
+		            ]},
+		            {"FIELDNAME":"C_YIJU","DICTNAME":"依据","FIELDTYPE":"STRING","ZINDEX":12,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"C_USERNAME","DICTNAME":"判读人","FIELDTYPE":"STRING","ZINDEX":13,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"DT_CREATETIME","DICTNAME":"判读时间","FIELDTYPE":"DATA","ZINDEX":14,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"C_CHECKUSERNAME","DICTNAME":"审核人","FIELDTYPE":"STRING","ZINDEX":15,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"DT_CHECKTIME","DICTNAME":"审核时间","FIELDTYPE":"DATA","ZINDEX":16,"CANSHOW":"是","DICTITEM":""},
+		            {"FIELDNAME":"C_STATUS_DESC","DICTNAME":"审核状态","FIELDTYPE":"DATA","ZINDEX":17,"CANSHOW":"是","DICTITEM":""},
+		        ]
+		    };
+		// 清除选中图斑
+		managerTool.clear(true,true);
+		// 选择功能置灰不可用
+		$(".tool-xz").addClass("disable");
+		// 弹出属性框
+		popFun(null,publicObj.features[0],template);
+	}
+    /**
+	 * 弹窗方法
+	 * @param type：类型(add)目前只有这一个标识，不是新增情况null
+	 * @param feature：图形元素ol.feature
+	 * @param template：模板
+	 */
+	function popFun(type, feature, template) {
+		var html = getPopHtml(template);
+		var ibox = $("#public_shdk_pop").modal({
+			title: "审核",
+			id:"shdk_pop",
+			ibox_top:105,
+			ibox_left:15,
+			overlay: false,
+			showMin: false,
+			showMax: false,
+			showTop: false,
+			isDrag: true,
+			contentWidth: 300,
+			type: "clone",
+			target: html || "",
+			removeCallBack:function(){
+				// 显示政区树
+				if($(".zs-tree-box.zyjg.mapToolJl").hasClass("on-min"))
+					$(".zs-tree-box.zyjg.mapToolJl .header i").trigger("click");
+				// 选择功能置灰还原
+				$(".tool-xz").removeClass("disable");
+				//还原“规划”工具栏
+				setButtonStatus("98");
+				$(".tool-qc").click();
+				//清除高亮图层
+				high_layer.clear();
+				publicObj.features=[];
+				//清除审核图层
+				shdk_wwc_layer.clear();
+				shdk_ywc_layer.clear();
+				shdk_high_layer.clear();
+				shdk_ywc_layer.idIndex_={};
+				shdk_wwc_layer.idIndex_={};
+				shdk_high_layer.idIndex_={};
+				//关闭审核工具栏
+				$(".zs-grid-tool").hide();
+			},
+			addCallBack: function () {
+				var iBox = this;
+//				$("#shdk_pop")[0].style.top="140px";
+//				$("#shdk_pop")[0].style.left="15px";
+				//打开审核工具栏
+				$(".zs-grid-tool").show();
+				// 隐藏政区树
+				if(!$(".zs-tree-box.zyjg.mapToolJl").hasClass("on-min"))
+					$(".zs-tree-box.zyjg.mapToolJl .header i").trigger("click");
+				//初始化工具栏
+				setButtonStatus("1");
+				$(".zs-nicescroll").niceScroll({
+					cursorcolor: "#777",
+					cursorborder: "none",
+				});
+				$(".zs-btn.tg-button").click(function(e){
+					shdk(1);
+				});
+				$(".zs-btn.cz-button").click(function(e){
+					shdk(3);
+				});
+				$(".zs-btn.bsbh-button").click(function(e){
+					shdk(-1);
+				});
+				// 获取政区下拉数据
+				getZqList();
+			}
+		});
+		ibox.click();
+	}
+    /**
+	 * 图斑审核
+	 * @param status：审核状态
+	 */
+	function shdk(status){
+		window.openAlert();
+		var form = $('#popIbox_shdk')[0];
+		var elements = form.getElementsByTagName('input');
+		var property = {};
+		for (var i = 0; i < elements.length; i++) {
+			var element = elements[i];
+			if (element.name && element.name != 'lon' && element.name != 'lat') {
+				property[element.name] = element.value;
+			}
+		}
+		if(status==0){
+			for(var k in property){
+				if(typeof k !="string"){
+					continue;
+				}
+				if(property[k]!=newData[k]){
+					status=1; 
+					break;
+				}
+			}
+		}
+		var feature=publicObj.features[0];
+		feature.setProperties(property);
+		// 新增 wkt 字段 by zzq 20171205
+		var z_wkt = new ol.format.WKT();
+		var C_WKT = z_wkt.writeFeature(feature);
+		// property.wkt=C_WKT;
+		property.C_OBJINFO = C_WKT; 
+		// 属性编辑的保存
+		property.ID = feature.getProperties().ID;
+		property.C_STATUS = status;
+		property.D_EDITTIME = util.getLocalDate();
+		property.C_CHECKUSERID = userObj.userId;
+		property.DT_CHECKTIME = util.getLocalDate();
+		delete property.C_OBJINFO;
+		var data = {
+			addRow: null,
+			updateRow: property,
+			delRow: null,
+			type: "updateParam",
+			tableName: 'ZYJG_BHTB',
+			xianCode: property.C_XIAN,
+			y: property.I_LAT_DEG,
+			x: property.I_LON_DEG
+		}
+		var shdkdata={xian:property.C_XIAN,id:property.ID}
+		// 查询当前地块是否已经审核
+		$.ajax({
+			url: "shdk/shdkData.do",
+			type: "POST",
+			data: { data: JSON.stringify(shdkdata) },
+			success: function (res) {
+				if ("1"==res) {
+					$.ajax({
+						url: "dataService.do",
+						type: "POST",
+						data: { jsonStr: JSON.stringify(data) },
+						success: function (res) {
+							if (res.success) {
+								if (res.rowId && res.rowId.length > 0) {
+									var ID = res.rowId[0];
+									var xianCode = res.xianCode;
+									feature.setProperties({ ID: ID, C_XIAN: xianCode, C_STATUS: status });
+									var b = setStyle([feature]);
+								}
+							}
+							window.closeAlert();
+							//清空表单
+							//禁用审核按钮
+							clearForm();
+							if($("#shdk_current").val()!=$("#shdk_total").html()){
+								$(".zs-btn.xyg-button").click();
+							}
+						},
+						error: function (err) {
+							util.validateSession(err);
+							window.openAlert();
+							console.log(err);
+						}
+					});
+				}else{
+					window.openAlert();
+				}
+			},
+			error: function (err) {
+				util.validateSession(err);
+				window.openAlert();
+				console.log(err);
+			}
+		});
+	}
+    /**
+	 * 获取政区下拉数据
+	 */
+	function getZqList(){
+		window.openAlert();
+		//清除关于审核的所有元素
+		clearForm();
+		clearLayer();
+		hideGridBtn();
+		hideTbBtn();
+		// 获取政区
+		var tableName = "FS_BUSINESS_USERBUSLAYERS";
+		var userInfo = userObj;
+		var userId = userInfo.userId;
+		var appId = window.appid_;
+		var whereStr = "I_USERID = '"+userId+"' and C_APPID ='"+appId+"'";
+		//清空政区
+		var zqHtml = "<option value =''>无政区数据</option>";
+        var contList = $("#shdkSelect");
+        contList.html(zqHtml);
+		var option ={
+		        // 生成li标签的HTML字符串
+		        callback:function(res){
+		            if(!res){
+		                var zqHtml = "<option value =''>无政区数据</option>";
+		                contList.html(zqHtml);
+		            }else if(res.length>0){
+		                contList.html("<option value =''>--请选择--</option>"+res[0]);
+		            }else{
+		                var zqHtml = "<option value =''>无政区数据</option>";
+		                contList.html(zqHtml);
+		            }
+		            window.closeAlert();
+		        },
+		        exceptionHandler:function(evt){
+		        	window.closeAlert();
+		            console.log("错误信息："+evt);
+		        }
+		};
+		var datas={tableName:tableName,whereStr:whereStr,selectVal:''};
+		$.ajax({
+		    url:"getReportZqList.web",
+		    type:"POST",
+		    data:{data:JSON.stringify(datas)},
+		    cache : false,
+		    dataType : 'json',
+		    success :option.callback,
+		    error:option.exceptionHandler
+		});
+	}
+    /**
+	 * 政区下拉框值改变事件
+	 */
+	function zqoptionClick(flag){
+		//清除关于审核的所有元素
+		clearForm();
+		clearLayer();
+		hideGridBtn();
+		hideTbBtn();
+		
+		var xian=$("#shdkSelect").val();
+		var width=Number($("#grid_width").val());
+		var height=Number($("#grid_height").val());
+		if(!xian){
+			mini.alert("请先选择需要审核的县！");
+			return;
+		}
+		if(!width||!height){
+			mini.alert("请先输入网格长宽！");
+			return;
+		}
+		cc=0.25;
+		//计算网格长宽
+		degTometer(width,height,cc);
+		//获取县四至
+		getZqExtent(xian,flag);
+	}
+	function getZqGridData(){
+		window.openAlert();
+		var xian=$("#shdkSelect").val();
+		var datas={xian:xian,userid:userObj.userId,datakey:"SHDKGDATA",appid:window.appid_};
+    	$.ajax({
+	        type:"post",  
+	        url:"shdk/getZqGridData.do", 
+	        dataType:"JSON",
+	        data:{data:JSON.stringify(datas)},
+	        success:function(data){
+	        	if(!data){
+	        		zqoptionClick();
+	            	window.closeAlert();
+	        	}else{
+	        		//清除关于审核的所有元素
+	        		clearForm();
+	        		clearLayer();
+	        		hideGridBtn();
+	        		hideTbBtn();
+	        		
+	        		var extent=data.extent;
+	        		xDvalue=data.grid_width_deg;
+	        		yDvalue=data.grid_height_deg;
+	        		xDvalue_km=data.grid_width_km;
+	        		yDvalue_km=data.grid_height_km;
+	        		cc=data.grid_space;
+	        		$("#grid_width").val(xDvalue_km);
+	        		$("#grid_height").val(yDvalue_km);
+	        		
+		    		xian_Extent=extent;
+		    		xian_Feature=$.extend({},feature);
+		    		ExtentGrid(true);
+		    		// 生成网格集合数据
+		    		idIndex={};
+		    		var ylayer=[],
+		    		yindex={},
+		    		wlayer=[],
+		    		windex={};
+		    		gridtitl=data.grid_data;
+	    			var e1=Number(extent[0]);
+	    			var e2=Number(extent[3]);
+		    		for(var i=0;i<gridtitl.length;i++){
+		    			var x=Number(gridtitl[i][0]);
+		    			var y=Number(gridtitl[i][1])+1;
+			            var geo={
+								"type":"Polygon",
+								"coordinates":[[[e1+(x*xDvalue),e2-(y*yDvalue)],
+								               [e1+((x+1)*xDvalue)-cc,e2-(y*yDvalue)],
+								               [e1+((x+1)*xDvalue)-cc,e2-((y-1)*yDvalue)-cc],
+								               [e1+(x*xDvalue),e2-((y-1)*yDvalue)-cc],
+								               [e1+(x*xDvalue),e2-(y*yDvalue)]]
+								],"crs":{"type":"name","properties":{"name":"EPSG:0"}}
+							};
+						var geojson = {
+								type: 'Feature',
+								geometry: geo,
+								properties: null
+							}
+						var feature=geojsonFormat.readFeature(geojson);
+						feature.setProperties({index:(i+1)});
+						idIndex[(i+1)]=$.extend({},feature);
+						
+		    			if(gridtitl[i][2]=="0"){
+		    				//未完成
+		    				var f=$.extend({},feature);
+				            f.setStyle(unselectStyle);
+				    		wlayer.push(f);
+				    		windex[(i+1)]=f;
+		    			}else if(gridtitl[i][2]=="1"){
+		    				//已完成
+		    				var f=$.extend({},feature);
+				            f.setStyle(ywcStyle);
+				    		ylayer.push(f);
+				    		yindex[(i+1)]=f;
+		    			}
+		    		}
+		    		shdk_ywc_layer.addFeatures(ylayer);
+		    		shdk_ywc_layer.idIndex_=yindex;
+		    		shdk_wwc_layer.addFeatures(wlayer);
+		    		shdk_wwc_layer.idIndex_=windex;
+		    		idIndex.length=gridtitl.length;
+		    		$("#shdk_grid_total").html(idIndex.length);
+		    		$("#shdk_grid_current").val(1);
+//		    		//自动选中第一个
+		    		gridIndex=1;
+		    		selectGrid(gridIndex,1);
+		    		getExtent(gridIndex);
+		    		$("#shdk_grid_current").val(idIndex[gridIndex].getProperties().index);
+	            	window.closeAlert();
+	        	}
+	        },
+			error: function (err) {
+				util.validateSession(err);
+				console.log(err);
+            	window.closeAlert();
+			}
+    	});
+	}
+	function saveZqGridData(flag){
+		var jsondata={
+				extent:xian_Extent,
+				grid_width_km:xDvalue_km,
+				grid_height_km:yDvalue_km,
+				grid_width_deg:xDvalue,
+				grid_height_deg:yDvalue,
+				grid_space:cc,
+				grid_data:gridtitl
+		}
+		var xian=$("#shdkSelect").val();
+		var datas={xian:xian,userid:userObj.userId,appid:window.appid_,datakey:"SHDKGDATA",jsondata:jsondata};
+    	var url="";
+		if(flag){
+			url="saveZqGridData.do";
+    	}else{
+    		url="updZqGridData.do";
+    	}
+		$.ajax({
+	        type:"post",  
+	        url:"shdk/"+url, 
+	        dataType:"JSON",
+	        data:{data:JSON.stringify(datas)},
+	        success:function(data){
+	        	console.log("保存网格信息成功");
+	        },
+			error: function (err) {
+				util.validateSession(err);
+				console.log(err);
+				mini.alert("保存失败");
+			}
+    	});
+	}
+    /**
+	 * 通过县code获取政区四至
+	 * @param template:弹出框表单模板
+	 */
+	function getZqExtent(xian,flag){
+		window.openAlert();
+    	$.ajax({
+	        type:"GET",  
+	        url:config.publicService+"/ws/rest/LS/search/"+xian, 
+	        dataType:"JSON",  
+	        success:function(data){
+	        	if(!data){
+	        		return;
+	        	}
+	        	var geojsonFormat = new ol.format.GeoJSON();
+	            var feature = geojsonFormat.readFeature(data.item.shape);
+	            feature.setStyle(selectStyle);
+	    		var extent=feature.getGeometry().getExtent();
+	    		xian_Extent=extent;
+	    		xian_Feature=$.extend({},feature);
+	    		ExtentGrid(true);
+	    		// 生成网格集合数据
+	    		var left=extent[0];
+	    		var bottom=extent[1];
+	    		var right=extent[2];
+	    		var top=extent[3];
+	    		gridxy=[];
+	    		var x=0,y=0;
+	    		//网格宽高向上取整
+	    		for(var i=left;i<=(right+xDvalue);i+=xDvalue){
+	    			gridxy[x]=[];
+	    			for(var j=top;j>=(bottom-yDvalue);j-=yDvalue){
+	    				gridxy[x][y]={
+	    						grid_col:i, grid_row:j, del:false, finished:false
+	    					};
+	    				y++;
+		    		}
+		    		if(i<=right){
+		    			y=0;
+		    		}
+	    			x++;
+	    		}
+	    		gridxy.width=x-1;
+	    		gridxy.height=y-1;
+	    		addGridLayer(flag);
+	        },
+			error: function (err) {
+				util.validateSession(err);
+				console.log(err);
+			}
+    	});
+	}
+    /**
+	 * 生成网格图层
+	 */
+	function addGridLayer(flag){
+		idIndex={};
+		for(var i=0;i<(gridxy.length-1);i++){
+			for(var j=0;j<(gridxy[i].length-1);j++){
+				var geo={
+					"type":"Polygon",
+					"coordinates":[[
+					                [gridxy[i][j]["grid_col"],gridxy[i][j]["grid_row"]],
+					                [gridxy[i+1][j]["grid_col"]-cc,gridxy[i][j]["grid_row"]],
+					                [gridxy[i+1][j]["grid_col"]-cc,gridxy[i][j+1]["grid_row"]+cc],
+					                [gridxy[i][j]["grid_col"],gridxy[i][j+1]["grid_row"]+cc],
+					                [gridxy[i][j]["grid_col"],gridxy[i][j]["grid_row"]]]],"crs":{"type":"name","properties":{"name":"EPSG:0"}}
+				};
+				var geojson = {
+						type: 'Feature',
+						geometry: geo,
+						properties: null
+					}
+				var feature=geojsonFormat.readFeature(geojson);
+				feature.setStyle(unselectStyle);
+				idIndex[j*gridxy.width+(i+1)]=feature;
+			}
+		}
+		isIntersection();
+		var features=[];
+		var k=1;
+		for(var key in idIndex){
+			if(typeof key =="string"){
+				idIndex[key].setProperties({index:k});
+				features.push(idIndex[key]);
+				k++;
+			}
+		}
+		idIndex.length=features.length;
+		shdk_wwc_layer.addFeatures(features);
+		shdk_wwc_layer.idIndex_=$.extend({},idIndex);
+		if(!flag){
+			saveZqGridData(true);
+			$("#shdk_grid_total").html(idIndex.length);
+			$("#shdk_grid_current").val(1);
+			
+			//自动选中第一个
+			gridIndex=1;
+			selectGrid(gridIndex,1);
+			getExtent(gridIndex);
+			$("#shdk_grid_current").val(idIndex[gridIndex].getProperties().index);
+		}else{
+			window.closeAlert();
+		}
+	}
+    /**
+	 * 高亮单元格
+	 * @param id:需要高亮的网格id
+	 */
+	function selectGrid(id,z){
+		//清除关于审核的所有元素
+		//全省则不再清除图斑信息
+		var radio=$(".zs-grid-tool .dhfw input:checked");
+		if(radio.attr("value")=="part"){
+			clearForm();
+			hideGridBtn();
+			hideTbBtn();
+		}
+		var f="";
+		var ck=$(".zs-grid-tool .line.wcqk input:checked");;
+		if(ck.length==2){
+			f=idIndex[id];
+		}else if(ck.length==1){
+			if(ck.attr("value")=="ywc"){
+				f=shdk_ywc_layer.getFeatureById(id);
+			}else if(ck.attr("value")=="wwc"){
+				f=shdk_wwc_layer.getFeatureById(id);
+			}
+		}else{
+			return;
+		}
+		if(f){
+			var f1=shdk_high_layer.getFeatureById(id);
+			if(f1){
+//				try{
+//					shdk_high_layer.removeFeature(f1);
+//					delete shdk_high_layer.idIndex_[id];
+//				}catch (e) {
+//				}
+			}else{
+				shdk_high_layer.clear();
+				shdk_high_layer.idIndex_={};
+				f1=$.extend({},idIndex[id]);
+				f1.setStyle(selectStyle);
+				shdk_high_layer.idIndex_[id]=f1;
+				shdk_high_layer.addFeature(f1);
+			}
+			//显示网格功能按钮
+			showGridBtn();
+		}else{
+			if(z!=0){//“0”为false
+				gridIndex=id+z;
+				var len=0;
+				var checks=$(".zs-grid-tool .line.wcqk input:checked");
+				if(checks.length==2){
+					len=idIndex.length;
+				}else if(checks.length==1){
+					if(checks.attr("value")=="ywc"){
+						for(var key in shdk_ywc_layer.idIndex_){
+							if(typeof key =="string"){
+								if(shdk_ywc_layer.idIndex_[key].getProperties().index==shdk_ywc_layer.getFeatures().length){
+									len=key;
+								}
+							}
+						}
+					}else if(checks.attr("value")=="wwc"){
+						for(var key in shdk_wwc_layer.idIndex_){
+							if(typeof key =="string"){
+								if(shdk_wwc_layer.idIndex_[key].getProperties().index==shdk_wwc_layer.getFeatures().length){
+									len=key;
+								}
+							}
+						}
+					}
+				}else{
+					return;
+				}
+				if(len){
+					if(gridIndex<1){
+						gridIndex=len;
+					}else if(gridIndex>len){
+						gridIndex=1;
+					}
+					
+					selectGrid(gridIndex,z);
+				}else{
+					gridIndex=1;
+				}
+			}
+		}
+	}
+	function getExtent(id){
+		try{
+			var extent="";
+			var radio=$(".zs-grid-tool .dhfw input:checked");
+			if(radio.attr("value")=="all"){//全县
+				extent=xian_Extent;
+			}else if(radio.attr("value")=="part"){
+				extent=idIndex[id].getGeometry().getExtent();
+			}
+			getGridData(extent);
+		}catch(e){
+			
+		}
+	}
+    /**
+	 * 通过四至获取图斑的id与经纬度信息
+	 * @param extent:四至
+	 */
+	function getGridData(extent){
+		var nd = "2017";
+		var xian = $("#shdkSelect").val();
+		var url = config.publicService+"/ws/rest/DS/export/zyjg/";
+		var shzt="";
+		var ck=$(".zs-grid-tool .line.shzt input:checked");
+		ck.each(function(e){
+			shzt+=ck[e].value+",";
+		});
+		if(!shzt){
+			mini.alert("请先选择审核内容！");
+			return;
+		}
+		shzt=shzt.substring(0,shzt.length-1);
+		url += extent[0]+"/"+extent[1]+"/"+extent[2]+"/"+extent[3]+"/"+nd+"/"+xian+"/"+shzt;
+		window.openAlert();
+        $.ajax({
+            url: url,
+            type: "GET",
+            success: function (res) {
+                if (res.message == "sucess") {
+                    var features = [];
+                    var data = res.data;
+                    ids=[];
+	            	xys={};
+	            	total=0;
+                    for (var i = 0; i < data.length; i++) {
+                    	if(data[i].lon&&data[i].lat&&data[i].lon.length>6&&data[i].lat>6){
+                    		total++;
+                        	ids.push(data[i].id);
+                        	var name=data[i].c_xiang+data[i].c_cun+data[i].c_xiaoban+"小班";
+                        	xys[data[i].id]={lon:data[i].lon,lat:data[i].lat,name:name};
+                    	}
+                    }
+                    ids=ids.sort();
+                    var shdk_current = $("#shdk_current");
+		            var shdk_total = $("#shdk_total");
+		            shdk_current.val("0");
+		            shdk_total.html("0");
+		            $("#shtbSelect").html("<option value =''>无图斑数据</option>");
+		            if(total>0){
+			            shdk_current.val("1");
+			            shdk_total.html(total);
+			    		setTboption();
+			    		// 获取数据
+			    		getData(xys[ids[0]]);
+		            }else{
+		            	high_layer.clear();
+		        		publicObj.features=[];
+		            	window.closeAlert();
+		            }
+                } else {
+                	window.closeAlert();
+                }
+            },
+            error: function (e) {
+            }
+        });
+	}
+	/**
+	 * 图斑选中事件
+	 */
+	function TboptionClick(){
+		var id=$("#shtbSelect").val();
+		var i=0;
+		for(var key in xys){
+			if(typeof key =="string"){
+				i++;
+				if(key==id){
+		            break;
+				}
+			}
+		}
+		clearForm();
+		$("#shdk_current").val(i);
+		getData(xys[id]);
+	}
+	/**
+	 * 图斑下拉列表
+	 */
+	 function setTboption(){
+         var contList = $("#shtbSelect");
+         if(!xys){
+        	 contList.html("<option value =''>无图斑数据</option>");
+        	 return;
+         }
+         var zqHtml = "";
+         var i=0;
+         for(var key in xys){
+        		if(typeof key =="string"){
+        			i++;
+        			zqHtml+="<option oid='"+i+"' value ='"+key+"'>"+xys[key]["name"]+"</option>";
+        		}
+        	}
+         contList.html(zqHtml);
+	 }
+    /**
+	 * 通过xy点坐标获取数据
+	 * @param coor：点坐标xy
+	 */
+	function getData(data){
+		clearForm();
+		high_layer.clear();
+		publicObj.features=[];
+		var coor=[data.lon,data.lat];
+		var name=data.name;
+		
+		// 如果是最后一个，则禁用“下一个”功能按钮
+//		if($("#shdk_current").val()==total){
+//			$(".zs-btn.xyg-button").addClass("disabled").attr("disabled", "disabled");
+//		}else{
+			$(".zs-btn.xyg-button").removeClass("disabled").attr("disabled", false);
+//		}
+//		if($("#shdk_current").val()==1){
+//			$(".zs-btn.syg-button").addClass("disabled").attr("disabled", "disabled");
+//		}else{
+			$(".zs-btn.syg-button").removeClass("disabled").attr("disabled", false);
+//		}
+		if(!coor||!(Number(coor[0])&&Number(coor[1]))){
+			mini.alert("坐标不正确！");
+			return;
+		}
+		var form = $('#popIbox_shdk')[0];
+		var elements = form.getElementsByTagName('input');
+		var callback = function (res) {
+			if (typeof res == 'object' && res.success) {
+				var data = JSON.parse(res.data);
+				newData=data;
+				elements.C_XIAN.value = data.C_XIAN || '';
+				elements.C_XIANNAME.value = data.C_XIANNAME || '';
+				elements.C_XIANG.value = data.C_XIANG || '';
+				elements.C_CUN.value = Number(data.C_CUN) ? (Number(data.C_CUN)) : (data.C_CUN || '');
+				elements.C_XIAOBAN.value = Number(data.C_XIAOBAN) ? (Number(data.C_XIAOBAN)) : (data.C_XIAOBAN || '');
+				elements.C_WORKYEAR.value = data.C_WORKYEAR || '';
+				elements.I_LON_DEG.value = coor[0]/* .toFixed(2) */;
+				var lonArr = util.getDFM(coor[0]);
+				elements.lon.value = lonArr[0] + "°" + lonArr[1] + "′" + lonArr[2] + "″";
+				elements.I_LAT_DEG.value = coor[1]/* .toFixed(2) */;
+				var latArr = util.getDFM(coor[1]);
+				elements.lat.value = latArr[0] + "°" + latArr[1] + "′" + latArr[2] + "″";
+				elements.D_AREA.value = data.D_AREA || '';
+				elements.C_YSBHYY.value = data.C_YSBHYY || '';
+				$(elements.C_YSBHYY).siblings().val(data.C_YSBHYY);
+				elements.C_HSBHYY.value = data.C_HSBHYY || '';
+				$(elements.C_HSBHYY).siblings().val(data.C_HSBHYY);
+				elements.C_YIJU.value = data.C_YIJU || '';
+				elements.C_USERNAME.value = data.C_USERNAME || '';
+				elements.DT_CREATETIME.value = data.DT_CREATETIME || '';
+				elements.C_CHECKUSERNAME.value =  userObj.realName||data.C_CHECKUSERNAME;
+				elements.DT_CHECKTIME.value = util.getDate("yyyy-MM-dd")||data.DT_CHECKTIME;
+				elements.C_STATUS_DESC.value = data.C_STATUS_DESC||'';
+
+				if([1,2,-1].indexOf(data.C_STATUS)==-1){
+					$(".zs-btn.tg-button").removeClass("disabled").attr("disabled", false);
+					$(".zs-btn.cz-button").removeClass("disabled").attr("disabled", false);
+					$(".zs-btn.bsbh-button").removeClass("disabled").attr("disabled", false);
+				}
+				setActive(data);
+			}else{
+				if(publicObj.features.length!=0){
+					high_layer.clear();
+					publicObj.features=[];
+				}
+//				mini.alert("查询失败");
+			}
+			window.closeAlert();
+		}
+		window.openAlert();
+		queryLayer.queryBySpace(coor, '2017', { queryType: "bhdk" }, callback);
+	}
+	function reload(){
+		var features=shdk_high_layer.getFeatures();
+		if(features&&features.length>0){
+			for(var key in shdk_high_layer.idIndex_){
+				if(typeof key =="string"){
+					selectGrid(key,0);
+					getExtent(gridIndex);
+					$("#shdk_grid_current").val(idIndex[gridIndex].getProperties().index);
+				}
+			}
+		}
+	}
+    /**
+	 * 获取一条数据
+	 * 
+	 * @param type：判断向上获取||向下获取
+	 */
+	function NextData(type){
+		var shdk_current = $("#shdk_current");
+		var len=0;
+		if(!type){
+			len=Number(shdk_current.val())+1;
+		}else{
+			len=Number(shdk_current.val())-1;
+		}
+		//图班的游标循环
+		if(len<=0){
+			len=ids.length;
+		}else if(len>ids.length){
+			len=1;
+		}
+		//选中图斑下拉列表
+		shdk_current.val(len);
+		$("#shtbSelect").val(ids[len-1]);
+		getData(xys[ids[len-1]]);
+	}
+    /**
+	 * 获取全图或单个网格的四至，并定位
+	 * @param flag:判断是全图网格||单个网格
+	 */
+	function ExtentGrid(flag){
+		var extent=[];
+		if(flag){
+			extent=xian_Extent;
+		}else{
+			var features=shdk_high_layer.getFeatures();
+			if(features&&features.length>0){
+				extent=features[0].getGeometry().getExtent();
+			}else{
+				return;
+			}
+		}
+		if(extent.length!=0)
+			map.getMap().getView().fit(extent);
+	}
+    /**
+	 * 移动到下一个网格
+	 * @param flag:判断是上一个网格||下一个网格
+	 */
+	function NextGrid(flag){
+		var shdk_grid_current=$("#shdk_grid_current");
+		if(flag){
+			gridIndex=Number(gridIndex)-1;
+			selectGrid(gridIndex,-1);
+		}else{
+			gridIndex=Number(gridIndex)+1;
+			selectGrid(gridIndex,1);
+		}
+		//全省则不再查询
+		var radio=$(".zs-grid-tool .dhfw input:checked");
+		if(radio.attr("value")=="part"){
+			getExtent(gridIndex);
+		}
+		$("#shdk_grid_current").val(idIndex[gridIndex].getProperties().index);
+		var view=map.getMap().getView();
+		if(view.getZoom()>12){
+//			var point=shdk_high_layer.getFeatures()[0].getGeometry().getLastCoordinate();
+//			point=[point[0]+xDvalue/2,point[1]+yDvalue/2];
+//			view.setCenter(point);
+			$(".fd-grid-button").click();
+		}
+	}
+	function inputIndex(){
+		var val=Number($("#shdk_current").val());
+		if(!val||val<1||val>ids.length){
+			$("#shdk_current").val($("#shtbSelect :checked").attr("oid"));
+			return;
+		}
+		val=Math.floor(val);
+		$("#shdk_current").val(val);
+		var i=0;
+		for(var key in ids){
+		    if(typeof key =="string"){
+		        i++;
+		        if(i==val){
+		        	i=key;
+		            break;
+		        }
+		    }
+		}
+		$("#shtbSelect").val(ids[i]);
+		getData(xys[ids[i]]);
+	}
+	function inputGridIndex(){
+		var val=Number($("#shdk_grid_current").val());
+		if(!val||val<1||val>idIndex.length){
+			$("#shdk_grid_current").val(gridIndex);
+			return;
+		}
+		val=Math.floor(val);
+		$("#shdk_current").val(val);
+		for(var key in idIndex){
+		    if(typeof key =="string"){
+		        if(idIndex[key].getProperties().index==val){
+		    		gridIndex=key;
+					break;
+				}
+		    }
+		}
+		selectGrid(gridIndex,0);
+		//全省则不再查询
+		var radio=$(".zs-grid-tool .dhfw input:checked");
+		if(radio.attr("value")=="part"){
+			getExtent(gridIndex);
+		}
+	}
+    /**
+	 * 标记网格完成||未完成
+	 * @param id:需要标记的网格id
+	 * @param flag:完成||未完成
+	 */
+	function check_ywc_layer(id,flag){
+		var f=idIndex[id];
+		if(f){
+			var f1=shdk_ywc_layer.getFeatureById(id);
+			if(flag){//审核-已完成
+				if(!f1){
+					f.setStyle(ywcStyle);
+					shdk_ywc_layer.idIndex_[id]=f;
+					shdk_ywc_layer.addFeature(f);
+					
+					delete shdk_wwc_layer.idIndex_[id];
+					shdk_wwc_layer.removeFeature(f);
+					sortLayer();
+					//更新网格信息
+					var i=0;
+			        for(var k in idIndex){
+			            if(typeof k == "string"&&k!="length"){
+							i++;
+			                if(k==id){
+								gridtitl[(id-1)][2]=1;
+								saveZqGridData(false);
+								break;
+			                }
+			            }
+			        }
+				}
+			}else{//审核-未完成
+				if(f1){
+					delete shdk_ywc_layer.idIndex_[id];
+					shdk_ywc_layer.removeFeature(f1);
+					
+					f.setStyle(unselectStyle);
+					shdk_wwc_layer.idIndex_[id]=f;
+					shdk_wwc_layer.addFeature(f);
+					sortLayer();
+				}
+			}
+		}
+	}
+	function sortLayer(){
+		var checks=$(".zs-grid-tool .line.wcqk input:checked");
+		if(checks.length==2){
+			var i=0;
+			for(var key in idIndex){
+				if(typeof key =="string"&&key!="length"){
+					i++;
+					var f=shdk_ywc_layer.getFeatureById(key);
+					if(f)f.setProperties({index:i});
+
+					var f1=shdk_wwc_layer.getFeatureById(key);
+					if(f1)f1.setProperties({index:i});
+				}
+			}
+			$("#shdk_grid_total").html(idIndex.length);
+		}else if(checks.length==1){
+			var i=0;
+			for(var key in shdk_ywc_layer.idIndex_){
+				if(typeof key =="string"&&key!="length"){
+					i++
+					var f=shdk_ywc_layer.getFeatureById(key);
+					f.setProperties({index:i});
+				}
+			}
+			i=0;
+			for(var key in shdk_wwc_layer.idIndex_){
+				if(typeof key =="string"&&key!="length"){
+					i++
+					var f=shdk_wwc_layer.getFeatureById(key);
+					f.setProperties({index:i});
+				}
+			}
+			if(checks.attr("value")=="ywc"){
+				$("#shdk_grid_total").html(shdk_ywc_layer.getFeatures().length);
+			}else if(checks.attr("value")=="wwc"){
+				$("#shdk_grid_total").html(shdk_wwc_layer.getFeatures().length);
+			}
+			selectGrid(gridIndex,1);
+			getExtent(gridIndex);
+		}else{
+			$("#shdk_grid_total").html(0);
+			$("#shdk_grid_current").html(0);
+		}
+	}
+	function setGridVisible(){
+		var checks=$(".zs-grid-tool .line.wcqk input:checked");
+		var ywc_layer=map.getLayerByName("SHDK_YWC_LAYER");
+		var wwc_layer=map.getLayerByName("SHDK_WWC_LAYER");
+		if(checks.length==0){
+			ywc_layer.setVisible(false);
+			wwc_layer.setVisible(false);
+		}
+		if(checks.length==1){
+			var layer={};
+			if(checks.attr("value")=="ywc"){
+				wwc_layer.setVisible(false);
+				ywc_layer.setVisible(true);
+				layer=shdk_ywc_layer;
+			}
+			if(checks.attr("value")=="wwc"){
+				wwc_layer.setVisible(true);
+				ywc_layer.setVisible(false);
+				layer=shdk_wwc_layer;
+			}
+			sortLayer();
+		}
+		if(checks.length==2){
+			ywc_layer.setVisible(true);
+			wwc_layer.setVisible(true);
+			sortLayer();
+		}
+	}
+    /**
+	 * 高亮图斑
+	 * @param data:图斑基本信息
+	 */
+	function setActive(data){
+		// 判断是否有此图层，避免编辑图形时报错
+		var layerName = data.C_XIAN + "_" + data.C_WORKYEAR;
+		if(!publicObj.getLayerByName(layerName)){
+// if(!layer&&confirm("您选中"+$("#shdkSelect").find("option:selected").text()+"的数据！是否选中？")){
+			var tree=treeHelper.getTree("zyjg");
+			nodeClick(tree.getNodes()[0],layerName);
+		}
+		// 高亮
+		var geojson = {
+            type: 'Feature',
+            geometry: JSON.parse(data.shape),
+            properties: { ID: data.ID+"", C_XIAN: data.C_XIAN, C_WORKYEAR: data.C_WORKYEAR,C_STATUS:data.C_STATUS,I_CREATEUSERID:data.I_CREATEUSERID}
+        }
+        var feature = geojsonFormat.readFeature(geojson);
+		publicObj.features.push(feature);
+		feature.setStyle(selectStyle);
+		high_layer.addFeature(feature);
+		
+		map.getMap().getView().fit(feature.getGeometry().getExtent());
+		map.getMap().getView().setZoom(14);
+
+		!data.C_STATUS?data.C_STATUS="0":"0";
+		setButtonStatus(data.C_STATUS);
+	}
+    /**
+	 * 选中对应县的变化图斑图层树
+	 * @param node：bhdk的节点
+	 * @param layerName：县code+nd组成，例“201020_2017”
+	 */
+	function nodeClick(node,layerName){
+		if(node.children&&node.children.length>0){
+			for(var i=0;i<node.children.length;i++){
+				nodeClick(node.children[i],layerName);
+			}
+		}else{
+			if(node.selectId&&node.selectId==layerName){
+				var tid =$("[tid='"+node.id+"'] i");
+				if(!tid.parent("a").hasClass("selected")){
+					$("[tid='"+node.id+"'] i").click();
+				}
+			}
+		}
+	}
+    /**
+	 * 解析模板，生成表单的html
+	 * @param template:弹出框表单模板
+	 */
+	function getPopHtml(template) {
+		var arr = typeof template.C_NR == 'object' ? template.C_NR : JSON.parse(template.C_NR);
+		var data = {};
+		var html = "<div class='zs-nicescroll'>" +
+				"<form id='popIbox_shdk'><table class='fore-common-form-tabs'";
+		window.optionClick = optionClick;
+		for (var i = 0; i < arr.length; i++) {
+			var fieldObj = arr[i];
+			html += "<tr><td class='text'>" + fieldObj.DICTNAME + "</td>";
+			var value = data[fieldObj.FIELDNAME] ? data[fieldObj.FIELDNAME] : '';
+			if (fieldObj.GROUP) {
+				html += "<td class='input'>";
+				var groupArr = fieldObj.GROUP;
+				for (var z = 0; z < groupArr.length; z++) {
+					var item = groupArr[z];
+					var itemValue = data[item.FIELDNAME] ? data[item.FIELDNAME] : '';
+					html += "<input type='text' style='width:35px;' name= '" + item.FIELDNAME + "'value='" + itemValue + "'/> " + item.DICTNAME + " ";
+				}
+				html += "</td></tr>";
+			} else if (fieldObj.DICTITEM) {
+				var itemArr = fieldObj.DICTITEM;
+				html += "<td class='input'>" +
+					"<input type='hidden' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>" +
+					"<select style='width:160px;' onchange='optionClick(this)'>" +
+					"<option value=''>--请选择--</option>";
+				for (var j = 0; j < itemArr.length; j++) {
+					var item = itemArr[j];
+					if (value == item.NAME) {
+						html += "<option selected='selected' value='" + item.NAME + "'>" + item.NAME + "</option>";
+					} else {
+						html += "<option value='" + item.NAME + "'>" + item.NAME + "</option>";
+					}
+				}
+				html += "</select>" + "</td></tr>";
+			} else {
+				if (fieldObj.FIELDNAME == "I_LON_DEG") {
+					html += "<td class='input'>"
+						+ "<input type='hidden' style='width:160px;' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>"
+						+ "<input type='text' style='width:160px;' value='' name='lon'/>"
+						+ "</td></tr>";
+				} else if (fieldObj.FIELDNAME == "I_LAT_DEG") {
+					html += "<td class='input'>"
+						+ "<input type='hidden' style='width:160px;' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>"
+						+ "<input type='text' style='width:160px;' value='' name='lat'/>"
+						+ "</td></tr>";
+				} else if (fieldObj.FIELDNAME == "C_XIAN") {
+					html += "<td class='input'>"
+						+ "<input type='hidden' style='width:160px;' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>"
+						+ "<input type='text'    style='width:160px;' value='' name='C_XIANNAME'/>"
+						+ "</td></tr>";
+				} else if (fieldObj.FIELDNAME == "C_USERNAME") {
+					html += "<td class='input'>"
+						+ "<input type='text' readonly='readonly' style='width:160px;' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>"
+						+ "</td></tr>";
+				}
+				else if (fieldObj.FIELDNAME == "DT_CREATETIME") {
+					html += "<td class='input'>"
+						+ "<input type='text' style='width:160px;'  readonly='readonly' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>"
+						+ "</td></tr>";
+				} else if (fieldObj.FIELDNAME == "C_CHECKUSERNAME") {
+					html += "<td class='input'>"
+						+ "<input type='text' readonly='readonly' style='width:160px;' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>"
+						+ "</td></tr>";
+				}
+				else if (fieldObj.FIELDNAME == "DT_CHECKTIME") {
+					html += "<td class='input'>"
+						+ "<input type='text' style='width:160px;'  readonly='readonly' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>"
+						+ "</td></tr>";
+				}
+				else if (fieldObj.FIELDNAME == "C_STATUS_DESC") {
+					html += "<td class='input'>"
+						+ "<input type='text' style='width:160px;'  readonly='readonly' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>"
+						+ "</td></tr>";
+				}
+				else {
+					html += "<td class='input'>"
+						+ "<input type='text' style='width:160px;' value='" + value + "' name='" + fieldObj.FIELDNAME + "'/>"
+						+ "</td></tr>";
+				}
+			}
+		}
+		html += "</table></form></div>";
+		html += "<div class='fore-core-btnboxs'>" +
+		"<button class='zs-btn disabled tg-button' disabled='disabled' style='padding: 0px 10px;'>通过</button>" +
+		"<button class='zs-btn disabled cz-button' disabled='disabled' style='padding: 0px 10px;'>重做</button>" +
+		"<button class='zs-btn disabled bsbh-button' disabled='disabled' style='padding: 0px 10px;'>不是变化</button></div>";
+		return html;
+	}
+	// select标签的change事件
+	function optionClick(e) {
+		$(e).siblings("input").val(e.value);
+	}
+    /**
+	 * 设置“区划”工具栏状态
+	 * @param status:图斑审核状态
+	 */
+	function setButtonStatus(status) {
+		var tools = $(".board-qh a");
+		var disableArr = [];
+		if (status) {
+			switch (status) {
+				case "0":// 未审核
+					disableArr = ["tool-cj", "tool-fg", "tool-hb", "tool-sc", "tool-sx"];
+					break
+				case "1":// 审核通过
+					disableArr = ["tool-cj","tool-xb", "tool-jdbj", "tool-fg", "tool-hb", "tool-sc", "tool-sx"];
+					break
+				case "2":// 审核通过（有修改）
+					disableArr = ["tool-cj","tool-xb", "tool-jdbj", "tool-fg", "tool-hb", "tool-sc", "tool-sx"];
+					break
+				case "3":// 重做
+					disableArr = ["tool-cj", "tool-fg", "tool-hb", "tool-sc", "tool-sx"];
+					break
+				case "-1":// 无变化
+					disableArr = ["tool-cj", "tool-fg", "tool-hb", "tool-sc", "tool-sx"];
+					break
+				case "98":// 工具栏按钮放开
+					break
+			}
+		} else {
+			disableArr = ["tool-cj","tool-xb", "tool-jdbj", "tool-fg", "tool-hb", "tool-sc", "tool-sx"];
+		}
+		var len = tools.length;
+		for (var i = 0; i < len; i++) {
+			var e = tools[i];
+			if (e.className.indexOf("tool-ht") < 0) {
+				$(e).removeClass("disable");
+			}
+			if (disableArr.contains(e.className)) {
+				$(e).addClass("disable");
+			}
+		}
+	}
+	function degTometer(width,height,wh){
+		xDvalue_km=width;
+		yDvalue_km=height;
+		var m=360.0 / (6371000 * 2 * Math.PI);
+		xDvalue=width*1000*m;
+		yDvalue=height*1000*m;
+		cc=wh*1000*m;
+	}
+	function isIntersection(){
+		var allFeature_ = $.extend({},idIndex);
+		var parser_ = new jsts.io.OL3Parser();
+		var drawGraphics = parser_.read(xian_Feature.getGeometry());
+		var i=0;
+		gridtitl=[];
+		for(var key in allFeature_){
+			if(typeof key =="string"){
+				var currentGraphics = parser_.read(allFeature_[key].getGeometry());
+		        var overlapGraphics = currentGraphics.intersection(drawGraphics);
+		        if(overlapGraphics.getArea()<=0){
+		            delete idIndex[key];
+		        }else{
+		        	gridtitl[i]=[(key-1)%gridxy.width,Math.floor(key/gridxy.width),0];
+			        i++;
+		        }
+			}
+		}
+	}
+	function clearForm(){
+		// 清空表单元素
+		var form = document.getElementById("popIbox_shdk");  
+		if(form){
+			var tagElements = form.getElementsByTagName('input');  
+			for (var j = 0; j < tagElements.length; j++){ 
+				tagElements[j].value="";
+			}
+			var tagElements = form.getElementsByTagName('select'); 
+			for (var j = 0; j < tagElements.length; j++){ 
+				tagElements[j].value="";
+			}
+		}
+		//审核按钮禁用
+		$(".zs-btn.tg-button").addClass("disabled").attr("disabled", "disabled");
+		$(".zs-btn.cz-button").addClass("disabled").attr("disabled", "disabled");
+		$(".zs-btn.bsbh-button").addClass("disabled").attr("disabled", "disabled");
+
+		//清除“区划”工具栏
+		$(".tool-qc").click();
+	}
+	function clearLayer(){
+		//清除审核图层
+		shdk_ywc_layer.clear();
+		shdk_wwc_layer.clear();
+		shdk_high_layer.clear();
+		shdk_ywc_layer.idIndex_={};
+		shdk_wwc_layer.idIndex_={};
+		shdk_high_layer.idIndex_={};
+		
+		//清除高亮元素
+		high_layer.clear();
+		publicObj.features=[];
+	}
+	function hideGridBtn(){
+		$(".zs-btn.qt-grid-button").addClass("disabled").attr("disabled", "disabled");
+		$(".zs-btn.fd-grid-button").addClass("disabled").attr("disabled", "disabled");
+		$(".zs-btn.syg-grid-button.prev").removeClass("line").addClass("disabled").attr("disabled", "disabled");
+		$(".zs-btn.xyg-grid-button.next").removeClass("line").addClass("disabled").attr("disabled", "disabled");
+		$(".zs-btn.shwg-grid-button.endLeft").addClass("disabled").attr("disabled", "disabled");
+
+		$("#shdk_grid_current").val("0");
+		$("#shdk_grid_total").html("0");
+	}
+	function hideTbBtn(){
+		$(".zs-btn.syg-button.prev").removeClass("line").addClass("disabled").attr("disabled", "disabled");
+		$(".zs-btn.xyg-button.next").removeClass("line").addClass("disabled").attr("disabled", "disabled");
+		$("#shdk_current").val("0");
+		$("#shdk_total").html("0");
+		//清空图斑下拉框
+		$("#shtbSelect").html("<option value =''>无图斑数据</option>");
+	}
+	function showGridBtn(){
+		$(".zs-btn.qt-grid-button").removeClass("disabled").attr("disabled", false);
+		$(".zs-btn.fd-grid-button").removeClass("disabled").attr("disabled", false);
+		$(".zs-btn.syg-grid-button.prev").addClass("line").removeClass("disabled").attr("disabled", false);
+		$(".zs-btn.xyg-grid-button.next").addClass("line").removeClass("disabled").attr("disabled", false);
+		$(".zs-btn.shwg-grid-button.endLeft").removeClass("disabled").attr("disabled", false);
+
+		if(idIndex[gridIndex]){
+			$("#shdk_grid_current").val(idIndex[gridIndex].getProperties().index);
+		}
+		
+		var checks=$(".zs-grid-tool .line.wcqk input:checked");
+		if(checks.length==2){
+			$("#shdk_grid_total").html(idIndex.length);
+		}else if(checks.length==1){
+			if(checks.attr("value")=="ywc"){
+				$("#shdk_grid_total").html(shdk_ywc_layer.getFeatures().length);
+			}else if(checks.attr("value")=="wwc"){
+				$("#shdk_grid_total").html(shdk_wwc_layer.getFeatures().length);
+			}
+		}else{
+			$("#shdk_grid_total").html(0);
+		}
+	}
+	function showTbBtn(){
+		$(".zs-btn.syg-button.prev").addClass("line").removeClass("disabled").attr("disabled", false);
+		$(".zs-btn.xyg-button.next").addClass("line").removeClass("disabled").attr("disabled", false);
+		$("#shdk_current").val("0");
+		$("#shdk_total").html("0");
+		//清空图斑下拉框
+		$("#shtbSelect").html("<option value =''>无图斑数据</option>");
+	}
+	return {
+		init:init,
+	}
+});

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:s="http://www.springframework.org/schema/security" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+    	http://www.springframework.org/schema/beans 
+        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd  
+        http://www.springframework.org/schema/security 
+        http://www.springframework.org/schema/security/spring-security.xsd">
+
+    <s:global-method-security pre-post-annotations="enabled"> </s:global-method-security>
+    <!-- 该路径下的资源不做安全过滤  -->
+    <s:http pattern="/dwr/**" security="none"/>
+   	<s:http pattern="/help/**" security="none" />
+   	<s:http pattern="/images/**" security="none" />
+   	<s:http pattern="/js/**" security="none" />
+  	<s:http pattern="/script/**" security="none" />
+   	<s:http pattern="/style/**" security="none" />
+   	<s:http pattern="/**/*.jhtml" security="none" />
+   	<s:http pattern="/**/*.jspx" security="none" />
+   	<s:http pattern="/jeeadmin/jeecms/**" security="none"/>
+   	<s:http pattern="/uploader" security="none" />
+   	<s:http pattern="/delFileServlet" security="none" />	    	
+   	<s:http pattern="/Template/**" security="none"/>
+   	<s:http pattern="/fileDownLoadServlet**" security="none"/>
+   	<s:http pattern="/home.html" security="none" />
+   	<s:http pattern="/login.html" security="none" />
+   	<s:http pattern="/_drtc.html" security="none" />
+   	<s:http pattern="/shape.html" security="none" />
+   	<s:http pattern="/login.do" security="none" />
+   	<s:http pattern="/logout.do" security="none" />
+   	<s:http pattern="/getfile.do" security="none" />
+   	<s:http pattern="/queryState.do" security="none" />
+   	<s:http pattern="/zyjgZt.do" security="none" />
+   	<s:http pattern="/zyjgMap.do" security="none" />
+   	<s:http pattern="/bhdk/*.do" security="none" />
+   	<s:http pattern="/shdk/*.do" security="none" />
+   	<s:http pattern="/report/*.do" security="none" />
+    <!-- 该路径下的资源不用过滤 WebRoot 目录 -->
+    <!--
+        auto-config = true 则使用from-login. 如果不使用该属性 则默认为http-basic(没有session).
+        lowercase-comparisons：表示URL比较前先转为小写。 path-type：表示使用Apache Ant的匹配模式。
+        access-denied-page：访问拒绝时转向的页面。
+        access-decision-manager-ref：指定了自定义的访问策略管理器。当系统角色名的前缀不是默认的ROLE_时，需要自定义访问策略管理器。
+    -->
+    <s:http use-expressions="true" auto-config="false" 
+        entry-point-ref="authenticationProcessingFilterEntryPoint" disable-url-rewriting="true" >
+    	<s:access-denied-handler error-page="/common/accessDenied.htm"/>
+        <!--
+            logout-url：指定了用于响应退出系统请求的URL。
+            logout-success-url：退出系统后转向的URL。
+            invalidate-session：指定在退出系统时是否要销毁Session。-->
+        <s:logout invalidate-session="true" logout-success-url="/login.do" logout-url="/logout.do" />
+        <!-- 实现免登陆验证 -->
+        <s:remember-me />
+        <s:custom-filter ref="loginFilter" position="FORM_LOGIN_FILTER"  /> 
+        <!-- 同步 Session管理-->
+        <s:custom-filter ref="concurrencyFilter" position="CONCURRENT_SESSION_FILTER" />
+        <s:custom-filter ref="securityFilter" before="FILTER_SECURITY_INTERCEPTOR" />
+    </s:http>
+    
+    <!--   登录验证器配置   S --> 
+    <bean id="loginFilter" class="com.forestar.safe.security.SafeAuthenticationProcessingFilter">  
+        <!-- 处理登录的action 表单提交地址，默认为/j_spring_security_check-->  
+        <property name="filterProcessesUrl" value="/security_check"/>  
+        <property name="authenticationManager" ref="authenticationManager"/>  
+        <!-- 验证成功后的处理-->  
+        <property name="authenticationSuccessHandler" ref="loginLogAuthenticationSuccessHandler"/>  
+        <!-- 验证失败后的处理-->  
+        <property name="authenticationFailureHandler" ref="simpleUrlAuthenticationFailureHandler"/>  
+        <property name="sessionAuthenticationStrategy" ref="sas"/>
+    </bean>
+    <!-- 验证成功后的处理-->  
+    <bean id="loginLogAuthenticationSuccessHandler" class="com.forestar.safe.security.SafeAuthenticationSuccessHandler">  
+        <property name="defaultTargetUrl" value="/index.do"/>  
+    </bean> 
+    <!-- 验证失败后的处理--> 
+    <!-- 可以配置相应的跳转方式。属性forwardToDestination为true采用forward false为sendRedirect -->  
+    <bean id="simpleUrlAuthenticationFailureHandler" class="com.forestar.safe.security.SafeAuthenticationFailureHandler">  
+        <property name="defaultFailureUrl" value="/login.do?error=true"/>  
+    </bean>  
+    <!--  登录验证器配置    E --> 
+    
+    
+    <!-- Session 管理配置  S -->
+    <!-- ConcurrentSessionFilter过滤器配置(主要设置账户session过期路径) -->  
+	<bean id="concurrencyFilter" class="org.springframework.security.web.session.ConcurrentSessionFilter">  
+	    <property name="expiredUrl" value="/login.do"/>  
+	    <property name="sessionRegistry" ref="sessionRegistry"/>  
+	</bean>    
+    <!-- Session 管理器  -->  
+    <bean id="sas" class="org.springframework.security.web.authentication.session.ConcurrentSessionControlAuthenticationStrategy">
+        <constructor-arg name="sessionRegistry" ref="sessionRegistry" />
+        <!-- 允许用户帐号登录的次数 -->
+        <property name="maximumSessions" value="1" />
+        <!--  默认为false，此值表示：用户第二次登录时，前一次的登录信息都被清空 
+                true时系统会拒绝第二次登录-->
+        <property name="exceptionIfMaximumExceeded" value="false" />
+    </bean>
+    <bean id="sessionRegistry" class="org.springframework.security.core.session.SessionRegistryImpl" />
+    <!-- Session 管理配置  E -->
+    
+    <!--
+                   事件监听:实现了
+        ApplicationListener监听接口，包括AuthenticationCredentialsNotFoundEvent 事件，
+        AuthorizationFailureEvent事件，AuthorizedEvent事件， PublicInvocationEvent事件
+    -->
+    <bean class="org.springframework.security.authentication.event.LoggerListener" />
+    
+    <!-- 配置过滤器 -->
+    <bean id="securityFilter" class="com.forestar.safe.security.SafeSecurityFilter">
+        <!-- 用户拥有的权限 -->
+        <property name="authenticationManager" ref="authenticationManager" />
+        <!-- 用户是否拥有所请求资源的权限 -->
+        <property name="accessDecisionManager" ref="accessDecisionManager" />
+        <!-- 资源与权限对应关系 -->
+        <property name="securityMetadataSource" ref="mySecurityMetadataSource" />
+    </bean>
+
+    <s:authentication-manager alias="authenticationManager">
+        <s:authentication-provider ref="customAuthenticationProvider" >
+        </s:authentication-provider>
+    </s:authentication-manager>
+    
+    <!-- 系统运行时加载 系统要拦截的资源   与用户请求时要过滤的资源 -->
+    <bean id="mySecurityMetadataSource" class="com.forestar.safe.security.SafeSecurityMetadataSource">
+    </bean>
+    
+    <!-- 获取用户登入角色信息 -->
+    <bean id="myUserDetailServiceImpl" class="com.forestar.safe.security.SafeUserDetailService"/>
+    <bean id="customAuthenticationProvider" class="com.forestar.safe.security.SafeAuthenticationProvider">
+        <property name="userDetailsService" ref="myUserDetailServiceImpl"/>  
+    </bean>
+    <!-- 访问决策器，决定某个用户具有的角色，
+       	 是否有足够的权限去访问某个资源 AccessDecisionManager 
+       	 在http 和  global method security 中注册  -->
+    <bean id="accessDecisionManager" class="com.forestar.safe.security.SafeAccessDecisionManager"/>
+    <!-- 未验证用户的登录入口 -->   
+    <bean id="authenticationProcessingFilterEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+    	<constructor-arg>
+    		<value>/login.do</value>
+    	</constructor-arg>  
+    </bean>  
+</beans>  

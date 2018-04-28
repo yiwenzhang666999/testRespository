@@ -1,0 +1,521 @@
+$(function() {
+	//banner轮播
+	(function(){
+		var par = $(".zs-card .banner .list"),
+			item = $(".zs-card .banner .list li"),
+			btnBox = $(".zs-card .banner .btns"),
+			itemLen = item.length,
+			itemWid = item.eq(0).outerWidth(),
+			width = itemLen*itemWid,
+			timer = null,
+			timeOut = null,
+			hoverIndex = 0;
+		//设置宽度
+		par.width(width);
+		//生成按钮
+		var btnHtml = '';
+		for(var i=0;i<itemLen;i++){
+			btnHtml+='<i></i>';
+		}
+		btnBox.append(btnHtml);
+		//添加初始选中
+		var btns = btnBox.find("i");
+		btns.eq(0).addClass("selected");
+		function flip(index){
+			btns.removeClass("selected").eq(index).addClass("selected");
+			par.stop().animate({"margin-left":(-index*itemWid)+'px'},600);
+		}
+		function setTimer(index){
+			var count = index;
+			timer = setInterval(function(){
+				count++;
+				if(count>=itemLen){
+					count=0;
+				}
+				flip(count);
+			},3000)
+		}
+		setTimer(0);
+		btns.mouseenter(function(){
+			clearInterval(timer);
+			clearTimeout(timeOut);
+			hoverIndex = $(this).index();
+			flip(hoverIndex);
+		}).mouseleave(function(){
+			timeOut = setTimeout(function(){
+				setTimer(hoverIndex);
+			},2000);
+		})
+	})();
+	(function(){
+		//		滚动条插件
+		$(".zs-nicescroll").niceScroll({
+			cursorcolor: "#777",
+			cursorborder: "3px",
+			zindex: 999999
+		});
+		//软件筛选
+			//默认显示两项
+		var items = $(".zs-filter .item");
+		var showNubs = $(".zs-filter").attr("data-show");
+		function hideItem(){
+			for(var i=items.length;i>showNubs;i--){
+				items.eq(i-1).hide();
+			}
+		}
+		hideItem();
+		$(".more-options a").click(function(evnet){
+			if($(this).hasClass("hide")){
+				$(this).html("更多选项").removeClass("hide");
+				hideItem();
+			}else{
+				$(this).html("收起选项").addClass("hide");
+				items.show();
+			}
+		});
+		items.on("click","a",function(event){
+			event.stopPropagation();
+			event.preventDefault();
+			$(this).siblings(".selected").removeClass("selected").end().addClass("selected");
+		});
+		//软件筛选 - 长度控制
+		var maxW = items.eq(0).width()-$(".data-title").width()-80;
+		var content = $(".zs-filter .data-content");
+		for(var i=0;i<content.length;i++){
+			var conH = parseFloat(content.eq(i).height());
+			if(conH>37){
+				content.eq(i).find(".more").show();
+				var conA = content.eq(i).find("a");
+				for(var k=0;k<conA.length;k++){
+					var aTop = conA.eq(k).position().top;
+					if(aTop>37){
+						content.eq(i).attr("data-hide-index",k);
+						conA.eq(k).hide().nextAll().hide();
+						break;
+					}
+				}
+			}
+			
+		}
+		items.find("a.more").click(function (event){
+			event.stopPropagation();
+			event.preventDefault();
+			if($(this).hasClass("hide")){
+				var par = $(this).parents(".data-content");
+				var eq = parseFloat(par.attr("data-hide-index"));
+				var links = par.find("a:not(.more)");
+				for(var i=links.length;i>=eq;i--){
+					links.eq(i-1).hide();
+				}
+				$(this).removeClass("hide").html("更多")
+			}else{
+				$(this).addClass("hide").html("收起").siblings("a").show();
+			}
+			
+		});
+	})();
+	(function(){
+		//detail页 切换图片
+		var list = $(".zs-details .picture .list");
+		var items = list.find('.item');
+		var itemW = items.eq(0).width();
+		var width = (items.length*itemW)+((items.length-1)*8);
+		list.width(width+"px");
+		if(items.length>4){
+			$(".zs-details .picture").addClass("show-btn");
+			changeImg()
+		}
+		var max = items.length-4;
+		var count = 0;
+		function changeImg(){
+			$(".zs-details .picture .prev").click(function(event){
+				event.stopPropagation();
+				event.preventDefault();
+				count--;
+				if(count<0){
+					count=0;
+
+				}else{
+					list.animate({"margin-left":-(itemW+8)*count},500);
+				}
+			});
+			$(".zs-details .picture .next").click(function(event){
+				event.stopPropagation();
+				event.preventDefault();
+				count++;
+				if(count>max){
+					count = max;
+				}else{
+					list.animate({"margin-left":-(itemW+8)*count},500);
+				}
+			});
+		}
+	})();
+	//显示隐藏留言
+	(function(){
+		$(".zs-form .title.wyly .btn-ly").click(function(){
+			$(".zs-form .wyly-box").slideToggle();
+		})
+	})();
+//	tree 添加事件
+	function activeTree(){
+		var treeBox = $(".zs-tree-box");
+		var closeBtn = treeBox.find(".header .close");
+		var btns = $(".zs-tree .btns").not(".disable");
+		var ckBox = $(".zs-tree .ck-box");
+//		树的最小化/还原
+		closeBtn.unbind("click.tree").on("click.tree",function(event){
+			event.stopPropagation();
+			var tarTree = $(this).parents(".zs-tree-box");
+			tarTree.toggleClass("on-min");
+			resetScroll();
+			$(".zs-tree-box .card").hide();
+			treeBox.find(".opa-box .more").removeClass("on");
+		});
+		treeBox.not(".zyjg").find(".header .close").click();
+//		展开/收缩列表
+		btns.unbind("click.tree").on("click.tree",function(event){
+			event.stopPropagation();
+			$(".zs-tree").children().attr("select","false");
+			var tmp = $(this);
+			var par = tmp.parents("li").first();
+			while(par.length != 0){
+				tmp = par;
+				par = par.parents("li").first();
+			}
+			if(tmp.parent().hasClass("treeHelper")){
+				if(tmp.parent().hasClass("treeHelper")){
+					var ul = $(this).parent().find("ul").first();
+					var img = $(this).parent().find("img.icon").first();
+					if(img.length == 1){
+						if(img.attr("src").indexOf("zs-tree-file") >= 0){
+							if(ul.css("display") == "block"){
+								img.attr("src","images/zs-tree-file.png");
+							}else{
+								img.attr("src","images/zs-tree-file-open.png");
+							}
+						}
+					}
+				}
+				tmp.attr("select","true");
+				var children = $(".zs-tree").children();
+				for(var i = 0 ; i < children.length ; i++){
+					var child = $(children[i]);
+					if(child.attr("select") == "false"){
+						child.find("img.icon").first().attr("src","images/zs-tree-file.png");
+						child.find(".content").first().hide("fast", function(){
+							$(".zs-tree-box .container").getNiceScroll().resize();
+							$(".zs-nicescroll").getNiceScroll().resize();
+						});
+					}
+				}
+				
+			}
+			var tarList = $(this).siblings(".content");
+			tarList.slideToggle("fast", resetScroll);
+//			resetScroll();
+		});
+//		默认打开第一个
+//		$(".zs-tree").each(function(){
+//			$(this).find(".btns.first").eq(0).click();
+//			$(this).find(".btns.second").eq(0).click();
+//		});
+//		checkbox勾选
+		ckBox.unbind("click.tree").on("click.tree",function(event){
+			event.stopPropagation();
+			var tarA = $(this).parents("a");
+			var flag;
+			if(tarA.hasClass("selected")){
+				flag = false;
+				tarA.removeClass("selected");
+			}else{
+				flag = true;
+				tarA.addClass("selected");
+			}
+			tarA.find("input[type=checkbox]").prop("checked", flag);
+//			查找父节点
+			checkParNode(tarA, flag);
+//			查找子节点
+			checkSonNode(tarA, flag);
+			$(".zs-tree-box").getNiceScroll().resize();
+		});
+		function resetScroll(){
+			$(".zs-tree-box .container").getNiceScroll().resize();
+			$(".zs-nicescroll").getNiceScroll().resize();
+		}
+		function checkParNode(tarA, isCheck){
+			var parLi = tarA.parent("li");
+			var parCon = parLi.parent(".content");
+			var parA = parCon.siblings(".btns");
+			var tarInp = parA.find("input[type=checkbox]");
+			var nowLevalCheckedLen;
+			if(parCon.length !== 0){
+				nowLevalCheckedLen = parCon.children("li").children(".btns.selected").length;
+			}
+			if(parCon.length !== 0){
+				if(isCheck === true){
+					parA.addClass("selected");
+					tarInp.prop("checked", true);
+				}else{
+					if(nowLevalCheckedLen === 0){
+						parA.removeClass("selected");
+						tarInp.prop("checked", false);
+					}
+				}
+				checkParNode(parA, isCheck)
+			}
+		}
+		function checkSonNode(tarA, isCheck){
+			var childCon = tarA.siblings(".content");
+			var childA = childCon.find(".btns");
+			var childInp = childA.find("input[type=checkbox]");
+			if(childCon.length === 0){
+				return;
+			}
+			if(isCheck === true){
+				childA.addClass("selected");
+				childInp.prop("checked", true);
+			}else{
+				childA.removeClass("selected");
+				childInp.prop("checked", false);
+			}
+			require(["severZtree"], function (severZtree) {
+				childA.find(".data").each(function(e){
+					severZtree.getData(this);
+				})
+			});
+		}
+		var legend = treeBox.find(".legend");
+//		2017/12/22 修改top值计算 及 触发 显示图例的类名
+		treeBox.find(".showLegend").mouseover(function(){
+			var max = treeBox.height() - legend.outerHeight();
+			console.log(max);
+			var top = $(this).offset().top - treeBox.offset().top;
+			if(top >= max){
+				top = max;
+			}
+			legend.show().css("top",top+"px");
+		}).mouseout(function(){
+			legend.hide();
+		});
+		//	2017/12/22 新增
+		$(".zs-tree .opa-box").click(function(e){
+			e.stopPropagation();
+		});
+		var moreBtn = treeBox.find(".opa-box .more");
+		moreBtn.click(function(e){
+			e.stopPropagation();
+			var card = $(".zs-tree-box .card");
+			if($(this).hasClass("on")){
+				card.hide();
+				$(this).removeClass("on");
+			}else{
+				card.hide();
+				moreBtn.removeClass("on");
+				$(this).addClass("on");
+				var type = $(this).attr("data-card");
+				var targetCard = $(".zs-tree-box .card." + type);
+				var max = treeBox.height() - targetCard.outerHeight();
+				var top = $(this).offset().top - treeBox.offset().top;
+				if(top >= max){
+					top = max;
+				}
+				targetCard.show().css("top", top + "px");
+			}
+		});
+		//	导入图层
+		/*$(".zs-tree .add.ywsj").modal({
+			title: "导入图层",
+			overlay: false,
+			showMin: false,
+			showMax: false,
+			showTop: false,
+			isDrag: true,
+			contentWidth: 400,
+			type:"ajax",
+			target: "_drtc.html"
+		});*/
+	//	创建图层
+		$(".zs-tree .create.ywsj").modal({
+			title: "创建图层",
+			overlay: false,
+			showMin: false,
+			showMax: false,
+			showTop: false,
+			isDrag: true,
+			contentWidth: 400,
+			type:"ajax",
+			target: "_cjtc.html"
+		});
+	//	添加变化地块数据
+		$(".zs-tree .add.bhdk").modal({
+			title: "添加变化地块数据",
+			overlay: false,
+			showMin: false,
+			showMax: false,
+			showTop: false,
+			isDrag: true,
+			contentWidth: 'auto',
+			type:"ajax",
+			target: "./ibox/zyjg/bhdk/_tjdkbhsj.html"
+		});
+//		空间位置
+//		切换内容
+		var btns = treeBox.find(".opa-box.kjwz .btn");
+		var contents = treeBox.find(".kjwz-content .item");
+		btns.click(function(e){
+			contents.hide();
+			var content = $(this).attr("data-content");
+			var tarCon = treeBox.find(".kjwz-content .item." + content);
+			tarCon.show();
+			$(this).addClass("selected").siblings(".selected").removeClass("selected");
+		});
+		btns.eq(0).click();
+		treeBox.find(".kjwz-search .cancel").click(function(e){
+			e.stopPropagation();
+			contents.hide();
+			btns.removeClass("selected");
+			//点击取消后跳转到空间定位页面
+			$("span.area").click();
+		})
+//		//		添加收藏点
+		$(".zs-tree .add.tjscd").click(function(e){
+			e.stopPropagation();
+			$(this).toggleClass("open");
+			$(".zs-tree .add-collect").stop().slideToggle("fast");
+		});
+//		搜索按钮
+		$(".zs-tree .kjwz-search-btn").click(function(e){
+			e.stopPropagation();
+			if($(this).hasClass("open")){
+				$(".zs-tree .kjwz-search-content").hide();
+				$(".zs-tree .kjwz-normal-content").show();
+				$(this).removeClass("open");
+			}else{
+				$(".zs-tree .kjwz-search-content").show();
+				$(".zs-tree .kjwz-normal-content").hide();
+				$(this).addClass("open");
+			}
+		})
+	}
+	activeTree();
+//	2017/12/13 修复滚动条
+//	2017/11/25 应用中心
+	(function(){
+		var btn = $(".zs-apply .btn");
+//		展开/收缩
+		btn.click(function(event){
+			event.stopPropagation();
+			$(this).siblings(".container").slideToggle("fast");
+		});
+		var loginBtn = $(".zs-zyjg-header .logo-icon");
+		loginBtn.click(function(event){
+			event.stopPropagation();
+			$(".zs-apply .container").slideToggle("fast");
+		});
+//		打开树
+		var inners = $(".zs-apply .inner").not(".add");
+		inners.click(function(event){
+			event.stopPropagation();
+			$(".zs-tree-box.on-min .close").click();
+			//点击资源监管后  应用中心需要关闭 by zzq
+			$(".zs-apply .container").slideToggle("fast");
+		})
+	})();
+//	2017/12/23
+//	ibox
+//	地图点击显示---图层数据
+	/*$(".zs-map").modal({
+		title: "图层数据",
+		overlay: false,
+		showMin: true,
+		showMax: false,
+		showTop: false,
+		isDrag: true,
+		contentWidth: 400,
+		type:"ajax",
+		target: "_dttc.html"
+	});*/
+//	地图工具测量点击
+	$(".zs-zyjg-header .tool-cl").click(function(e){
+		e.stopPropagation();
+		$(this).find(".card").slideToggle('fast');
+	});
+	$(".zs-zyjg-header .tool-cl .card span").click(function(e){
+		e.stopPropagation();
+		$(this).addClass("selected").siblings(".selected").removeClass("selected");
+	});
+	$(".zs-toolbar .tabs a").click(function(e){
+		e.stopPropagation();
+		var tar = $(this).attr("href");
+		if(tar == "javascript:;" || tar == "#" || !tar || tar == "" ){
+			return;
+		}
+		$(".zs-toolbar .container .board").hide();
+		if($(this).hasClass("selected")){
+			$(this).removeClass("selected");
+			$(tar).hide();
+		}else{
+			$(".zs-toolbar .tabs a").removeClass("selected");
+			$(tar).show();
+			$(this).addClass("selected");
+		}
+	})
+	$(".zs-toolbar .btns a.tool-qh").click(function(e){
+		e.stopPropagation();
+		$(this).toggleClass("selected");
+		$(".zs-toolbar .container .board-qh").slideToggle('fast');
+		//by zzq 创建的是否吸附的隐藏
+		if(!$(this).hasClass("selected") && !$(".is-buffer-snap").is(":hidden")){
+			$(".is-buffer-snap").hide();
+		}else if($(this).hasClass("selected")&&$(".tool-cj").hasClass("selected")){
+			$(".is-buffer-snap").show();
+		}	
+		
+	});
+//	统计
+	$(".zs-toolbar .board-tj .list li").click(function(e){
+		$(this).addClass("selected").siblings(".selected").removeClass("selected");
+		//1.09 --当选择固定方案表时，对图上选中进行统计的条件不可选
+		if($(this).attr('reportId')){
+			$("#layer_tjfw").attr('disabled',true);
+			$("#zq_tjfw").click();
+		}else{
+			$("#layer_tjfw").attr('disabled',false);
+		}
+	});
+	$(".zs-toolbar .board-tj .kstj").modal({
+		title: "统计",
+		overlay: false,
+		showMin: false,
+		showMax: false,
+		showTop: false,
+		isDrag: true,
+		contentWidth: 1150,
+		type:"ajax",
+		target: "_tj-table.html"
+	});
+//	制图
+	$(".zs-toolbar .board-zt .card a").click(function(e){
+		$(this).addClass("selected").siblings(".selected").removeClass("selected");
+	});
+	$(".zs-zt-tool .tool-tjys").click(function(e){
+		e.stopPropagation();
+		$(".zs-zt-tool .card").css("left", $(this).position().left + 'px').slideToggle('fast');
+	});
+	$(".zs-zt-tool .card a").click(function(e){
+		e.stopPropagation();
+		$(this).addClass("selected").siblings(".selected").removeClass("selected");
+	});
+//	2018/03/09 资源监管 底部工具栏 显示面板
+	$(".zs-grid-tool .show-wgdh").click(function(e){
+		e.stopPropagation();
+		var tab = $(".zs-grid-tool .float-tab");
+		var left = $(this).position().left;
+		tab.css("top", -(tab.outerHeight() + 8) + 'px').stop().fadeToggle('fast');
+	});
+	$(".zs-grid-tool .float-tab .header .close").click(function(e){
+		e.stopPropagation();
+		$(this).parents(".float-tab").fadeOut('fast');
+	})
+})

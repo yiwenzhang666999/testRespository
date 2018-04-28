@@ -1,0 +1,82 @@
+/**
+ * 编辑图层
+ */
+define([
+    'map','style'
+], function (map,style) {
+    'use strict';
+    var active;
+    var featureOverlay;
+    var interaction_modify;
+    var defaultStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,255,0)', width: 3 })
+    });
+    var selectStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,0,0)', width: 3 })
+    });
+    /**
+     * 控制器
+     * @param {boolean} bool 
+     * @param {array} fs 
+     * @param {function} done 
+     * @returns 
+     */
+    function setActive(bool,done,f) {
+        if (bool == active) {
+            return;
+        }
+        if (bool) {
+        	var feature = f.clone();
+        	//feature.setStyle(selectStyle);
+        	featureOverlay=new ol.layer.Vector({
+        		zIndex:9999999,
+                source: new ol.source.Vector({ features: new ol.Collection([feature]) }),
+                style: new ol.style.Style({
+                    fill: new ol.style.Fill({
+                        color: 'rgba(255, 255, 255, 0.2)'
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: '#00c2ff',
+                        width: 3
+                    }),
+                    image: new ol.style.Circle({
+                        radius: 4,
+                        fill: new ol.style.Fill({
+                            color: '#ffcc33'
+                        })
+                    })
+                })
+            });
+        	featureOverlay.setMap(map.getMap());
+            interaction_modify=new ol.interaction.Modify({
+                source: featureOverlay.getSource(),
+                features: new ol.Collection([feature]),
+                style:style.getDefaultStyleFunction(),
+                pixelTolerance:5
+            });
+            map.getMap().addInteraction(interaction_modify);
+            interaction_modify.on("modifyend", function (evt) { //实时保存 
+                var feature = evt.features.getArray()[0];
+                //feature.setStyle(selectStyle);
+                done(feature,true);
+            })
+        } else {
+        	if(featureOverlay){
+        		featureOverlay.getSource().clear();
+        		map.getMap().removeLayer(featureOverlay);
+        	}
+            if(interaction_modify){
+                interaction_modify.setActive(bool);
+                map.getMap().removeInteraction(interaction_modify);
+            }
+            featureOverlay=null;
+            interaction_modify=null;
+        }
+        active=bool;
+    }
+    return {
+        setActive:setActive
+    }
+});

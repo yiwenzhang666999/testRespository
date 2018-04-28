@@ -1,0 +1,33 @@
+
+<div class="content" id="kjwz-bhdw" style="padding:4px 4px 4px 30px;">
+	<p class="line search">
+		<span class="txt" style="font-size:12px;">工作年度&nbsp</span>
+		<select class="zs-select" id="bhdkYears">
+			
+		</select>
+	</p>
+	<div id="centent">
+		<div id="clickHistorys">
+		</div>
+	</div>
+	<div class="zhi">
+		    <div id="loadedBhdk">
+		        <h2>已选择：</h2>
+		        <div id="loadedBhdkq">
+		          
+		        </div>
+		    </div>
+	</div>
+</div>
+<script type="text/javascript">
+
+require(["loadTree"], function (loadTree) {
+	var zqCode=36;
+	if(userObj&&userObj.zqCode){
+		zqCode=userObj.zqCode;
+	}
+	loadTree.loadUserLayerManagePanel(zqCode, false);
+	loadTree.loadTreeHasAdded();
+	loadTree.getYear();
+}) 
+</script>

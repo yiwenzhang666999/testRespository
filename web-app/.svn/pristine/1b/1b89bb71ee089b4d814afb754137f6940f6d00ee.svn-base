@@ -1,0 +1,224 @@
+/**
+ * 查询点 高亮点周围的小班面
+ */
+define(["map",'config','style','drawBufferMap'],function(map,config,style,drawBufferMap){
+	//主地图
+	var mainMap=map;
+	//绘制点后 高亮图层
+	var bufferLayer=null;
+	//所有高亮小班的features
+	var bufferFeatures=null;
+	//neighboursData  查找最近点的集合
+	window.neighboursData=[];
+	function query(point,tableName){
+		var proxy=config.PROXY.substring(0,config.PROXY.length-4);
+		var url=proxy+"?url="+config.zq_tree_url+"/ws/rest/DS/bufferQuery/zyjg/"+point[0]+"/"+point[1]+"/"+tableName;
+		$.ajax({
+			url:url,
+			type:"get",
+			success:function(res){
+				if(res.message=="sucess"){
+//					console.log("查询成功！");
+					if(res["data"]){
+						querySuccess(res["data"]);
+					}
+				}else{
+					console.log("点查询失败！");
+				}
+			},
+			error:function(evt){
+				console.log(evt);
+			}
+		});
+	};
+	function querySuccess(data){
+		if(drawBufferMap.getIsStop()){
+			return;
+		}
+		var features=[];
+		var geojsonFormat = new ol.format.GeoJSON();
+//		neighboursData=[];
+		for(var i=0;i<data.length;i++){
+			 var geojson={
+					 type:'Feature',
+	                 geometry:JSON.parse(data[i].shape)
+			  }
+			 var shape=JSON.parse(data[i].shape);
+			 if(shape.type=="Polygon"){
+				 var coordinates=shape.coordinates[0];
+				 for(var j=0;j<coordinates.length;j++){
+					 var temp_arr=coordinates[j].concat(coordinates[j]);
+					 neighboursData.push(temp_arr);
+				 }
+//				 neighboursData=neighboursData.concat(shape.coordinates[0]);
+			 }
+			  var feature = geojsonFormat.readFeature(geojson);
+			 features.push(feature);
+		}
+//		bufferLayer.getSource().clear();
+		if(!bufferLayer){
+			bufferLayer=mainMap.getLayerByName("BUFFER_LAYER");
+		}
+		bufferLayer.setVisible(true);
+		bufferLayer.getSource().addFeatures(features);
+	}
+	function arrToBox(arr) {
+		return {
+	        minX: arr[0],
+	        minY: arr[1],
+	        maxX: arr[2],
+	        maxY: arr[3]
+	    };
+	}
+	/**
+	 * Modify the drawing.
+	 * @param {ol.MapBrowserEvent} event Event.
+	 * @private
+	 * 重写 openlayer的这个方法，加个判断，如果有bufferTolerance， 需要返回小班边界上的吸附点
+	 */
+	ol.interaction.drawBuffer.prototype.modifyDrawing_ = function(event) {
+	  var coordinate = event.coordinate;
+	  var snapFlag=true;
+	  var geometry = /** @type {ol.geom.SimpleGeometry} */ (this.sketchFeature_.getGeometry());
+	  var coordinates, last;
+	  if (this.mode_ === ol.interaction.Draw.Mode_.POINT) {
+	    last = this.sketchCoords_;
+	  } else if (this.mode_ === ol.interaction.Draw.Mode_.POLYGON) {
+	    coordinates = this.sketchCoords_[0];
+	    last = coordinates[coordinates.length - 1];
+	    //还原首点样式；刘永恒
+	    this.pointFeatures[0].setStyle();
+	    if (this.atFinish_(event)) {
+	      // snap to finish
+	      coordinate = this.finishCoordinate_.slice();
+	      snapFlag=false;
+	      //设置首点样式；刘永恒
+	      /*var style = new ol.style.Style({
+    	      image: new ol.style.Circle({
+      	        radius: 4,
+      	        fill: new ol.style.Fill({
+      	          color: [0, 153, 255, 1]
+      	        }),
+      	        stroke: new ol.style.Stroke({
+      	          color: [255, 255, 255, 1],
+      	          width: 1
+      	        })
+      	      }),
+      	      zIndex: Infinity
+      	    });*/
+	      this.pointFeatures[0].setStyle(style.getDefaultStyleFunction());
+	    }
+	  } else {
+	    coordinates = this.sketchCoords_;
+	    last = coordinates[coordinates.length - 1];
+	  }
+	  if (this.isBuffer&&snapFlag&&(!this.freehand_)) {
+		  var bufferData=findNeighbours(neighboursData,coordinate,1);
+		  if(bufferData){
+			  bufferCoordinate=bufferData[0];
+			  var map=event.map;
+			  var temp_coordinate=[bufferData[0]["minX"],bufferData[0]["minY"]];
+			  var bufferPiex=map.getPixelFromCoordinate(temp_coordinate);
+			  var coordinatePiex=map.getPixelFromCoordinate(coordinate);
+			  var dx = bufferPiex[0] - coordinatePiex[0];
+			  var dy = bufferPiex[1] - coordinatePiex[1];
+			  var bufferDistance=Math.sqrt(dx*dx+dy*dy);
+			  if(bufferDistance<=this.bufferTolerance_){
+				  event.coordinate=coordinate=temp_coordinate;
+			  }
+		  }
+	    }
+	  last[0] = coordinate[0];
+	  last[1] = coordinate[1];
+	  this.geometryFunction_(/** @type {!Array.<ol.Coordinate>} */ (this.sketchCoords_), geometry);
+	  if (this.sketchPoint_) {
+	    var sketchPointGeom = /** @type {ol.geom.Point} */ (this.sketchPoint_.getGeometry());
+	    sketchPointGeom.setCoordinates(coordinate);
+	  }
+	  var sketchLineGeom;
+	  if (geometry instanceof ol.geom.Polygon &&
+	      this.mode_ !== ol.interaction.Draw.Mode_.POLYGON) {
+	    if (!this.sketchLine_) {
+	      this.sketchLine_ = new ol.Feature(new ol.geom.LineString(null));
+	    }
+	    var ring = geometry.getLinearRing(0);
+	    sketchLineGeom = /** @type {ol.geom.LineString} */ (this.sketchLine_.getGeometry());
+	    sketchLineGeom.setFlatCoordinates(
+	        ring.getLayout(), ring.getFlatCoordinates());
+	  } else if (this.sketchLineCoords_) {
+	    sketchLineGeom = /** @type {ol.geom.LineString} */ (this.sketchLine_.getGeometry());
+	    sketchLineGeom.setCoordinates(this.sketchLineCoords_);
+	  }
+	  this.updateSketchFeatures_();
+	};
+	/**
+	 * @param {ol.MapBrowserPointerEvent} event Event.
+	 * @return {boolean} Stop drag sequence?
+	 * @this {ol.interaction.Draw}
+	 * @private
+	 */
+	ol.interaction.Draw.handleUpEvent_ = function(event) {
+	  var pass = true;
+	  this.handlePointerMove_(event);
+	  var circleMode = this.mode_ === ol.interaction.Draw.Mode_.CIRCLE;
+
+	  if (this.shouldHandle_) {
+		  if(this.isBuffer){
+			  var coordinate = event.coordinate;
+			  if(!this.atFinish_(event)){
+				  query(coordinate,this.bufferLayerName_); 
+			  }
+		  }
+	    if (!this.finishCoordinate_) {
+	      this.startDrawing_(event);
+	      if (this.mode_ === ol.interaction.Draw.Mode_.POINT) {
+	        this.finishDrawing();
+	      }
+	    } else if (this.freehand_ || circleMode) {
+	      this.finishDrawing();
+	    } else if (this.atFinish_(event)) {
+	      if (this.finishCondition_(event)) {
+	        this.finishDrawing();
+	      }
+	      if(this.isBuffer&&bufferLayer){
+	    	  setTimeout(function(){
+	    		  bufferLayer.getSource().clear();
+	    		  bufferLayer.setVisible(false);
+	    		  neighboursData=[];
+	    	  },500)
+	      }
+	    } else {
+	      this.addToDrawing_(event);
+	      //展示节点，刘永恒
+	      if(this.isBuffer){
+	    	  this.showPoint(event.coordinate.slice());
+	      }
+	    }
+	    pass = false;
+	  } else if (this.freehand_) {
+	    this.finishCoordinate_ = null;
+	    this.abortDrawing_();
+	  }
+	  return pass;
+	};
+	/**
+	 * 判断两个点是否在同一个面上
+	 */
+	function judgePoints(point1,point2){
+		var tempArr=[];
+		//所有的图形  遍历图形坐标
+		var allFeatrues=mainMap.getLayerByName("BUFFER_LAYER").getSource().getFeatures();
+		for(var i=0;i<allFeatrues.length;i++){
+			var coordinates=allFeatrues[i].getGeometry().getCoordinates()[0];
+			for(var j=0;j<coordinates.length;j++){
+				if((coordinates[j][0]==point1[0]&&coordinates[j][1]==point1[1])||(coordinates[j][0]==point2[0]&&coordinates[j][1]==point2[1])){
+					tempArr.push(coordinates);
+					continue;
+				}
+			}
+		}
+	};
+	return{
+		query:query
+	}
+});

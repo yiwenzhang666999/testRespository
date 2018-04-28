@@ -1,0 +1,221 @@
+/**
+ * 单例模式
+ * 定义map初始化
+ */
+define([
+    'config',
+    'layerFactory'
+], function (config, layerFactory) {
+    'use strict';
+    var domID = "map";
+    var map;
+    var allLayers = {};     //存储所有的图层   key {layerName:layer}
+    var allInteractions = {}; //存储交互对象
+    //设置投影
+    var epsg = "EPSG:" + config.MAP.WKID;
+    var projection = new ol.proj.Projection({
+        code: epsg,
+        extent: config.MAP.EXTENT
+    });
+    /**
+     * map初始化
+     */
+    function init() {
+        initMap();
+        initLayer();
+        initControl();
+    }
+    /**
+     * 初始化map
+     */
+    function initMap() {
+        var view = new ol.View({
+            center: config.MAP.CENTER,
+            zoom: config.MAP.ZOOM,
+            maxZoom: config.MAP.MAXZOOM,
+            minZoom: config.MAP.MINZOOM,
+            projection: projection
+        });
+        map = new ol.Map({
+            target: domID,
+            view: view,
+            logo: false,
+            loadTilesWhileAnimating: true
+        });
+    }
+    /**
+     * 初始化图层
+     */
+    function initLayer() {
+        //按config图层配置加载图层
+        var setLayers = function (con) {
+            var layer_p = layerFactory.getLayer(con);
+            allLayers[con['TABLENAME']] = layer_p;
+            map.addLayer(layer_p);
+            if (con.GROUP) {
+                for (var j = 0; j < con.GROUP.length; j++) {
+                    var con_c = con.GROUP[j];
+                    var layer_c = layerFactory.getLayer(con_c);
+                    allLayers[con_c['TABLENAME']] = layer_c;
+                    map.addLayer(layer_c);
+                }
+            }
+        }
+        //加载所有图层
+        var all_layers = config.LAYER;
+        for (var i = 0; i < all_layers.length; i++) {
+            setLayers(all_layers[i]);
+        }
+        //------初始化两个矢量图层，一个用于高亮，一个用于绘制
+        var high_layer = layerFactory.get_high_layer();
+        var draw_layer = layerFactory.get_draw_layer();
+        var edit_layer = layerFactory.get_edit_layer();
+        var create_layer=layerFactory.get_create_layer();
+        
+        var zqdw_layer = layerFactory.get_zqdw_layer();
+        
+        allLayers["HIGH_LAYER"] = high_layer;
+        map.addLayer(high_layer);
+        allLayers["DRAW_LAYER"] = draw_layer;
+        map.addLayer(draw_layer);
+        //添加编辑图层，由于加载是瓦片不是矢量
+        allLayers["EDIT_LAYER"] = edit_layer;
+        map.addLayer(edit_layer);
+        //添加创建图层，用于弹窗
+        allLayers["CREATE_LAYER"] = create_layer;
+        map.addLayer(create_layer);
+        
+        allLayers["ZQDW_LAYER"] = zqdw_layer;
+        map.addLayer(zqdw_layer);
+    }
+    /**
+     * 初始化map的控件
+     */
+    function initControl() {
+        //比例尺
+        map.addControl(new ol.control.ScaleLine({ units: 'metric' }));
+        //坐标显示control
+        var mousePositionControl = new ol.control.MousePosition({
+            coordinateFormat: ol.coordinate.createStringXY(2),
+            projection: epsg,
+            className: 'custom-mouse-position',
+            target: document.getElementById('mouse-position'),
+            undefinedHTML: '&nbsp;'
+        });
+        map.addControl(mousePositionControl);
+        //全屏
+        /*var fullScreenControl=new ol.control.FullScreen({tipLabel:"全屏",source:document.getElementById("map_continer")});
+        map.addControl(fullScreenControl);*/
+    }
+    /////////////////////////////工具////////////////////////////////
+    /**
+     * 根据图层名获取图层
+     * @param {string} layerName 
+     */
+    function getLayerByName(layerName) {
+        return allLayers[layerName];
+    }
+    /**
+     *获取当前的map 
+     */
+    function getMap() {
+        return map;
+    }
+    /**
+     * 控制图层显示
+     * @param {string} tableName 图层标识
+     * @param {boolean} bool 标识是单独显示（true）还是按组显示（）
+     */
+    function showLayer(tableName, bool) {
+        if (bool) {
+            allLayers[tableName].setVisible(true)
+        } else {
+            var arr = getLayer4Config(tableName);
+            for (var i = 0; i < arr.length; i++) {
+                allLayers[arr[i]].setVisible(true)
+            }
+        }
+    }
+    /**
+     * 控制图层隐藏
+     * @param {string} tableName 
+     * @param {boolean} bool 标识是单独隐藏（true）还是按组隐藏（）
+     */
+    function hideLayer(tableName, bool) {
+        if (bool) {
+            allLayers[tableName].setVisible(false)
+        } else {
+            var arr = getLayer4Config(tableName);
+            for (var i = 0; i < arr.length; i++) {
+                allLayers[arr[i]].setVisible(false)
+            }
+        }
+    }
+    /**
+     * 
+     * @param {*} tableName 
+     * @return {object} param
+     */
+    function getLayer4Config(tableName) {
+        var layers = [];
+        var base = config.LAYER;
+        for (var i = 0; i < base.length; i++) {
+            var item = base[i];
+            if (item['TABLENAME'] === tableName) {
+                layers.push(tableName);
+                if (item['GROUP']) {
+                    $(item['GROUP']).each(function (index, v) {
+                        layers.push(v['TABLENAME']);
+                    })
+                }
+                break;
+            }
+        }
+        return layers;
+    }
+    /**
+     * 获得图层的配置文件
+     * @param {string} tableName 
+     */
+    function getLayerConfig(tableName) {
+        var con;
+        var base = config.LAYER;
+        for (var i = 0; i < base.length; i++) {
+            var item = base[i];
+            if (item['TABLENAME'] === tableName) {
+                con = item;
+                break;
+            }
+        }
+        return con;
+    }
+     /**
+     * 业务图层切换控制  同时进行页面样式同步
+     * @param {array} layers 
+     */
+    function switchLayer(layers) {
+        $("#layer_switch_Nav span.checkbox").each(function () {
+            var $target = $(this);
+            var layer = $target.attr("layer");
+            if (layer) {
+                if (layers.indexOf(layer) > -1) {
+                    showLayer(layer);
+                    $target.parent().parent().addClass("ischecked");
+                } else {
+                    hideLayer(layer);
+                    $target.parent().parent().removeClass("ischecked");
+                }
+            }
+        })
+    }
+    //暴露接口 
+    return {
+        init: init,
+        getMap: getMap,
+        getLayerByName: getLayerByName,
+        showLayer: showLayer,
+        hideLayer: hideLayer,
+        getLayerConfig: getLayerConfig,
+        switchLayer:switchLayer
+    }
+});

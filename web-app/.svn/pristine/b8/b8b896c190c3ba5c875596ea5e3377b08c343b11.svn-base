@@ -1,0 +1,17 @@
+<style>
+#mapSetting input{
+vertical-align: -2px;
+}
+</style>
+<div id="mapSetting">
+	<input id="bhtb_query_99" type="checkbox" value="99"/>
+		<label for="bhtb_query_99">未审核</label>
+	<input id="bhtb_query_0" type="checkbox" value="0"/>
+		<label for="bhtb_query_0">通过</label>
+	<input id="bhtb_query_1" type="checkbox" value="1"/>
+		<label for="bhtb_query_1">通过（已修改）</label>
+	<input id="bhtb_query_2" type="checkbox" value="2"/>
+		<label for="bhtb_query_2">重做</label>
+	<input id="bhtb_query_3" type="checkbox" value="3"/>
+		<label for="bhtb_query_3">没变化</label>
+</div>

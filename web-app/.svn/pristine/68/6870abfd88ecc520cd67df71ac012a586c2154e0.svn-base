@@ -1,0 +1,101 @@
+.zs-tree li>a.second{
+	left:1px;
+}
+/*定位*/
+.zs-position {
+	top: 20px;
+	left: 100px;
+}
+/*制图功能使用请勿移除*/
+#testDiv{ 
+	background-color: transparent; 
+	background-repeat: repeat; 
+	background-attachment: scroll; 
+	color: #ff0000; 
+	overflow: hidden; 
+	z-index: 2;
+	position:absolute;          
+	margin: 0px;
+	padding: 2px; 
+	background-position: 0% 50%;
+    cursor : default	
+    }
+    .pisi{
+    	position:relative;
+    	width:auto;
+    	height:auto;
+    }
+.iAdd{
+	        position: absolute;
+	        top:-32px;
+	        right:10px;
+            float: right;
+            text-align: center;
+            line-height: 20px;
+            width: 20px;
+            height: 20px;
+            font-size: 20px;
+            background:url(../images/zs-tree-add.png) no-repeat center;
+            cursor:pointer;
+        }
+        .cass{
+         position: absolute;
+	        top:9px;
+	        right:10px;
+            float: right;
+            text-align: center;
+            line-height: 20px;
+            width: 20px;
+            height: 20px;
+            font-size: 20px;
+            background:url(../images/zs-tree-del.png) no-repeat center;
+            cursor:pointer;
+      }
+        .ps{
+        width: 250px;
+	    height: 35px;
+	    line-height: 35px;
+	    text-align: center;
+	    color: rgb(54,54,54);
+	    border-top: 2px solid rgb(120,120,120);
+	    border-bottom: 1px solid rgba(0,0,0,.3);
+        }
+        
+          .inpuDiv{
+          position: absolute;
+		    width: 250px;
+		    height: 81px;
+		    top: 0;
+		    left: 0;
+          display: none;
+           background: white;
+           z-index: 1;
+           font-size: 14px;
+          
+        }
+        .insInput{
+           position: absolute;
+		    left: 12px;
+		    width: 177px;
+		    top: 43px;
+		    height: 27px;
+		    outline: none;
+		    border: 2px solid #ff0000;
+        }
+        .butoAdd{
+               position: absolute;
+			    top: 44px;
+			    right: 6px;
+			    width: 50px;
+			    height: 26px;
+			    float: right;
+			    font-size: 14px;
+			    background-color: #61ba37;
+			    cursor: pointer;
+			    /* border-radius: 8px; */
+			    border: 1px solid rgba(0,0,0,.3);
+			    color: #fff;
+			    border: none;
+        }
+      
+    

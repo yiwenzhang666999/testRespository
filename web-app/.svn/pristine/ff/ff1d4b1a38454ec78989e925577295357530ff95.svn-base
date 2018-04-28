@@ -1,0 +1,16 @@
+<div class="apiDetail">
+<div>
+	<h2><span class="path">treeHelper.</span>expandAllNode</h2>
+	<h3>概述</h3>
+	<div class="desc">
+		<p></p>
+		<div class="longdesc">
+			<p>展开树的所有节点。</p>
+		</div>
+	</div>
+	<h3>function 举例</h3>
+	<pre xmlns=""><code>var tree = treeHelper.getTree("zyjg",{expandLevel : 1},[{id:1,text:"test",children[]}]);
+var node = tree.expandAllNode();
+</code></pre>
+</div>
+</div>

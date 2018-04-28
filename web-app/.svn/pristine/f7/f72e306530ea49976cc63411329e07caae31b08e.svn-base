@@ -1,0 +1,21 @@
+<!--资源监管-->
+<div class="zs-zyjg-header">
+	<div class="user">
+		<span class="name"><i class="icon"></i>tcdos</span>
+	</div>
+	<div class="tool">
+		<p class="location">江西省萍乡市（注：随级别不同，地址的详尽程度不同）</p>
+		<div class="map-tool">
+			<a href="javascript:;" class="tool-xz" ref="feature_select">选择</a>
+			<a href="javascript:;" class="tool-py" ref="feature_move">平移</a>
+			<a href="javascript:;" class="tool-cl" ref=''>测量
+				<div class="card">
+					<span class="selected" id="length_nav">长度测量</span>
+					<span id="area_nav">面积测量</span>
+				</div>
+			</a>
+			<a href="javascript:;" class="tool-qc" ref="feature_clear">清除</a>
+			<a href="javascript:;" class="tool-qp">全屏</a>
+		</div>
+	</div>
+</div>

@@ -1,0 +1,3 @@
+require(['printCanvas'], function (printCanvas) {
+    'use strict';
+});

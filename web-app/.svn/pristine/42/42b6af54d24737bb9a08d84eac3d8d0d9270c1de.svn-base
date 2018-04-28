@@ -1,0 +1,147 @@
+﻿/* treegrid */
+.mini-treegrid, .mini-tree
+{
+    display:none;
+}
+.mini-tree-nodes
+{
+    position:relative;overflow:hidden;
+}
+
+.mini-tree-nodetitle
+{
+    position:relative;overflow:hidden;margin-left:2px;
+    left:0;top:-2px;padding-top:2px;
+}
+.mini-tree-nodeshow
+{
+    /*padding:1px;
+    border:0;*/
+}
+.mini-tree-nodetext
+{
+    margin-top:0px;padding-left:4px;padding-right:2px;
+    line-height:18px; 
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    word-break:keep-all;
+}
+.mini-tree-nodetext a
+{
+    text-decoration:none;
+    color:#000;
+    outline:none;
+    display:block;
+    margin-bottom:2px;
+    margin-top:1px\9\0;  /*ie9*/
+    +line-height:16px;   /*ie7*/    
+    _margin-top:2px;   /*ie6*/   
+}
+.mini-tree-nodetext a:hover
+{
+    /*text-decoration:underline;    */
+}
+
+.mini-tree-ec-icon
+{
+    position:absolute;left:0;top:0;width:18px;height:20px;cursor:pointer;
+    background:url(images/tree/collapse.gif) no-repeat 1px -2px;   
+}
+.mini-tree-expand .mini-tree-ec-icon
+{
+    background:url(images/tree/expand.gif) no-repeat 2px -2px;
+}
+.mini-tree-nodeicon
+{
+    position:absolute;left:0;top:0;width:18px;height:20px;
+}
+.mini-tree-indent
+{
+    position:absolute;left:0;top:0;width:18px;height:20px;
+    background:blue;
+}
+
+.mini-tree-leaf, .mini-tree-folder
+{
+    position:absolute;left:0;top:0;width:18px;height:20px;
+    background:url(images/tree/leaf.gif) no-repeat 50% 50%;
+}
+.mini-tree-folder
+{
+    background:url(images/tree/folder.gif) no-repeat 50% 50%;
+}
+
+.mini-tree .mini-tree-nodes, 
+.mini-tree .mini-tree-nodes-tr,
+.mini-tree .mini-tree-nodes-td
+{
+    border:0;padding:0;
+}
+
+/* checkbox */
+.mini-tree-checkbox
+{
+    padding:0;
+    position:absolute;left:0;top:50%;margin-top:-8px;width:18px;height:18px;overflow:hidden;
+    margin-left:2px;
+    +margin-top:-9px;
+    +margin-left:1px;
+    
+}
+/*.mini-tree-checkbox-checked
+{
+    background-position:
+}*/
+
+
+/* tree */
+.mini-tree-nowrap  .mini-tree-nodetext
+{
+    overflow:visible; 
+}
+.mini-tree-nowrap .mini-grid-table
+{
+    table-layout:auto;    
+}
+.mini-tree-nowrap .mini-tree-nodetitle
+{
+    overflow:visible;
+}
+
+/* showArrows */
+body .mini-tree-showArrow .mini-tree-collapse .mini-tree-ec-icon
+{
+    background:url(images/tree/arrows.gif) no-repeat 0px 1px;
+}
+body .mini-tree-showArrow .mini-tree-expand .mini-tree-ec-icon
+{
+    background:url(images/tree/arrows.gif) no-repeat -16px 1px;
+}
+body .mini-tree-showArrow .mini-tree-indent,
+body .mini-tree-showArrow .mini-tree-node-ecicon
+{
+    background:none;
+}
+
+/* dragdrop */
+body .mini-tree-feedback-add .mini-tree-nodetext
+{
+    border:dotted 1px #aaa;
+    background:#ddd;
+    padding-left:3px;margin-top:-1px;
+}
+
+/* nodeclick */
+.mini-tree-nodeclick .mini-tree-parentNode,
+.mini-tree-nodeclick .mini-tree-parentNode .mini-tree-nodeshow
+{
+    cursor:pointer;
+}
+
+/* node loading */
+body .mini-tree .mini-tree-loading .mini-tree-ec-icon
+{
+    background:#fff url(images/tree/loading.gif) no-repeat scroll 50% 50%;
+}
+

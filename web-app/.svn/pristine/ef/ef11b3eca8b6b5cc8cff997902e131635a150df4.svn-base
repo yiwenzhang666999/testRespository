@@ -1,0 +1,118 @@
+/**
+ *
+ */
+define([
+    'map',
+], function (map_) {
+    'use strict';
+    var layer;
+    var interaction_draw;
+    var stop =false;
+    /**
+     * 图层画 点、线、面
+     * @param {string} type  'Point', 'LineString', 'LinearRing', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection', 'Circle'.
+     * @param {function} callBack
+     */
+    function draw(type, callBack) {
+        var map=map_.getMap();
+        if (!layer) {
+            layer = map_.getLayerByName("DRAW_LAYER");
+        }
+        //
+        var source = layer.getSource();
+        source.clear();
+        clear();
+        //
+        interaction_draw = new ol.interaction.Draw({
+            source: source,
+            type: type,
+            snapTolerance:12/*,
+            finishCondition:function(evt){
+            	now_coor = evt.coordinate;
+            	return !(now_coor[0]===last_coor[0]&&now_coor[1]===last_coor[1]);
+            }*/
+            
+        });
+        window.interaction_draw = interaction_draw;
+        map.addInteraction(interaction_draw);
+        interaction_draw.on('drawend', function (evt) {
+        	if(stop){
+        		stop=false;
+        		return;
+        	}
+            setTimeout(function(){
+                layer.getSource().clear();
+            },0)
+            map.render();
+            map.removeInteraction(interaction_draw);
+            interaction_draw=null;
+            callBack(evt);
+        });
+        interaction_draw.on('drawstart',function(evt){
+        	//TODO 查询服务和判断逻辑待定
+        	return;
+        	
+        	var coor=evt.feature.getGeometry().getCoordinates()[0][0];
+        	var data = {
+        			X:coor[0],Y:coor[1],
+        			userId:1
+        	}
+        	$.ajax({
+        		url:"pdsfcj.do",
+        		type:"post",
+        		data:{jsonStr:JSON.stringify(data)},
+        		success:function(res){
+        			stop=true;
+        			if(res.success){
+        				var zqCode = res.code;
+        				var layerName = res.layerName;
+        				if(getLayerTreeChecked(zqCode,layerName)){
+        					stop=false;
+        				}else{
+        					interaction_draw.finishDrawing();
+        					alert("您未勾选"+res.name+"的数据！");
+        				}
+        			}else{
+        				interaction_draw.finishDrawing();
+        				alert("您为创建"+res.name+"的数据！");
+        			}
+        		},
+        		error:function(err){
+        			console.error(err);
+        		}
+        		
+        	});
+        });
+    }
+    function getLayerTreeChecked(zqCode,layerName){
+    	var elements = $(".zs-tree .selected .data[xian="+zqCode+"]");
+    	return elements.length;
+    }
+    /**
+    * 清除地图交互
+    */
+    function clear() {
+        var ia = map_.getMap().getInteractions().getArray();
+        for (var i = 0; i < ia.length; i++) {
+            if (ia[i] instanceof ol.interaction.Draw || ia[i] instanceof ol.interaction.Select) {
+               /* ia[i].setActive(false)*/
+            	map_.getMap().removeInteraction(ia[i]);
+            	interaction_draw=null;
+            }
+        }
+    }
+   
+    /**
+     * 移出最后一个绘制点
+     * */
+    function removeLastPoint(){
+    	if(interaction_draw&&interaction_draw.a&&interaction_draw.a[0].length>1){
+    		interaction_draw.removeLastPoint();
+    	}
+    }
+    return {
+        draw:draw,
+        removeLastPoint:removeLastPoint,
+        clear:clear
+    }
+});

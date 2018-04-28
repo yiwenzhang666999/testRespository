@@ -1,0 +1,147 @@
+<style>
+#mapSetting input{
+vertical-align: -2px;
+}
+#mapSetting {margin: 20px auto;}
+.mapSettingc{
+  display :inline-block;
+  margin:0 10px 0 10px; 
+}
+#mapSetting .wsh input[type="checkbox"] + label::before {
+    content: "\a0";  /*不换行空格*/
+    display: inline-block;
+    vertical-align: .2em;
+    width: 15px;
+    height: 15px;
+    margin-right: .2em;
+    border-radius: .2em;
+    background-color: #FFFF00;
+    text-indent: .15em;
+    line-height: .65;  /*行高不加单位，子元素将继承数字乘以自身字体尺寸而非父元素行高*/
+}
+#mapSetting .wsh  input[type="checkbox"]:checked + label::before {
+    content: "\2713";
+    background-color: #FFFF00;
+    width: 15px;
+    height: 15px;
+}
+#mapSetting  .wsh  input {
+    position: absolute;
+    clip: rect(0, 0, 0, 0);
+}
+
+#mapSetting .tg input[type="checkbox"] + label::before {
+    content: "\a0";  /*不换行空格*/
+    display: inline-block;
+    vertical-align: .2em;
+    width: 15px;
+    height: 15px;
+    margin-right: .2em;
+    border-radius: .2em;
+    background-color: #00FF33;
+    text-indent: .15em;
+    line-height: .65;  /*行高不加单位，子元素将继承数字乘以自身字体尺寸而非父元素行高*/
+}
+#mapSetting .tg  input[type="checkbox"]:checked + label::before {
+    content: "\2713";
+    background-color: #00FF33;
+    width: 15px;
+    height: 15px;
+}
+#mapSetting  .tg  input {
+    position: absolute;
+    clip: rect(0, 0, 0, 0);
+}
+
+
+#mapSetting .yxg input[type="checkbox"] + label::before {
+    content: "\a0";  /*不换行空格*/
+    display: inline-block;
+    vertical-align: .2em;
+    width: 15px;
+    height: 15px;
+    margin-right: .2em;
+    border-radius: .2em;
+    background-color: #9FFE11;
+    text-indent: .15em;
+    line-height: .65;  /*行高不加单位，子元素将继承数字乘以自身字体尺寸而非父元素行高*/
+}
+#mapSetting .yxg  input[type="checkbox"]:checked + label::before {
+    content: "\2713";
+    background-color: #9FFE11;
+    width: 15px;
+    height: 15px;
+}
+#mapSetting  .yxg  input {
+    position: absolute;
+    clip: rect(0, 0, 0, 0);
+}
+
+#mapSetting .cz input[type="checkbox"] + label::before {
+    content: "\a0";  /*不换行空格*/
+    display: inline-block;
+    vertical-align: .2em;
+    width: 15px;
+    height: 15px;
+    margin-right: .2em;
+    border-radius: .2em;
+    background-color: #999999;
+    text-indent: .15em;
+    line-height: .65;  /*行高不加单位，子元素将继承数字乘以自身字体尺寸而非父元素行高*/
+}
+#mapSetting .cz  input[type="checkbox"]:checked + label::before {
+    content: "\2713";
+    background-color: #999999;
+    width: 15px;
+    height: 15px;
+}
+#mapSetting  .cz  input {
+    position: absolute;
+    clip: rect(0, 0, 0, 0);
+}
+
+#mapSetting .set{
+    position: relative;
+    top: -17px;
+    font-weight:bold;
+}
+
+#mapSetting input[type="checkbox"]:focus + label::before {
+    box-shadow: 0 0 .1em .1em #58a;
+}
+#mapSetting input[type="checkbox"]:disabled + label::before {
+    background-color: gray;
+    box-shadow: none;
+    color: #555;
+}
+</style>
+
+<div id="mapSetting">
+    <p class="set">变化图斑显示设置</p>
+
+    <div class="mapSettingc wsh">
+       <input id="bhtb_query_0" type="checkbox" value="0"/>
+		<label style="font-size:15px" for="bhtb_query_0">未审核</label>
+    </div>
+    
+    <div class="mapSettingc tg">
+       <input id="bhtb_query_1" type="checkbox" value="1"/>
+		<label for="bhtb_query_1" style="font-size:15px">通过</label>
+    </div>
+    
+    <div class="mapSettingc yxg">
+       <input id="bhtb_query_2" type="checkbox" value="2"/>
+		<!-- <label for="bhtb_query_2" style="font-size:15px">修改后通过</label> -->
+		<label for="bhtb_query_2" style="font-size:15px">通过(已修改)</label>
+    </div>
+    
+    <div  class="mapSettingc cz">
+      <input id="bhtb_query_3" type="checkbox" value="3"/>
+		<label for="bhtb_query_3" style="font-size:15px">重做</label>
+    </div>
+    
+    <!-- <div class="mapSettingc">
+       <input id="bhtb_query_4" type="checkbox" value="-1"/>
+		<label for="bhtb_query_4" style="font-size:15px">没变化</label>
+    </div> -->
+</div>

@@ -1,0 +1,247 @@
+define(function() {
+	'use strict';
+  var zzsize={
+	"A0":"841*1189",
+	"A1":"594*841",
+	"A2":"420*594",
+	"A3":"297*420",
+	"A4":"210*297",
+	"A5":"148*210",
+}
+//var divsize={
+//	"A3":{"height":1587,"width":1122},
+//	"A4":{"height":1122,"width":793},
+//	"A5":{"height":793,"width":559},
+//}
+var divsize={
+	"A3":{"width":1587,"height":1122},
+	"A4":{"width":1122,"height":793},
+	"A5":{"width":793,"height":559},
+}
+var pos={
+    "scale": {
+        "jz": 12,
+        "js": 525,
+        "tpkd": 96,
+        "tpgd": 48,
+        "type": "img",
+        "unique":"true",//判断是否为唯一元素
+        "font-size":"20",
+        "type": "text",
+        "text": "1:10000",
+        "unique":"true",//判断是否为唯一元素
+        "textcolor": "000000",
+        "zt": "Adobe Ming Std",
+        "url": ""
+//        "url": "images/print/scale.png"
+    },
+    "compass": {
+        "jz": 686,
+        "js": 10,
+        "tpkd": 96,
+        "tpgd": 96,
+        "type": "img",
+        "unique":"true",//判断是否为唯一元素
+        "url": "images/print/compass.png"
+    },
+    "tili": {
+        "jz": 651,
+        "js": 369,
+//        "jz": 0,
+//        "js": 0,
+        "padding-lr":12,
+    	"padding-tb":8,
+    	"color-width":50,
+    	"color-height":20,
+        "tpkd": 140,
+        "tpgd": 160,
+        "type": "img",
+        "unique":"true",//判断是否为唯一元素
+        "url":"",
+        "tili":{"tili1":{
+        	"color":"#FFB299",
+        	"text":"Pleiades",
+        	"dqys":"tili1",
+        	"px":1,
+        },"tili2":{
+        	"color":"#FFE57F",
+        	"text":"GF2",
+        	"dqys":"tili2",
+        	"px":2,
+        },"tili3":{
+        	"color":"#B2FF99",
+        	"text":"WorldView",
+        	"dqys":"tili3",
+        	"px":3,
+        },"tili4":{
+        	"color":"#FFE57F",
+        	"text":"GF1",
+        	"dqys":"tili4",
+        	"px":4,
+        },"tili5":{
+        	"color":"#FFB2E5",
+        	"text":"ZY102C",
+        	"dqys":"tili5",
+        	"px":5,
+//        },"tili6":{
+//        	"color":"#B2FFCC",
+//        	"text":"ZY3",
+//        	"dqys":"tili6",
+//        	"px":6,
+//        },"tili7":{
+//        	"color":"#B2FFFF",
+//        	"text":"BJ2",
+//        	"dqys":"tili7",
+//        	"px":7,
+//        },"tili8":{
+//        	"color":"#FFCCE5",
+//        	"text":"TM",
+//        	"dqys":"tili8",
+//        	"px":8,
+//        },"tili9":{
+//        	"color":"#7FCCFF",
+//        	"text":"GF16",
+//        	"dqys":"tili9",
+//        	"px":9,
+        },length:5}
+    },
+    "title": {
+        "jz": 346,
+        "js": 20,
+        "tpkd": 80,
+        "tpgd": 26,
+        "font-size":"20",
+        "type": "text",
+        "text": "打印地图",
+        "unique":"true",//判断是否为唯一元素
+        "textcolor": "000000",
+        "zt": "Adobe Ming Std",
+        "url": ""
+    },
+    "text":{
+        "jz": 485,
+        "js": 200,
+        "tpkd": 80,
+        "tpgd": 26,
+        "font-size":"20",
+        "type": "text",
+        "text": "文字",
+        "textcolor": "000000",
+        "zt": "Adobe Ming Std",
+        "url": ""
+    },
+    "picture":{
+        "jz": 0,
+        "js": 450,
+        "tpkd": 48,
+        "tpgd": 48,
+        "type": "img",
+        "url": "images/print/compass.png"
+    }
+};
+  function activeTree(){
+		var treeBox = $(".zs-tree-box");
+		var closeBtn = treeBox.find(".header .close");
+		var btns = $(".zs-tree .btns").not(".disable");
+		var ckBox = $(".zs-tree .ck-box");
+//		树的最小化/还原
+		closeBtn.unbind("click.tree").on("click.tree",function(event){
+			event.stopPropagation();
+			var tarTree = $(this).parents(".zs-tree-box");
+			tarTree.toggleClass("on-min");
+			resetScroll();
+			$(".zs-tree-box .card").hide();
+			treeBox.find(".opa-box .more").removeClass("on");
+		}).click();
+//		展开/收缩列表
+		btns.unbind("click.tree").on("click.tree",function(event){
+			event.stopPropagation();
+			var tarList = $(this).siblings(".content");
+			tarList.slideToggle("fast", resetScroll);
+//			resetScroll();
+		});
+//		默认打开第一个
+//		$(".zs-tree").each(function(){
+//			$(this).find(".btns.first").eq(0).click();
+//			$(this).find(".btns.second").eq(0).click();
+//		});
+//		checkbox勾选
+		ckBox.unbind("click.tree").on("click.tree",function(event){
+			event.stopPropagation();
+			var tarA = $(this).parents("a");
+			var flag;
+			if(tarA.hasClass("selected")){
+				flag = false;
+				tarA.removeClass("selected");
+				$(this).parents("ul.thi-list.content").siblings().removeClass("selected");
+			}else{
+				flag = true;
+				tarA.addClass("selected");
+				//判断是否全选
+				var $a=$(this).parents("ul.thi-list.content").find("a");
+				var a_flag=true;
+				$a.each(function(e){
+					if(!$a.eq(e).hasClass("selected")){
+						a_flag=false;
+					}
+				});
+				if(a_flag){
+					$(this).parents("ul.thi-list.content").siblings().addClass("selected");
+				}
+			}
+			tarA.find("input[type=checkbox]").prop("checked", flag);
+//			查找父节点(暂时不向上选取，涉及到删除元素)
+//			checkParNode(tarA, flag);
+//			查找子节点
+			checkSonNode(tarA, flag);
+			$(".zs-tree-box").getNiceScroll().resize();
+		});
+		function resetScroll(){
+			$(".zs-tree-box .container").getNiceScroll().resize();
+			$(".zs-nicescroll").getNiceScroll().resize();
+		}
+		function checkParNode(tarA, isCheck){
+			var parLi = tarA.parent("li");
+			var parCon = parLi.parent(".content");
+			var parA = parCon.siblings(".btns");
+			var tarInp = parA.find("input[type=checkbox]");
+			var nowLevalCheckedLen;
+			if(parCon.length !== 0){
+				nowLevalCheckedLen = parCon.children("li").children(".btns.selected").length;
+			}
+			if(parCon.length !== 0){
+				if(isCheck === true){
+					parA.addClass("selected");
+					tarInp.prop("checked", true);
+				}else{
+					if(nowLevalCheckedLen === 0){
+						parA.removeClass("selected");
+						tarInp.prop("checked", false);
+					}
+				}
+				checkParNode(parA, isCheck)
+			}
+		}
+		function checkSonNode(tarA, isCheck){
+			var childCon = tarA.siblings(".content");
+			var childA = childCon.find(".btns");
+			var childInp = childA.find("input[type=checkbox]");
+			if(childCon.length === 0){
+				return;
+			}
+			if(isCheck === true){
+				childA.addClass("selected");
+				childInp.prop("checked", true);
+			}else{
+				childA.removeClass("selected");
+				childInp.prop("checked", false);
+			}
+		}
+  }
+  return {
+	  activeTree:activeTree,
+	  zzsize:zzsize,
+	  divsize:divsize,
+	  pos:pos,
+  }
+});

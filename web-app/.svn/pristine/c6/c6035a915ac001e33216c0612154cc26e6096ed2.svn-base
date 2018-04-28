@@ -1,0 +1,567 @@
+/**
+ *资源监管使用的部分js
+ *作者：gp
+ *功能：实现政区定位，高亮，模糊查询等
+ */
+define(['map','drawMap','config'], function (map, drawMap,config) {
+    'use strict';
+    //制图，出图时使用
+    var dir;
+    var offsetX;
+    var offsetY;
+    //制图使用的判断
+    var bool_zt=true;
+    //保存父级编码
+    var thisCode;
+    //地图高亮样式
+    var selectStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,0,0)', width: 3 })
+    });
+    //初始化方法
+    function initZq() {
+    	//TODO 13是河北政区编码，集成后需使用实际登录用户的政区编码
+    	//参数说明：1：政区编码；2：是否有元素移除，原因：初始化时不需要移除，在点击后需要将上一次将在数据移除
+    	queryZq(36,false);
+    	//模糊查询绑定回车事件
+    	$("#input_keypress").on("keypress",function(){inputKeypress()});
+    	$("#zhitu").show();
+        $("#chutu").hide();
+        //制图
+        $("#zhitu").on("click",function(){button_click()});
+        //出图
+        $("#chutu").on("click",function(){chutu_click()});
+        //清楚手绘div
+        $("#qingchu").on("click",function(){qingchu_click()});
+    }
+    
+   /**初始化政区树方法，参数1：政区编码；参数2：是否需要清除之前数据
+    * 点击A标签时调用
+    * */
+    function queryZq(code,bool)
+    {
+    	//code为查询参数，不可以为空，否则后台会报错没有做异常处理
+    	if(code == null || code == "" || typeof(code) == "undefined" || typeof(code) == undefined)
+    		{
+    		return;
+    		}
+    	//将code保存，在回调中使用
+    	thisCode = code;
+    	$.ajax({  
+	        type:"GET",  
+	        url:config.zq_tree_url+"/ws/rest/LS/search/"+code, 
+	        dataType:"JSON",  
+	        success:function(data){
+	        	if(bool)
+	        		{
+	        		//点击a标签时需要将父级记录，以便返回
+	        		addOrRemove(thisCode);
+	        		//移除p，a标签
+	        		$("#kjwz_area_zq").remove();
+	        		$("#zq_context").remove();
+	        		}
+	        	if(data !=null)
+        		{
+	        		//初始化p标签
+	        		var itemCode = data.item.code;
+	        		var itemcenter = data.item.center;
+	        		var itemlevel = data.item.level;
+	        		var itemshape = data.item.shape;
+	        		gl(itemcenter,itemlevel,itemshape)
+//	        		highLayer(itemshape);
+	        		var p_item = $('<p  style="cursor:pointer;font-size:12px;"  class="title" zqcode="'+itemCode+'" zqcenter="'+itemcenter+'" zqlevel="'+itemlevel+'" zqshape='+itemshape+' id="kjwz_area_zq">'+data.item.name+':</p>');
+	        		p_item.on('click',function(){
+        	        	zqDw_p(itemCode,itemcenter,itemlevel,itemshape);
+        	        });
+	        		$("#kjwz-area").append(p_item);
+	        		var p_a = $('<p class="context" id="zq_context"></p>');
+	        		$("#kjwz-area").append(p_a);
+	        		var zqString = "";
+	        		zqString = '';
+	        		//初始化a标签
+	        		if(data.child)
+        			{
+	        			var arr = data.child;
+	        			for(var i=0;i<arr.length;i++)
+	        			{
+	        				var code = arr[i].code;
+	        				var center =arr[i].center;
+	        				var level =arr[i].level;
+	        				var shape =arr[i].shape;
+	        				var a_name = $("<a  style='cursor:pointer;font-size:12px;' >"+arr[i].name+"</a>");
+	        				(function(c,cen,l,s){
+	        					a_name.on('click',function(){
+	        						queryZq(c,true);
+//	        						zqDw(c,cen,l,s);
+	        					});
+	        				})(code,center,level,shape)
+	        				$("#zq_context").append(a_name);
+	        			}
+        			}
+        		
+        		}
+	        }  
+	    });
+    }
+    
+    /**
+     * 点击P标签时调用
+     * 参数说明：
+     * 依次政区编码，中心点，政区级别，政区范围
+     * */
+    function zqDw_p(code,center,level,shape)
+    {
+    	//调用政区定位，高亮方法
+    	gl(center,level,shape);
+    	
+    }
+    /**
+     * 添加移除元素
+     * */
+    function addOrRemove(code)
+    {
+    	//如果br_length=0说明没有有br元素
+    	var br_length = $('#kjwz-area w').length;
+    	if(br_length==0)
+		{
+    		//将父级保存为第一个父级元素
+	    	var ys = $("#kjwz_area_zq");
+	    	var itemCode = ys.attr("zqcode");
+	    	var itemcenter = ys.attr("zqcenter");
+	    	var itemlevel = ys.attr("zqlevel");
+	    	var itemshape = ys.attr("zqshape");
+	    	var value = $("#kjwz_area_zq")[0].innerText;
+	    	var arr = value.split(":");
+	    	var valueStr = arr[0];
+    		var p_item = $('<w  style="cursor:pointer;font-size:12px;color:#3d9b00"  class="title position" level="1" zqcode="'+itemCode+'" zqcenter="'+itemcenter+'" zqlevel="'+itemlevel+'" zqshape='+itemshape+' id="'+itemCode+'_zqcode">'+valueStr+'&nbsp;&nbsp;</w><br>');
+    		p_item.on('click',function(){
+    			zqDw(itemCode,itemcenter,itemlevel,itemshape);
+    		});
+    		$("#kjwz-area").append(p_item);
+		}else
+		{
+			//否则有br元素
+			isNotBr(br_length,code);
+		}
+    }
+    /**
+     * 已经有br元素，说明已经有历史记录，在添加历史记录时需要注意移除之前的br
+     * */
+    function isNotBr(br_length,code)
+    {
+    	var thisP = $("#"+code+"_zqcode");
+    	if(thisP.length>0)
+		{
+    		thisP.nextAll().remove();
+    		$("#"+code+"_zqcode").remove();
+    		var length = $('#kjwz-area w').length;
+    		if(length > 0)
+			{
+    			$('#kjwz-area').append($('<br>'));
+			}
+		}
+    	else
+		{
+    		//重新添加历史记录
+    		var ys = $("#kjwz_area_zq");
+        	var itemCode = ys.attr("zqcode");
+        	var itemcenter = ys.attr("zqcenter");
+        	var itemlevel = ys.attr("zqlevel");
+        	var itemshape = ys.attr("zqshape");
+        	$("#kjwz-area").find('br').remove();
+        	if(document.getElementById(itemCode+"_zqcode"))
+    		{
+        		$("#"+itemCode+"_zqcode").remove();
+    		}
+        	var value = $("#kjwz_area_zq")[0].innerText;
+        	var arr = value.split(":");
+        	var valueStr = arr[0];
+    		var p_item = $('<w  style="cursor:pointer;font-size:12px;color: #3d9b00;"  class="title" level="'+(br_length+1)+'" zqcode="'+itemCode+'" zqcenter="'+itemcenter+'" zqlevel="'+itemlevel+'" zqshape='+itemshape+' id="'+itemCode+'_zqcode">'+'<span class="arr" style="display: inline-block;margin: 0px 5px 5px 0;font-size: 12px;color: #3d9b00;">&gt;</span>'+valueStr+'&nbsp;&nbsp;</w><br>');
+    		p_item.on('click',function(){
+    			zqDw(itemCode,itemcenter,itemlevel,itemshape);
+    		});
+    		$("#kjwz-area").append(p_item);
+		}
+    	
+    }
+    //政区定位，点击a标签调用，参数依次：政区编码，中心点，级别，政区范围
+    function zqDw(code,center,level,shape)
+    {
+    	queryZq(code,true);
+    	gl(center,level,shape);
+    }
+    //地图定位，高亮方法
+    function gl(center,level,shape)
+    {
+    	var l = level;
+    	var jb = 1;
+    	if(l==1)
+		{
+    		jb = 4;
+		}else if(l==2)
+		{
+			jb = 5;
+		}else if(l==3)
+		{
+			jb = 7;
+		}else if(l==4)
+		{
+			jb = 9;
+		}else if(l==5)
+		{
+			jb = 11;
+		}
+        //高亮显示
+    	if(shape){
+    		var geojsonFormat = new ol.format.GeoJSON();
+            var feature = geojsonFormat.readFeature(shape);
+            feature.setStyle(selectStyle);
+            map.getLayerByName("ZQDW_LAYER").getSource().clear();
+            map.getLayerByName("ZQDW_LAYER").getSource().addFeature(feature);
+    	}
+        //地图缩放
+        var arr = center.split(",");
+        arr[0] = parseFloat(arr[0]);
+        arr[1] = parseFloat(arr[1]);
+        map.getMap().getView().setCenter(arr);
+        map.getMap().getView().setZoom(jb); 
+    }
+    //先将 高亮提出来  by zzq
+    function highLayer(shape){
+    	//高亮显示
+    	var geojsonFormat = new ol.format.GeoJSON();
+        var feature = geojsonFormat.readFeature(shape);
+        feature.setStyle(selectStyle);
+        map.getLayerByName("ZQDW_LAYER").getSource().clear();
+        map.getLayerByName("ZQDW_LAYER").getSource().addFeature(feature);
+    }
+    //模糊查询方法，绑定回车事件
+    function inputKeypress()
+    {
+    	var value = $("#input_keypress").val();
+    	if(value == null || value == "" || typeof(value) == "undefined" || typeof(value) == undefined)
+		{
+    		return;
+		}
+    	$.ajax({  
+	        type:"GET",  
+	        url:config.zq_tree_url+"/ws/rest/LS/analyze/"+value, 
+	        dataType:"JSON",  
+	        success:function(data){
+	        	document.getElementById("zqdw_query").innerHTML = "";
+	        	if(data)
+	    		{
+	        		for(var i=0;i<data.length;i++)
+        			{
+	        			
+	        			var center =data[i].location.center;
+	        			var level =data[i].location.level;
+	        			var shape =data[i].location.shape;
+	        			//加载a标签
+	        			var a_name = $("<a  style='cursor:pointer;font-size:12px;' >"+data[i].fullName+"</a>");
+	        			(function(cen,l,s){
+	        				a_name.on('click',function(){
+	        					gl(cen,l,s);
+		        	        });
+	        			})(center,level,shape)
+	        			$("#zqdw_query").append(a_name);
+	        			//判断只加载前三个数据
+	        			if(i==2)
+	        				{return;}
+        			}
+	    		}
+	        }  
+	    });
+    }
+    
+    //----------------------------------------------------------------------------------
+    //制图使用事件
+    function qingchu_click()
+    {
+    	$("#testDiv").remove();
+    	$("#zhitu").show();
+	    $("#chutu").hide();
+	    bool_zt = true;
+	    
+    }
+    //点击开始绘图
+    function button_click()
+    {
+  	  $("#zhitu").hide();
+	  	var mousekey=0;
+	    var x=0;
+	    var y=0;
+	      $("#chutu").show();
+	  
+	      $('body').append('<div id="testDiv" draggable="true"  class="resizeMe" style="top:150px;left:500px;width:800px;height:500px;position:absolute;border-color:#FF0000;border:2px dashed;"><div id="innerNice"></div></div>');
+  	  //禁用地图点击拖动
+  	  disableMove();
+  	  //鼠标按下开始绘图
+  	   
+  	    	if(bool_zt)
+ 	    		{
+  	    		document.onmousedown = doDown;
+  	    		document.onmouseup   = doUp;
+  	    		document.onmousemove = doMove;
+  	    		//鼠标抬起事件
+  	    		x = y = mousekey = 0;  
+      	        bool_zt=false;
+      	        onMove();
+      	        //给div初始化拖动事件
+      	        //拖动开始
+      	        testDiv.ondragstart=function(e){  
+				        //记录开始时记录初始位置
+				        offsetX= e.offsetX;  
+				        offsetY= e.offsetY;  
+				    }  
+					testDiv.ondrag=function(e){  
+						//拖动中
+				        var x= e.pageX;  
+				        var y= e.pageY;  
+				        //drag事件最后一刻，无法读取鼠标的坐标，pageX和pageY都变为0 
+				        //鼠标移出可移动位置，将移动目标变为0点位置
+				        if(x==0 && y==0){  
+				            return; //不处理拖动最后一刻X和Y都为0的情形  
+				        }  
+				        x-=offsetX;  
+				        y-=offsetY;  
+						testDiv.style.border = "2px dashed ";
+						 testDiv.style.opacity = '0.4'; 
+				  //给移动目标初始化位置
+				        testDiv.style.left=x+'px';  
+				        testDiv.style.top=y+'px';  
+				    }  
+					testDiv.ondragend=function(){  
+					testDiv.style.border = "2px dashed rgba(255, 0, 0, 0.8)";
+					testDiv.style.opacity = '1'; 
+				        //结束处理的事件  
+				    }
+					//拖动结束
+					$(document).unbind("mousedown");
+					$(document).unbind("mousemove");
+					$(document).unbind("mouseup");
+ 	    		}
+    }
+    //进行下一步，将截取出的图形赋值给隐藏的canvas
+    function chutu_click()
+    {
+	      var div_div = $("#testDiv")[0];
+	      if(bool_zt)
+	    	  {
+	    	  alert("请选择出图范围");
+	    	  return;
+	    	  }
+	      var can=document.getElementsByClassName("ol-unselectable")[0];
+	      var canvas_2d =can.getContext("2d");
+	      //取出图片
+	      //var imgData = new Image;
+	      //canvas_2d.crossOrigin = 'anonymous';
+	      var imgData = canvas_2d.getImageData(div_div.offsetLeft,div_div.offsetTop-40,div_div.offsetWidth,div_div.offsetHeight);
+	      
+	      var hide_canvas=document.getElementById("hidden_canvas");
+	      //设置canvas的宽和高
+	      hide_canvas.width = div_div.offsetWidth; 
+	      hide_canvas.height = div_div.offsetHeight;
+	      var v=hide_canvas.getContext("2d");
+	      //将图片给隐藏的canvas，用来取得url
+	      v.putImageData(imgData,0,0);
+	      //要给孙润的url
+	      var dataUrl = hide_canvas.toDataURL();
+//	      window.open(dataUrl,200,200,0,0);
+	      //创建表单提交到制图页面，并新窗口打开
+//	      console.log(dataUrl);
+	      formSubmit(dataUrl);
+	      $("#testDiv").remove();
+	      $("#zhitu").show();
+	      $("#chutu").hide();
+	      bool_zt = true;
+    }
+    function formSubmit(dataUrl){
+		var url="zyjgZt.do";
+		var form=$("<form>");//定义一个form表单
+	  	form.attr("style","display:none");
+	  	form.attr("target","_blank");
+	  	form.attr("method","post");
+	  	form.attr("action",url);
+	    var input=$("<input>");
+	    input.attr("name","base64url");
+	    input.attr("value",dataUrl);
+		form.append(input);
+	  	$("body").append(form);//将表单放置在web中
+	  	form.submit();//表单提交
+    }
+    
+    
+    //启用地图拖动的方法
+    function onMove(){
+  	  var array = window.map.getMap().getInteractions().getArray()
+  	  for(var i =0;i<array.length;i++)
+ 		  {
+ 		  	var element = array[i];
+ 		 	if(element instanceof ol.interaction.DragPan) 
+ 		 		{
+ 		 			element.setActive(true);
+		             return;
+ 		 		}
+ 		  }
+    }
+	//禁用地图拖动方法
+	    function disableMove(){
+	  	  var array = window.map.getMap().getInteractions().getArray();
+	  	  for(var i =0;i<array.length;i++)
+	 		  {
+	 		  	var element = array[i];
+	 		 	if(element instanceof ol.interaction.DragPan) 
+	 		 		{
+	 		 			element.setActive(false);
+			             return;
+	 		 		}
+	 		  }
+	    }
+          
+          //-----------------------------------------------------------------------------------
+          //边线拖动开始
+          var theobject = null; 
+
+			function resizeObject() {
+				this.el        = null; 
+				this.dir    = "";      
+				this.grabx = null;     
+				this.graby = null;
+				this.width = null;
+				this.height = null;
+				this.left = null;
+				this.top = null;
+			}
+				
+			
+			//计算点的位置
+			function getDirection(el) {
+				var xPos;
+				var yPos;
+				var offset;
+				dir = "";
+			
+				xPos = window.event.offsetX;
+				yPos = window.event.offsetY;
+			
+				offset = 8; //The distance from the edge in pixels
+			
+				if (yPos<offset) dir += "n";
+				else if (yPos > el.offsetHeight-offset) dir += "s";
+				if (xPos<offset) dir += "w";
+				else if (xPos > el.offsetWidth-offset) dir += "e";
+			
+				return dir;
+			}
+			//鼠标按下事件
+			function doDown(e) {
+				var div_id = e.srcElement.id;
+				if(div_id=="testDiv")
+				{
+					var el = getReal(event.srcElement, "className", "resizeMe");
+					
+					if (el == null) {
+						theobject = null;
+						return;
+					}		
+					
+					dir = getDirection(el);
+					if (dir == "") return;
+					
+					theobject = new resizeObject();
+					
+					theobject.el = el;
+					theobject.dir = dir;
+					
+					theobject.grabx = window.event.clientX;
+					theobject.graby = window.event.clientY;
+					theobject.width = el.offsetWidth;
+					theobject.height = el.offsetHeight;
+					theobject.left = el.offsetLeft;
+					theobject.top = el.offsetTop;
+					
+					window.event.returnValue = false;
+					window.event.cancelBubble = true;
+				}
+			}
+			//鼠标抬起
+			function doUp(e) {
+				var div_id = e.srcElement.id;
+				if(div_id=="testDiv")
+				{
+					if (theobject != null) {
+						theobject = null;
+					}
+				}
+			}
+			//鼠标移动
+			function doMove(e) {
+				var div_id = e.srcElement.id;
+				
+						var el;
+						var xPos;
+						var yPos;
+						var str;
+						var xMin;
+						var yMin;
+						var str;
+						xMin = 8; 
+						yMin = 8; 
+						
+						el = getReal(event.srcElement, "className", "resizeMe");
+						
+						if (el.className == "resizeMe") {
+							str = getDirection(el);
+							
+							if (str == "" && el.className == "resizeMe") 
+								str = "move";
+							else 
+								str += "-resize";
+							el.style.cursor = str;
+						}
+						
+						if(theobject != null) {
+							if (dir.indexOf("e") != -1)
+								theobject.el.style.width = Math.max(xMin, theobject.width + 
+										window.event.clientX - theobject.grabx) + "px";
+							if (dir.indexOf("s") != -1)
+								theobject.el.style.height = Math.max(yMin, theobject.height + 
+										window.event.clientY - theobject.graby) + "px";
+							
+							if (dir.indexOf("w") != -1) {
+								theobject.el.style.left = Math.min(theobject.left + 
+										window.event.clientX - theobject.grabx, theobject.left + theobject.width - xMin) + "px";
+								theobject.el.style.width = Math.max(xMin, theobject.width - 
+										window.event.clientX + theobject.grabx) + "px";
+							}
+							if (dir.indexOf("n") != -1) {
+								theobject.el.style.top = Math.min(theobject.top + 
+										window.event.clientY - theobject.graby, theobject.top + theobject.height - yMin) +"px";
+								theobject.el.style.height = Math.max(yMin, theobject.height - 
+										window.event.clientY + theobject.graby) + "px";
+							}
+							window.event.returnValue = false;
+							window.event.cancelBubble = true;
+						} 
+					
+				}
+					function getReal(el, type, value) {
+						var temp;
+						temp = el;
+						while ((temp != null) && (temp.tagName != "BODY")) {
+							if (eval("temp." + type) == value) {
+								el = temp;
+								return el;
+							}
+							temp = temp.parentElement;
+						}
+						return el;
+					}
+					 
+//边线移动结束--------------------------------------------------------------------------------------	
+    return {
+    	init:initZq,
+    	inputKeypress:inputKeypress
+    }
+});

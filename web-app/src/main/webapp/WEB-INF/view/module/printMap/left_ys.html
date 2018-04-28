@@ -1,0 +1,90 @@
+<ul class="zs-tree zt">
+	<li>
+		<a href="javascript:;" class="btns first">
+			<img class="icon" src="images/zs-tree-list.png" alt="" />
+			<span class="txt">元素列表</span>
+		</a>
+		<ul class="sec-list content">
+		</ul>
+	</li>
+	<li>
+		<a href="javascript:;" class="btns first">
+			<img class="icon" src="images/zs-tree-yssx.png" alt="" />
+			<span class="txt" id="dqys">当前元素属性:</span>
+		</a>
+		<ul class="sec-list content table-wrapper">
+			<div class="zs-data-table">
+				<div class="container">
+					<table width="100%" id="table_ys">
+						<thead>
+							<tr>
+								<th>属性</th>
+								<th>值</th>
+							</tr>
+						</thead>
+						<tbody id="table_pos">
+							<tr>
+								<td>位置横坐标(mm)</td>
+								<td><input type="text" id="jz"/></td>
+							</tr>
+							<tr>
+								<td>位置纵坐标(mm)</td>
+								<td><input type="text" id="js"/></td>
+							</tr>
+						</tbody>
+						<tbody id="table_img">
+							<tr>
+								<td>宽度(mm)</td>
+								<td><input type="text" id="tpkd"/></td>
+							</tr>
+							<tr>
+								<td>高度(mm)</td>
+								<td><input type="text" id="tpgd"/></td>
+							</tr>
+						</tbody>
+						<tbody id="table_text">
+							<tr>
+								<td>颜色</td>
+								<td>
+									<input id="textcolor" class="jscolor" value="000000">
+								</td>
+							</tr>
+							<tr>
+								<td>字体</td>
+								<td>
+									<select id="zt">
+										<option value="Adobe Ming Std">默认字体</option>
+										<option value="宋体">宋体</option>
+										<option value="仿宋">仿宋</option>
+									</select>
+								</td>
+							</tr>
+							<tr>
+								<td>文字内容</td>
+								<td><input type="text" id="text"/></td>
+							</tr>
+							<tr>
+								<td>文字大小</td>
+								<td><input type="text" id="font-size"/></td>
+							</tr>
+						</tbody>
+						<tbody id="table_tili" style="display:none;">
+							<tr>
+								<td>颜色</td>
+								<td><input type="color" id="tili_color"/></td>
+							</tr>
+							<tr>
+								<td>文字</td>
+								<td><input type="text" id="tili_text"/></td>
+							</tr>
+							<tr>
+								<td>排序</td>
+								<td><input type="text" id="tili_px"/></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</ul>
+	</li>
+</ul>

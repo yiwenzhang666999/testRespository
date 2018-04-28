@@ -1,0 +1,259 @@
+define([
+    "treeHelper","config"
+], function (treeHelper,config) {
+    'use strict';
+    /**
+	 * 查询
+	 * */
+    var datas=[];
+    function initSearch(){
+    	$("#xianName").on("keypress",function(){search()});
+		$(".cancel").unbind("click").on("click",cancel);
+    }
+    function cancel(){
+    	$("#xianName").val("");
+    	document.getElementById("bhdk_item").innerHTML = "";
+    }
+	function funclick(){
+		$("input[name='add']").unbind("click").on("click",add);
+		$("input[name='create']").unbind("click").on("click",create);
+	}
+    function search(){
+	    	var xianName=$("#xianName").val();
+	    	var userId=$("#userId")[0].innerText;//需要获取登录者的id
+	    	var style="background: rgb(238, 238, 238); color: rgb(136, 136, 136); border: 1px solid rgb(170, 170, 170);"
+	    	$.ajax({  
+		        type:"GET",  
+		        url:config.zq_tree_url+"/ws/rest/LS/analyze/"+xianName, 
+		        dataType:"JSON", 
+		        async:false ,
+		        success:function(data){
+		        	var htmlStr = "";
+		        	document.getElementById("bhdk_item").innerHTML = "";
+	    			datas=[];
+		        	if(data.length>0){
+		        		for(var i=0;i<3;i++){
+		        			htmlStr+="<p class='line'><span class='name'>"+data[i].fullName+"</span>";
+		        			htmlStr+="<span class='opa'><input type='button' id='yl"+i+"' class='zs-btn reset' value='预览' disabled='disabled' style='"+style+"'/>";
+		        			//根据省code判断来判断是否已经创建过，控制按钮创建/添加可用不可用, 获取需要添加年度判断
+		        			//根据县code和用户id判断来判断是否已经添加过变化地块，控制按钮添加可用不可用
+		        			var flag=getDatareg("C_SHENG='"+data[i].location.code.substring(0,2)+"' AND C_APPID='ZYJG'","FS_BUSINESS_DATAREG");//表1
+		        			var flag2=getDatareg("C_XIAN='"+data[i].location.code+"' AND I_USERID='"+userId+"' AND C_APPID='ZYJG'","FS_BUSINESS_USERBUSLAYERS");//表2
+		        			if(flag && !flag2){//表1有值，表2没值,创建按钮不可用，添加按钮可用
+		        				htmlStr+="<input type='button' id='add"+i+"' name='add' data='"+i+"' class='zs-btn reset' value='添加' />";
+			        			htmlStr+="<input type='button' id='create"+i+"' name='create' data='"+i+"' class='zs-btn reset' value='创建' disabled='disabled' style='"+style+"'/></span></p>";
+		        			}
+		        			if(flag && flag2){//两者都有值，两个按钮都隐藏
+		        				htmlStr+="<input type='button' id='add"+i+"' name='add' data='"+i+"' class='zs-btn reset' value='添加' disabled='disabled' style='"+style+"'/>";
+			        			htmlStr+="<input type='button' id='create"+i+"' name='create' data='"+i+"' class='zs-btn reset' value='创建' disabled='disabled' style='"+style+"'/></span></p>";
+		        			}
+		        			if(!flag){//表1没有值，两个按钮都可用
+			        			htmlStr+="<input type='button' id='add"+i+"' name='add' data='"+i+"' class='zs-btn reset' value='添加' disabled='disabled' style='"+style+"'/>";
+			        			htmlStr+="<input type='button' id='create"+i+"' name='create' data='"+i+"' class='zs-btn reset' value='创建'/></span></p>";
+		        			}
+	        			}
+		        		datas=data;
+		        		$("#bhdk_item").append(htmlStr);
+		        		funclick();//绑定事件
+		    		}
+		        }
+		    });
+    }
+	
+	/**
+	 * 判断按钮可用不()
+	 */
+	function getDatareg(where,tableName){
+		var flag=false;
+		$.ajax({
+			url:"bhdk/getData.do",
+			type:"POST",
+			async:false,
+			data:{data:JSON.stringify({"where":where,"tableName":tableName})},
+			success:function(result){
+				if(result=="true"){
+					flag=true;
+				}
+			},
+			error : function(msg){
+			}
+		});
+		return flag;
+	}
+	
+	/**
+	 * 添加
+	 * **/
+	function add(e){
+		var that=$(this);
+		var data=datas[that.attr("data")];
+		//按钮样式
+		that.removeClass();
+		that.addClass("zs-btn");
+		var data=datas[that.attr("data")];
+		if(data){
+			var sheng=data.location.code.substring(0,2);
+			var xian=data.location.code;
+			var Xname=data.location.name;
+			var nd=$("#bhdkNd").val();
+			var shengName=queryShengName(sheng);
+			$.ajax({
+				url:"bhdk/add.do",
+				type:"POST",
+				async:false,
+				data:{data:JSON.stringify({"sheng":sheng,"shengName":shengName,"xian":xian,"Xname":Xname,"nd":nd})},
+				success:function(result){
+					if(result){
+						//清除创建成功条目
+						that.parents(".line").remove();
+						//数据库保存成功，需要将节点添加到树，
+						//treeHelper.appendNode(JSON.parse(result));
+						appendNode(result,xian);
+					}
+				},
+				error : function(msg){
+				}
+			});
+		}
+	}
+	/**
+	 * 创建
+	 * **/
+	function create(e){
+		var that=$(this);
+		//按钮样式
+		that.removeClass();
+		that.addClass("zs-btn");
+		//省+县+县名称+省市县全名+工作年度
+		var data=datas[that.attr("data")];
+		if(data){
+			var sheng=data.location.code.substring(0,2);
+			var xian=data.location.code;
+			var Xname=data.location.name;
+			var fullName=data.fullName;
+			var nd=$("#bhdkNd").val();
+			var shengName=queryShengName(sheng);
+			$.ajax({
+				url:"bhdk/create.do",
+				type:"POST",
+				async:false,
+				data:{data:JSON.stringify({"sheng":sheng,"shengName":shengName,"xian":xian,"Xname":Xname,"fullName":fullName,"nd":nd})},
+				success:function(result){
+					if(result){
+						//清除创建成功条目
+						that.parents(".line").remove();
+						//数据库保存成功，需要将节点添加到树，
+						appendNode(result,xian);
+					}
+			},
+				error : function(msg){
+				}
+			});
+		}
+	}
+	function appendNode(result,xian){
+		var treeObj = $("#zyjg_bhdk"); 
+		var setting = {
+			showCheck : true,
+			expand : true,
+			callback : {
+				click : function(nodeHtml,node,innerTree){
+					//console.log(innerTree.getCheckedNodes());
+					return false;
+				},
+			render : function(nodeHtml,node,innerTree){
+				if(node.jb == 3){
+					var newDom = $('<div class="opa-box">\
+								<span class="more btn" data-card="bhdk"></span>\
+								</div>');
+					newDom.unbind("click").bind("click",function(e){
+						//展示变化地块 - 右侧选项卡
+						e.stopPropagation();
+						var legend = $(".card.bhdk");
+						$(".card.bhdk").toggle();
+                        var $element = $(this);
+                        /*setTimeout(function(){
+                            var max = $(window).height() -legend.outerHeight();
+                            var top = $element.offset().top;
+                            if(top >= max){
+                                top = max;
+                            }
+                            if(top>100&&legend.outerHeight()>150){
+                                top=top-100;
+                            }else{
+                                top=top-50;
+                            }
+                            legend.show().css("top",top+"px");
+                        },'100');*/
+						var treeBox = $(".zs-tree-box");
+						var moreBtn = treeBox.find(".opa-box .more");
+						var card = $(".zs-tree-box .card");
+						if(moreBtn.hasClass("on")){
+							card.hide();
+							moreBtn.removeClass("on");
+						}else{
+							card.hide();
+							moreBtn.removeClass("on");
+							moreBtn.addClass("on");
+							var type = moreBtn.attr("data-card");
+							var targetCard = $(".zs-tree-box .card." + type);
+//							var max = treeBox.height() - targetCard.outerHeight();
+//							var top = moreBtn.offset().top - treeBox.offset().top;
+//							if(top >= max){
+//								top = max;
+//							}
+							var max = $(window).height() -legend.outerHeight();
+                            var top = $element.offset().top;
+                            if(top >= max){
+                                top = max;
+                            }
+                            if(top>100&&legend.outerHeight()>150){
+                                top=top-100;
+                            }else{
+                                top=top-50;
+                            }
+							targetCard.show().css("top", top + "px");
+						}
+						return false; 
+					});
+					nodeHtml.find("a").append(newDom);
+					nodeHtml.find("i").attr("xian",xian);
+					nodeHtml.find("i").attr("type","bhdk");
+				}
+				 if (node.jb == 2) {
+                    var newDom = $('<div class = "opa-box">\
+                    <span class = "del btn" ></span>\
+                    </div>');
+                    nodeHtml.find("a").append(newDom);
+                }
+				return nodeHtml;
+			},
+			}
+		};
+		treeHelper=new treeHelper(treeObj,setting,[]);
+		treeHelper.appendNode(JSON.parse(result));
+	}
+	
+	 //根据code查询省name
+    function queryShengName(code){
+    	var shengName="";
+    	$.ajax({  
+	        type:"GET",  
+	        url:config.zq_tree_url+"/ws/rest/LS/search/"+code, 
+	        dataType:"JSON",  
+	        async:false,
+	        success:function(res){
+	        	if(res !=null){
+	        		shengName = res.item.name;
+	        	}
+	        }
+	    });
+    	return shengName;
+    }
+	return {
+		init:initSearch,
+		search:search,
+		create:create,
+		add:add
+	}
+});

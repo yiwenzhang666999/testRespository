@@ -1,0 +1,239 @@
+/**
+ *
+ */
+define([
+    'map','style','treeHelper','util'
+], function (map_,style,treeHelper,util) {
+    'use strict';
+    var layer;
+    var interaction_draw;
+    var stop =false;
+    var isStop=false;
+    var interval = null;
+    /**
+     * 图层画 点、线、面
+     * @param {string} type  'Point', 'LineString', 'LinearRing', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection', 'Circle'.
+     * @param {function} callBack
+     */
+    function draw(type, callBack) {
+        var map=map_.getMap();
+        if (!layer) {
+            layer = map_.getLayerByName("DRAW_LAYER");
+        }
+        //
+        var source = layer.getSource();
+        source.clear();
+        clear();
+        //
+        interaction_draw = new ol.interaction.drawBuffer({
+        	/*clickTolerance:1000,*/
+            source: source,
+            type: type,
+            snapTolerance:5,//结束点吸附距离 像素
+            /*freehand:true,*/
+            isBuffer:true,
+            bufferLayerName:"LDGX_P",//吸附查询时的 表名
+            bufferTolerance:8,//吸附查询时的 距离
+            style: style.getDefaultStyleFunction()
+        });
+        map.addInteraction(interaction_draw);
+        interaction_draw.on('drawend', function (evt) {
+        	if(stop){
+        		setTimeout(function(){
+            		layer.getSource().clear();
+            	},200)
+        		stop=false;
+        		return;
+        	}
+        	var jstsWkt =  new jsts.io.WKTReader();
+        	var jsts_geom = jstsWkt.read(new ol.format.WKT().writeFeature(evt.feature));
+        	if(jsts_geom.isValid()){
+        		setTimeout(function(){
+            		layer.getSource().clear();
+            		window.clearInterval(interval);
+            	},500)
+                map.render();
+                map.removeInteraction(interaction_draw);
+                interaction_draw=null;
+                callBack(evt);
+                //将是否吸附去掉  by zzq 20180128
+                $(".is-buffer-snap").hide();
+        	}else{
+        		map_.getLayerByName("BUFFER_LAYER").getSource().clear();
+				map_.getLayerByName("BUFFER_LAYER").setVisible(false);
+				interaction_draw.clearOverlay_();
+				setTimeout(function(){
+					layer.getSource().clear();
+				},0);
+				//window.clearInterval(interval);
+        		mini.alert("图形自相交，请重新绘制！","温馨提示");
+        	}
+        });
+        interaction_draw.on('drawstart',function(evt){
+        	//TODO 查询服务和判断逻辑待定
+        	if(!window.startTool){
+        		return;
+        	}
+        	var coor=evt.feature.getGeometry().getFirstCoordinate();
+        	var data = {
+        			X:coor[0],Y:coor[1],
+        			userId:userObj.userId
+        	}
+        	$.ajax({
+        		url:"pdsfcj.do",
+        		type:"post",
+        		data:{jsonStr:JSON.stringify(data)},
+        		dataType:"json",
+        		success:function(res){
+        			interval = window.setInterval(updateSession,1000*60*15);
+        			stop=true;
+        			if(res.success){
+        				var zqCode = res.code;
+        				var layerName = res.layerName;
+        				if(getLayerTreeChecked(zqCode,layerName)){
+        					stop=false;
+        					isStop=false;
+        				}else{
+        					//清除捕捉吸附图层
+        					isStop=true;
+        					//清除捕捉吸附图层
+        					map_.getLayerByName("BUFFER_LAYER").getSource().clear();
+        					map_.getLayerByName("BUFFER_LAYER").setVisible(false);
+        					interaction_draw.finishDrawing();
+        					interaction_draw.clearOverlay_();
+        					window.clearInterval(interval);
+        					var selectId = res.code+"_"+userObj.defineNd;
+        					if(confirm("您未勾选"+(res.name?res.name:'')+"的数据！是否勾选？")){
+            					var nodes = treeHelper.getTree("zyjg").getNodes();
+            					/*for(var i=0;i<nodes.length;i++){
+            						if(nodes[i].id="bhdk"){
+            							nodes = nodes[i];
+            						}
+            					}*/
+            					var bl = function(nodes){
+            						for(var i=0;i<nodes.length;i++){
+            							var node = nodes[i];
+            							var children = node.children||[];
+            							if(node.selectId==selectId){
+            								console.log(selectId+":"+node.id);
+            								$("[tid="+node.id+"] a i").click();
+            							}
+            							if(children.length>0){
+            								bl(children);
+            							}
+            						}
+            					}
+            					bl(nodes);
+        					}
+        				}
+        			}else{
+        				isStop=true;
+        				//清除捕捉吸附图层
+        				map_.getLayerByName("BUFFER_LAYER").getSource().clear();
+        				map_.getLayerByName("BUFFER_LAYER").setVisible(false);
+        				interaction_draw.finishDrawing();
+        				interaction_draw.clearOverlay_();
+        				window.clearInterval(interval);
+        				if(confirm("您未创建"+(res.name?res.name:'')+"的数据！是否创建？")){
+        					//$("[tid='bhdk'] .opa-box .add").click();
+        					require(["bhdk"], function (bhdk) {
+        						'use strict';
+        						bhdk.addBhdk(res.name,res.code,userObj.defineNd);
+        					});
+        				}
+        				//alert("您未创建"+(res.name?res.name:'')+"的数据！");
+        			}
+        		},
+        		error:function(err){
+        			util.validateSession(err);
+        			console.error(err);
+        		}
+
+        	});
+        });
+    }
+    function getLayerTreeChecked(zqCode,layerName){
+    	var tree = treeHelper.getTree("zyjg");
+    	var checkedNodes = tree.getCheckedNodes();
+    	for(var i=0;i<checkedNodes.length;i++){
+    		var item = checkedNodes[i];
+    		if(item._data&&item._data.xian&&item._data.xian==zqCode){
+    			return 1;
+    		}
+    	}
+    	return 0;
+    }
+    /**
+    * 清除地图交互
+    */
+    function clear() {
+        var ia = map_.getMap().getInteractions().getArray();
+        for (var i = 0; i < ia.length; i++) {
+            if (ia[i] instanceof ol.interaction.Draw || ia[i] instanceof ol.interaction.Select) {
+               /*ia[i].setActive(false)*/
+            	interaction_draw.clearOverlay_();
+            	map_.getMap().removeInteraction(ia[i]);
+            	interaction_draw=null;
+            }
+        }
+        window.clearInterval(interval);
+        map_.getLayerByName("BUFFER_LAYER").getSource().clear();
+    }
+
+    /**
+     * 移出最后一个绘制点
+     * */
+    function removeLastPoint(){
+    	if(interaction_draw&&interaction_draw.a&&interaction_draw.a&&interaction_draw.a[0].length>1){
+    		interaction_draw.removeLastPoint();
+    	}else if(interaction_draw&&interaction_draw.sketchCoords_
+    			&&interaction_draw.sketchCoords_
+    			&&interaction_draw.sketchCoords_[0].length>1){
+    		interaction_draw.removeLastPoint();
+    	}
+    }
+    ol.interaction.Draw.handleEvent = function(event) {
+    	  this.freehand_ = this.mode_ !== ol.interaction.Draw.Mode_.POINT && this.freehandCondition_(event);
+    	  var pass = !this.freehand_;
+    	  if (this.freehand_ &&
+    	      event.type === ol.MapBrowserEventType.POINTERDRAG && this.sketchFeature_ !== null) {
+    		  if(!this.lastPixel){
+    			  this.lastPixel= [0,0];
+    		  }
+    		  var dx = event.pixel[0] - this.lastPixel[0];
+		      var dy = event.pixel[1] - this.lastPixel[1];
+    		  if(Math.sqrt(dx * dx + dy * dy)>10){
+    			  this.addToDrawing_(event);
+    			  this.lastPixel = event.pixel;
+    		  }
+    	    pass = false;
+    	  } else if (event.type ===
+    	      ol.MapBrowserEventType.POINTERMOVE) {
+    	    pass = this.handlePointerMove_(event);
+    	  } else if (event.type === ol.MapBrowserEventType.DBLCLICK) {
+    	    pass = false;
+    	  }
+    	  return ol.interaction.Pointer.handleEvent.call(this, event) && pass;
+    	};
+    function getIsStop(){
+    	return isStop;
+    }
+    function updateSession(){
+    	$.ajax({
+    		url:"updateSession.do",
+    		type:"GET",
+    		success:function(res){
+    			console.log(new Date());
+    		},
+    		error:function(evt){
+    			util.validateSession(evt);
+    		}
+    	});
+    }
+    return {
+        draw:draw,
+        removeLastPoint:removeLastPoint,
+        clear:clear,
+        getIsStop:getIsStop//是否停止绘制
+    }
+});

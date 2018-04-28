@@ -1,0 +1,104 @@
+package com.forestar.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSONObject;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.service.BaseService;
+import com.forestar.service.PartitionSchemaImpl;
+
+@Controller
+@RequestMapping("/shdk")
+public class ShdkController{
+	Logger logger=Logger.getLogger(getClass());
+	@Autowired
+	BaseService baseService;
+	@Autowired
+	PartitionSchemaImpl partitionSchemaImpl;
+	private static final String TABLENAME = "ZYJG_BHTB";
+	
+	
+	/**
+	 * 变化图斑--获取当前政区下未审核的总条数
+	 * @param request
+	 * @param response
+	 * @param data
+	 * @param model
+	 * @return
+	 * @throws ServiceException
+	 */
+	@RequestMapping(value={"/getTotal.do"}, produces={"text/html;charset=UTF-8"})
+	@ResponseBody
+	public String getTotal(HttpServletRequest request, HttpServletResponse response, String data, Model model) throws ServiceException
+	{
+	  Map<String,String> map=new HashMap<String,String>();
+	  if (data != null) {
+	    JSONObject jsonData = JSONObject.parseObject(data);
+	    try {
+	    	partitionSchemaImpl.setSchema(jsonData.getString("xian"));
+	    	QueryFilter qf= new QueryFilter();
+	    	qf.setWhereString("C_XIAN='"+jsonData.getString("xian")+"' and (C_STATUS in (2,99) or C_STATUS is null)");
+	    	qf.setOrderByString("C_CUN");
+//	    	qf.setWhereString("C_XIAN='"+jsonData.getString("xian")+"' and (C_STATUS='1')");
+	    	List<RowBase> list=this.baseService.getDataTable(TABLENAME, qf);
+	  		String ids="";
+	  		Map<String,String> xys=new HashMap<String,String>();
+	  		for(int i=0;i<list.size();i++){
+	  			Map temp=list.get(i).getOriginalObjects();
+	  			ids+=temp.get("ID")+",";
+	  			xys.put(temp.get("ID")+"", temp.get("I_LON_DEG")+","+temp.get("I_LAT_DEG"));
+	  		}
+	  		map.put("total", list.size()+"");
+	  		map.put("ids", ids);
+	  		map.put("xys", JSONObject.toJSON(xys).toString());
+	    }catch (Exception e) {
+	      e.printStackTrace();
+	    } 
+	  }
+	  return JSONObject.toJSON(map).toString();
+	}
+	/**
+	 * 变化图斑--审核&保存
+	 * @param request
+	 * @param response
+	 * @param data
+	 * @param model
+	 * @return
+	 * @throws ServiceException
+	 */
+	@RequestMapping(value={"/shdkData.do"}, produces={"text/html;charset=UTF-8"})
+	@ResponseBody
+	public String shdkData(HttpServletRequest request, HttpServletResponse response, String data, Model model)throws ServiceException{
+		String flag="0";
+		if (data != null) {
+		    JSONObject jsonData = JSONObject.parseObject(data);
+		    try {
+		    	QueryFilter qf= new QueryFilter();
+		    	qf.setWhereString("C_XIAN='"+jsonData.getString("xian")+"' and ID='"+jsonData.getString("id")+"' and C_STATUS in ('0','1')");
+		    	List<RowBase> list=this.baseService.getEntityList(TABLENAME, qf);
+		    	if(list.size()>0){
+		    		flag="0";
+		    	}else{
+		    		flag="1";
+		    	}
+		    }catch (Exception e) {
+		      e.printStackTrace();
+		    } 
+		}
+		return flag;
+	}
+}

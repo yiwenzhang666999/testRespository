@@ -1,0 +1,16 @@
+datasource.initialSize=10
+datasource.maxActive=300
+datasource.maxIdle=10
+datasource.minIdle=5
+datasource.maxWait=10000
+datasource.maxOpenPreparedStatements=50
+datasource.removeAbandoned=false
+datasource.removeAbandonedTimeout=300
+datasource.logAbandoned =true
+datasource.testOnBorrow=true
+datasource.testOnReturn=false
+datasource.testWhileIdle=false
+datasource.validationQuery=select 1 from dual
+datasource.validationQueryTimeout=1
+datasource.timeBetweenEvictionRunsMillis=30000
+datasource.numTestsPerEvictionRun=50

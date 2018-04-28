@@ -1,0 +1,15 @@
+require.config({
+	urlArgs: "v=2.0", // 版本号
+	paths: {
+		//lib
+//		lodop: ["js/lodop/LodopFuncs"],
+        //制图
+        config:"app/printImg/config",
+        canvasDarg:"app/printImg/canvasDarg",
+        printCanvas:"app/printImg/printCanvas",
+	},
+	waitSeconds: 0 // 加载等待时间 设置为0 没有限制
+})
+colorManager = {
+	textColor :"#C2CFDA"
+}

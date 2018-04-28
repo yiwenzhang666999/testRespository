@@ -1,0 +1,47 @@
+package com.forestar.controller;
+
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.service.BaseService;
+import com.forestar.save.dataController;
+import com.forestar.data.metadata.PartitionSchema;
+@Controller
+public class AttrQueryController {
+	@Autowired
+	BaseService baseService;
+	@Autowired
+	PartitionSchema partitionSchemaImpl;
+	private static final Logger logger = Logger.getLogger(dataController.class
+			.getName());
+	//查询  需要调用服务接口查到结构，然后返回前台，前台高亮地图
+	@RequestMapping(value="/getSpaceQueryData.web",method = RequestMethod.POST)
+	@ResponseBody
+	public List getSpaceQueryData(HttpServletRequest req, HttpServletResponse res) throws Exception{
+		String jsonStr = req.getParameter("data");
+		JSONObject jsonObj = JSON.parseObject(jsonStr);
+		String tableName = jsonObj.getString("tableName");
+		String WhereStr = jsonObj.getString("whereStr");
+		String zqCode = jsonObj.getString("zqCode");
+		QueryFilter queryFilter = new QueryFilter();
+		queryFilter.setSelectFields("C_OBJINFO");
+		queryFilter.setWhereString(WhereStr);
+		partitionSchemaImpl.setSchemaByZQCode(zqCode);
+		List<RowBase> rowlist = baseService.getEntityList(tableName,queryFilter);
+		return rowlist;
+	}
+	
+}

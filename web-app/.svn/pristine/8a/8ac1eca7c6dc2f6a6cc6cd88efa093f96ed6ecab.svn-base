@@ -1,0 +1,224 @@
+/**
+ * 报表统计和导出功能
+ */
+define([
+    'map','config','service'
+], function (map,config,service) {
+	'use strict';
+	var formHtml_Report = "";
+    function init() {
+    	//绑定报表统计时，所用到的点击事件
+        $("#startReportBtn").bind("click", startReport);
+        //绑定自定义统计按钮的点击事件
+        //TODO 自定义统计的form表单内容暂无，该怎么交互？（按钮）
+        var formWidth = $(document).width()-200;
+       $("#customReport").modal({
+			title: "自定义报表",//标题
+			overlay: true,//遮罩层
+			showMin: true,//最小化
+			showMax: false,//最大化
+			showTop: false,//置顶
+			isDrag: true,//移动
+			contentWidth: formWidth,//主体宽度 适用于 ajax clone类型
+			type:"ajax",//请求类型  img ajax iframe alert confirm prompt clone
+			target: "./ibox/customReport.html"//引入的页面(请求···)
+			//addCallBack:formLoad//添加页面之后的加载回调
+		});
+       $("#startReportBtn").modal({
+			title: "报表统计",//标题
+			overlay: true,//遮罩层
+			showMin: true,//最小化
+			showMax: false,//最大化
+			showTop: false,//置顶
+			isDrag: true,//移动
+			contentWidth: formWidth,//主体宽度 适用于 ajax clone类型
+			type:"ajax",//请求类型  img ajax iframe alert confirm prompt clone
+			target: "./ibox/reportForm.html",//引入的页面(请求···)
+			addCallBack:formLoad//添加页面之后的加载回调
+		});
+    	//TODO 如果统计方式的li是动态生成的话，要添加属性统计报表的ID值，来生成li标签
+       //createList();
+    }
+    
+    //生成li标签中的报表方案
+    function createList(){
+    	//进行查表获取报表方案，遍历，拼接HTML放到页面中
+    	var tableName = "";
+    	var whereStr = "1=1";
+    	var option ={
+    			//生成li标签的HTML字符串
+    			callback:function(res){
+    				var contList = $("#bd-tj .content .item .gdtj");
+    				contList.append(res);
+    			},
+    			exceptionHandler:function(evt){
+    				console.log("错误信息："+evt);
+    			}
+    	};
+    	service.getReportProList(tableName,whereStr,option);
+    }
+    
+    //开始统计报表
+	function startReport(){
+		var selReport = $("#bd-tj .content .item .gdtj li.selected");
+		//customId为固定表头的报表的ID
+		var customId = selReport.attr("customId");
+		//reportId为方案报表的ID
+		var reportId = selReport.attr("reportId");
+		var selWhere = $("#bd-tj .content .item p input[name='bdsj']:checked");
+		//判断是否选中统计方式
+		if(selReport.length<1){
+			alert('请选择统计方式!');
+			return;
+		}
+		//判断是否选中统计范围
+		if(selWhere.length<1){
+			alert('请选择统计范围!');
+			return;
+		}
+		//判断是什么统计范围.0:地图画范围，需要服务返回条件。1:为全县数据
+		if(selWhere.val()==0){
+			//TODO 缺少条件
+			var queryJson = {};
+		}else{
+			var queryJson = {};
+		}
+		//TODO strFilter没值
+		var strFilter ="";
+		//判断选中的报表是什么报表,reportId有值为固定报表，反之为自定义报表
+		if(reportId){
+			fixedReportFun(reportId,queryJson,strFilter,reportCallBack);
+		}else if(customId){
+			customReportFun(queryJson,customId);
+		}else{
+			customReportFun(queryJson);
+		}
+		
+	}
+	
+	/**
+	 * 固定报表统计方法
+	 * reportId:固定报表的ID
+	 * queryJson:统计条件
+	 * strFilter:统计单位(调查范围)
+	 * TODO strFilter 页面中没有选择功能
+	 */
+	function fixedReportFun(id,queryJson,strFilter,callback){
+		//参数：String reportId, String queryJson, String strFilter
+		//例：queryJson:{"XIAN":334456,"XIANG":334456010}  
+		//strFilter:"XIAN,XIANG"
+		var data = {"reportId":id,"queryJson":JSON.stringify(queryJson),"strFilter":strFilter};
+    	$.ajax({
+			type: 'POST',
+			url: "../report/showreport.do",
+			data: data,
+			success:function(res){
+				callback(res);
+				},
+			dataType: "json"
+		});
+    
+	}
+	
+    //回调方法
+    function reportCallBack(res){
+    	//返回的res结果是HTML字符串
+    	//整合字符串，替换个别特殊字符
+    	var htmlData = res[0].replace(/\"/g,"\'");
+    	//截取字符串
+		var startTh = htmlData.substring(0,htmlData.indexOf("<\/thead>")+8);
+		var endTh = htmlData.substring(htmlData.indexOf("<\/thead>")+8);
+		//TODO 缺少表格的宽高
+		var pageWidth = "";
+  		var pageHeight = "";
+  		//报表滚动条出现高度
+		var endHeight = pageHeight - $(".tjbb_reportTitle").height() - $(".tjbb_reportDw").height();
+		//将thead中的td替换为th
+	    startTh = startTh.replace(/td/g,"th");
+	    startTh = "<div id='reportHead' onscroll='Forestar.App.tjbbWidget.instance.scrollDouble(\"reportBody\",this)'>" + startTh + "</table></div>";
+	    endTh = "<div id='reportBody' onscroll='Forestar.App.tjbbWidget.instance.scrollDouble(\"reportHead\",this)'><table id='data_table'>" + endTh + "</div>";
+	    //TODO 注意该页面是一个弹框
+  		//添加HTML节点
+	    formHtml_Report = formHtml_Report;
+	    $(".tjbb_reportView").append(startTh + endTh);
+		setCss(pageWidth,endHeight,res);
+		//合计行高亮显示
+		var tabData=$(".tjbb_reportView tbody")
+	    setDataTabCss(tabData);
+    }
+    
+    //设置报表样式
+    function setCss(pageWidth,endHeight,res){
+    	//设置样式
+    	$("#reportHead").css({ 
+            "width":pageWidth,
+            "overflow":"hidden"
+        });
+        $("#reportBody").css({ 
+            "width":pageWidth,
+            "height":endHeight - $("#reportHead").height()-10,
+            "overflow":"scroll"
+        });
+        var theadWidth=$(".tjbb_reportView table>thead").width();
+        if(theadWidth<(pageWidth-40)){
+        	$(".tjbb_reportView table").css("width",pageWidth-18);
+        }else{
+        	 $(".tjbb_reportView table").css("width",(e[1]+1)*150+1);//设置表宽度，避免IE出现表头与表身不对应（IE必须给固定宽度）
+        }
+    }
+    
+    //合计行高亮显示
+    function setDataTabCss(tabData){
+		var trrArray = tabData.find("tr");
+		for (var i = 0; i < trrArray.length; i++) {
+			if (trrArray[i].textContent.indexOf("合计") > -1) {
+				for (var j = 1; j < trrArray[i].cells.length; j++) {
+					if (trrArray[i].cells[j].getAttribute("rowspan") == "1") {
+						trrArray[i].cells[j].style.color = "#F30";
+						trrArray[i].cells[j].style.backgroundColor = "#A4FAA6";
+					}
+				}
+			}
+		}
+	
+    }
+	
+	/**
+	 *自定义报表统计方法
+	 */
+	function customReportFun(queryJson,customId){
+		var customId ="";
+		var crosswise ={DI_LEI:"地类",QI_YUAN:"起源"};
+		var lengthways = [{XIAN:"县"},{XIANG:"乡"},{CUN:"村"},{XIAO_BAN:"小班"}];
+    	var datas = {crosswise:crosswise,lengthways:lengthways,whereStr:queryJson,customId:customId};
+    	//请求后台，对数据进行拼接成HTML表格
+		$.ajax({
+			url:"getReportData.web",
+			type:"POST",
+			data:{data:JSON.stringify(datas)},
+			cache : false,
+			dataType : 'json',
+			success :function(result){
+				$(".tjbb_reportView").html(result[0].html);
+				formHtml_Report = result[0].html;
+			},
+			error:function(err){
+				console.error(err);
+			}
+		});
+	}
+	/**
+	 * 页面加载之后的回调
+	 * 把组装的HTML放到弹框中
+	 */
+	function formLoad(){
+		//判断数据加载在后时，则重新加入HTML
+		if(formHtml_Report!="" && $("#reportBody").length==0){
+			$(".tjbb_reportView").append(formHtml_Report);
+			formHtml_Report="";
+		}
+	}
+    return {
+        init: init
+    }
+})

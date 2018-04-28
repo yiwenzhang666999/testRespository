@@ -1,0 +1,60 @@
+# (*)运维系统地址
+url=http://192.168.1.234:9007/ldbgywpt
+# (*)系统编号
+systemCode=LDBGGZPT
+# 运维与业务系统集成在一起时，配置地址
+isLocalHost = true
+# (*)系统授权编码
+moduleID=3703011
+
+cas.server=http://192.168.1.234:9007/cas
+yzt_jygh_url = http://192.168.1.48:8081/ldbggzpt/validate.do?url=/module/ldyzt/yzt#jygh
+yzt_zyjg_url = http://192.168.1.48:8081/ldbggzpt/validate.do?url=/module/ldyzt/yzt#zyjg
+yzt_ccys_url = http://192.168.1.48:8081/ldbggzpt/validate.do?url=/module/ldyzt/yzt#ccys
+yzt_trlgl_url = http://192.168.1.48:8081/ldbggzpt/validate.do?url=/module/ldyzt/yzt#trlgl
+isLoginSystem=false
+#------超级用户参数配置 -----------
+# 超级用户不需要权限验证(功能权限)
+# (*)超级用户名
+super.username=admin
+# (*)超级用户密码
+super.password=207ae477041b9b1076cd9b18d8c8d078
+super.orgid=36
+
+#-------------------------------------------------------------
+# 集成CAS服务器地址
+#cas.server=http://192.168.1.234:9007/cas
+#公司地址
+cas.server=http://192.168.1.234:9007/cas
+#现场地址
+#cas.server=http://124.193.194.35:9007/cas
+#-------门户所需要地址-------------
+#公司林地变更地址
+ldbg_url=http://192.168.1.48:8080/ldbg
+#------登录参数 -----------
+#是否进行验证码判断
+login.validateCode=false
+#登录失败账户锁定,true执行锁定功能,false不进行锁定
+login.lock=false
+#限制登录失败次数
+login.times=3
+#执行多长时间内解锁用户，例如：5分钟内失败3次，超过5分钟可以解锁全新登录
+login.minutes=5
+login.keystore=C:/RSAKey.txt
+#------报表编码配置-----------
+report.code=gbk
+#------日志参数 -----------
+# 记录功能操作日志，对登录日志无效
+# logger.openLog=true
+
+
+defineNd_start=5
+defineNd_end=3
+spaceQuery=http://192.168.1.234:9010/web-ws/ws
+# 文件上传路径
+filePath=D:/HLW+LDGX/user_gisdata_process
+#-----RabbitMQ 相关配置---------
+rabbitIp=192.168.1.110
+rabbitUser=dlwy
+rabbitPassWord=dlwy
+rabbitPort=5672

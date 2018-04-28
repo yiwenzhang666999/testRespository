@@ -1,0 +1,38 @@
+<div id="tjdkbhsj-ibox">
+	<p class="line search">
+		<span class="txt">工作年度</span>
+		<select class="zs-select" id="bhdkNd">
+			
+		</select>
+		<span class="txt">县名</span>
+		<input type="text" class="zs-input" value="" id="xianName"/>
+		<a href="javascript:;" class="cancel">清空</a>
+	</p>
+	<span id="bhdk_item"></span>
+</div>
+<script type="text/javascript">
+require(["bhdk"], function (bhdk) {
+  	$("#xianName").unbind("keypress").on("keypress",bhdk.search);
+	$(".cancel").unbind("click").on("click",bhdk.cancel);
+	$.ajax({
+        url:"bhdk/getYear.do", 
+        type:"post",  
+        dataType:"JSON", 
+        async:false,
+        success:function(year){
+        	if(typeof year=="number"){
+        		for(var i=(year-1);i<(year+5);i++){
+		        	$("#bhdkNd").append("<option>"+i+"</option>");
+        		}
+        		$("#bhdkNd").unbind("change").on("change",function(e){
+        			if($("#xianName").val!=""){
+        				bhdk.search();
+        			}
+        		});
+        	}else{
+        		
+        	}
+        }
+	})
+})
+</script>

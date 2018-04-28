@@ -1,0 +1,82 @@
+/**
+ * 加载树形结构
+ */
+define(["treeHelper"],
+    function (treeHelper) {
+        'use strict';
+        function init() {
+            getData('FS_BUSINESS_USERBUSLAYERS', 'admin', 'ZYJG','zyjg_bhdk'); // 变化地块
+        }
+        /**
+         * 查询数据库获取树形结构数据
+         * @param  {} tableName 
+         * @param  {} userId
+         * @param  {} appId
+         * @param  {} nodeId 节点Id
+         */
+        function getData(tableName, userId, appId,nodeId) {
+            var queryParam = {};
+            queryParam.whereString = "I_USERID = '" + userId +"' And C_APPID = '" + appId + "'";
+            queryParam.orderByString = 'I_ID, I_LYRORDERID';
+            FsService.getEntityList(tableName, queryParam, {
+                callback: function (result) {
+                    if (result.length > 0) {
+                        dataProcessing(result, nodeId);
+                    } else {
+                        alert('查询结果为空！');
+                        closeAlert();
+                    }
+                },
+                xceptionHandler: function (e) {
+                    closeAlert();
+                },
+            });
+        }
+        /**
+         * 查询数据库后数据处理
+         * @param  {} data 
+         * @param  {} nodeId 节点ID
+         */
+        function dataProcessing (data, nodeId) {
+            var treeObj = $("#" + nodeId);
+            var datas = [];
+            for (var i = 0; i < data.length; i++) {
+                var obj1 = data[i].originalObjects;
+                var temp1 = {};
+                if (obj1.C_XIAN == '' || obj1.C_XIAN == null) { // 是一级节点
+                    temp1.id = obj1.I_ID;
+                    temp1.text = obj1.C_SHENGNAME;
+                    temp1.children = [];
+                    for (var j = 0; j < data.length; j++) {
+                        var obj2 = data[j].originalObjects;
+                        if (obj1.I_ID == obj2.I_PARID) { // 有子节点
+                            var temp2 = {};
+                            temp2.id =  obj2.I_PARID;
+                            temp2.text = obj2.C_XIANNAME;
+                            if (obj2.C_DATANAME) {
+                                temp2.children = [{text : obj2.C_DATANAME}];
+                            }
+                            temp1.children.push(temp2);
+                        }
+                    } 
+                    datas.push(temp1);
+                } 
+                
+            }
+            var setting = {
+                showCheck : true,
+                callback : {
+                    click : function(nodeHtml,node,innerTree){
+                        // console.log(innerTree.getCheckedNodes());
+                    },
+                render : function(nodeHtml,node,innerTree){
+                    return nodeHtml;
+                },
+                }
+            };
+            treeHelper(treeObj,setting,datas);
+        }
+        return {
+            init: init
+        }
+});

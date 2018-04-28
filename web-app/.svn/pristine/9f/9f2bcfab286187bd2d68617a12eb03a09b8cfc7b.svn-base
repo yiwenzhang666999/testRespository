@@ -1,0 +1,68 @@
+.zs-tree li>a.second{
+	left:1px;
+}
+/*定位*/
+.zs-position {
+	top: 20px;
+	left: 100px;
+}
+/*制图功能使用请勿移除*/
+#testDiv{ 
+	background-color: transparent; 
+	background-repeat: repeat; 
+	background-attachment: scroll; 
+	color: #ff0000; 
+	overflow: hidden; 
+	z-index: 2;
+	position:absolute;          
+	margin: 0px;
+	padding: 2px; 
+	background-position: 0% 50%;
+    cursor : default	
+    }
+.iAdd{
+	        position: absolute;
+	        top:53px;
+	        right:10px;
+            float: right;
+            text-align: center;
+            line-height: 20px;
+            width: 20px;
+            height: 20px;
+            font-size: 20px;
+            background:url(../images/zs-tree-add.png) no-repeat center;
+            cursor:pointer;
+        }
+        
+          .inpuDiv{
+           position: relative;
+           width:250px;
+          /*  height:26px; */
+           top:0;
+           left: 0;
+          display: none;
+           background: white;
+           z-index: 1;
+           font-size: 14px;
+        }
+        .insInput{
+            position:absolute;
+            left:20px;
+            width: 170px;
+            height: 26px;
+        }
+        .butoAdd{
+        position:absolute;
+	     top:0;
+	     right:10px;
+         width: 50px;
+         height: 26px;
+         float:right;
+         font-size: 14px;
+         background-color: #61ba37;
+         color: #ffffff;
+         border: none;
+         cursor:pointer;
+        }
+       
+    

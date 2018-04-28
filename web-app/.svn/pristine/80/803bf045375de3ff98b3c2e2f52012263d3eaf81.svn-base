@@ -1,0 +1,463 @@
+/**
+ * 生成图层工厂
+ * 支持 天地图（TDT） geoServer   易伟航(EVIAL)
+ * 配置中 TYPE：
+ * 1、TILE (只是经纬度)
+ *     (source) [TDT,EVIAL]
+ *     OGC:WMTS、XYZ
+ * 2、VECTOR
+ */
+define(function () {
+    'use strict';
+    //map最大级别
+    var maxzoom =18;
+    var extent=[-180, -90, 180, 90]; 
+    //map投影坐标
+    var projection = new ol.proj.Projection({
+        code: "EPSG:4490", //+ config.MAP.WKID,
+        extent: extent
+    });
+    var origin=[-180,90];  //默认
+    var tileSize=256;      //默认
+    var getResolutions=function(firstDpi){
+        var resolution=firstDpi?firstDpi:360/(256*2);
+        var resolutions=[];
+        var matrixIds=[];
+        for (var z = 0; z <= maxzoom; ++z) {
+            resolutions[z] = resolution / Math.pow(2, z);
+            matrixIds[z] = z;
+        };
+        return{
+            resolutions:resolutions,
+            matrixIds:matrixIds
+        }
+    }
+    //
+    /**
+     * 符合wmts的服务
+     * @param {object} con 
+     */
+    var get_wmts_Layer = function (con) {
+        var rs=getResolutions(con["FIRSTDPI"]);
+        var wmts_layer = new ol.layer.Tile({
+        	zIndex:(con.zIndex?con.zIndex:0),
+            visible: con.VISIBLE,
+            opacity: con.OPACITY,
+            maxResolution: rs['resolutions'][con.MINZOOM],
+            minResolution: rs['resolutions'][con.MAXZOOM],
+            source: new ol.source.WMTS({
+                url: con["URL"],
+                projection: projection,
+                layer: con["LAYER"],
+                format: 'image/jpeg',
+                tileGrid: new ol.tilegrid.WMTS({
+                    origin: con["ORIGIN"]||origin,
+                    resolutions: rs['resolutions'],
+                    matrixIds: rs['matrixIds']
+                }),
+                version:con["VERSION"],
+                matrixSet: "satImage",
+                style: 'default'
+            })
+        });
+        return wmts_layer;
+    }
+    /**
+     * 符合xyz的请求服务
+     * @param {object} con 
+     */
+    var get_xyz4Mz_layer=function(con){
+        var rs=getResolutions(con["FIRSTDPI"]);
+        var xyz_layer = new ol.layer.Tile({
+        	zIndex:(con.zIndex?con.zIndex:0),
+            visible: con.VISIBLE,
+            opacity: con.OPACITY,
+            maxResolution: rs['resolutions'][con.MINZOOM],
+            minResolution: rs['resolutions'][con.MAXZOOM],
+            source: new ol.source.XYZ({
+                projection: projection,
+                tileUrlFunction: function (tileCoord) {
+                    var url = con["URL"];
+                    var z = tileCoord[0];
+                    var x = tileCoord[1];
+                    var y = -tileCoord[2]-1;
+                    return url.replace('{z}', z.toString())
+                        .replace('{y}', x.toString())
+                        .replace('{x}', y.toString()).replace('{name}',con['TABLENAME']);
+                },
+                tileGrid: new ol.tilegrid.TileGrid({
+                    origin: con["ORIGIN"]||origin,
+                    resolutions: rs['resolutions'],
+                    tileSize:con['TILESIZE']||tileSize
+                }),
+            })
+        });
+        return xyz_layer;
+    }
+    /**
+     * 获得天地图xyz图层
+     * @param {object} con 
+     */
+    var get_xyz4tdt_layer = function (con) {
+        var rs=getResolutions(con["FIRSTDPI"]);
+        var xyz_layer = new ol.layer.Tile({
+        	zIndex:(con.zIndex?con.zIndex:0),
+            visible: con.VISIBLE,
+            opacity: con.OPACITY,
+            maxResolution: rs['resolutions'][con.MINZOOM],
+            minResolution: rs['resolutions'][con.MAXZOOM],
+            source: new ol.source.XYZ({
+            	crossOrigin: 'anonymous',
+                projection: projection,
+                tileUrlFunction: function (tileCoord) {
+                    var url = con["URL"];
+                    var z = tileCoord[0] + 1;
+                    var x = tileCoord[1];
+                    var y = -tileCoord[2] - 1;
+                    var serverId = Math.round(Math.random() * 7);
+                    url = url.replace(/\{[0-9]-[0-9]\}/, serverId);
+                    return url.replace('{z}', z.toString())
+                        .replace('{y}', y.toString())
+                        .replace('{x}', x.toString());
+                },
+                tileGrid: new ol.tilegrid.TileGrid({
+                    origin: con["ORIGIN"]||origin,
+                    resolutions: rs['resolutions'],
+                    tileSize:con['TILESIZE']||tileSize
+                }),
+            })
+        });
+        return xyz_layer;
+    }
+    /**
+     * 获得易伟航xyz图层  需要调整
+     * @param {object} con 
+     */
+    var get_zyz4evial_layer = function (con) {
+        var rs=getResolutions(con["FIRSTDPI"]);
+        var xyz_layer = new ol.layer.Tile({
+        	zIndex:(con.zIndex?con.zIndex:0),
+            visible: con.VISIBLE,
+            opacity: con.OPACITY,
+            maxResolution: rs['resolutions'][con.MINZOOM],
+            minResolution: rs['resolutions'][con.MAXZOOM],
+            source: new ol.source.XYZ({
+                projection: projection,
+                tileUrlFunction: function (tileCoord) {
+                    var url = con["URL"];
+                    var z = tileCoord[0];
+                    var x = tileCoord[1];
+                    var y = tileCoord[2];
+                    var scene=con['SCENE'];
+                    return url.replace('{z}', z.toString())
+                        .replace('{y}', y.toString())
+                        .replace('{x}', x.toString()).replace('{scene}',scene);
+                },
+                tileGrid: new ol.tilegrid.TileGrid({
+                    origin: con["ORIGIN"]||origin,
+                    resolutions: rs['resolutions'],
+                    tileSize:con['TILESIZE']||tileSize
+                }),
+            })
+        });
+        return xyz_layer;
+    }
+    /**
+     * 获得wms服务图层 针对于geoserver
+     * @param {object} con 
+     */
+    function get_wms_layer(con) {
+        var rs=getResolutions(con["FIRSTDPI"]);
+        var format = 'image/png';
+        var untiled = new ol.layer.Image({
+        	zIndex:(con.zIndex?con.zIndex:0),
+            visible: con.VISIBLE,
+            opacity: con.OPACITY,
+            maxResolution: rs['resolutions'][con.MINZOOM],
+            minResolution: rs['resolutions'][con.MAXZOOM],
+            source: new ol.source.ImageWMS({
+                ratio: 1,
+                url: con['URL'],
+                params: {
+                    'FORMAT': format,
+                    'VERSION': con.VERSION,
+                    STYLES: '',
+                    LAYERS: con['LAYERS']
+                }
+            })
+        });
+        return untiled
+    }
+    /**
+     * 获得wms服务图层 针对于mapZone
+     * @param {object} con 
+     */
+    function get_wms4mapZone_layer(con) {
+        var rs=getResolutions(con["FIRSTDPI"]);
+        var format = 'image/png';
+        var untiled = new ol.layer.Image({
+        	zIndex:(con.zIndex?con.zIndex:0),
+            visible: con.VISIBLE,
+            opacity: con.OPACITY,
+            maxResolution: rs['resolutions'][con.MINZOOM],
+            minResolution: rs['resolutions'][con.MAXZOOM],
+            source: new ol.source.ImageWMS({
+                ratio: 1,
+                url: con['URL'],
+                params: {
+                    'VERSION': con.VERSION,
+                    'OPERATION': 'GETMAPIMAGE',
+                    'FORMAT': format,
+                    'TRANSPARENT': true,
+                    'USERNAME':'Anonymous',
+                    'PASSWORD' : '',
+                     STYLES: '',
+                     MapName: con['LAYERS']
+                }
+            })
+        });
+        return untiled
+    }
+    /**
+     * 获得图层
+     * @param {object} con 
+     */
+    function getLayer(con) {
+        var layer;
+        if (con['TYPE'] == 'VECTOR') { //矢量图       
+            //暂时不提供  动态图层加载
+        }
+        if (con['TYPE'] == 'TILE') { //瓦片地图
+            //判断地图格式 xyz,wmts,wms
+            var ogc = con['OGC'];
+            switch (ogc) {
+                case 'WMTS':
+                    layer = get_wmts_Layer(con);
+                    break;
+                case 'XYZ':
+                    if (con['SOURCE'] == 'TDT') {
+                        layer = get_xyz4tdt_layer(con);
+                    }
+                    if (con['SOURCE'] == 'EVIAL') {
+                        layer = get_zyz4evial_layer(con);
+                    }
+                    if (con['SOURCE'] == 'MAPZONE') {
+                        layer = get_xyz4Mz_layer(con);
+                    }
+                    break;
+                case 'WMS':
+                    if (con['SOURCE'] == 'geoserver') {
+                        layer = get_wms_layer(con);
+                    }
+                    if (con['SOURCE'] == 'mapZone') {
+                        layer = get_wms4mapZone_layer(con);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        return layer;
+    }
+    /**
+     * 获得高亮图层
+     * @returns 
+     */
+    function get_high_layer() {
+        var high_layer = new ol.layer.Vector({
+        	zIndex:99999,
+            source: new ol.source.Vector(),
+            style: function (feature) {
+                if (feature.get('style')) {
+                    return feature.get('style');
+                } else {
+                    var style__ = new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: '#92f9f8',
+                            width: 5
+                        })
+                         /*fill: new ol.style.Fill({
+                             color: 'rgba(255, 255, 255, 0)'
+                         })*/
+                    });
+                    return style__;
+                }
+            },
+            opacity: 1
+        });
+        return high_layer;
+    }
+    /**
+     * 获得高亮图层
+     * @returns 
+     */
+    function get_show_layer(color) {
+        var high_layer = new ol.layer.Vector({
+        	zIndex:99997,
+            source: new ol.source.Vector(),
+            style: function (feature) {
+                if (feature.get('style')) {
+                    return feature.get('style');
+                } else {
+                    var style__ = new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: color,//'#92f9f8'
+                            width: 3
+                        })
+                         /*fill: new ol.style.Fill({
+                             color: 'rgba(255, 255, 255, 0)'
+                         })*/
+                    });
+                    return style__;
+                }
+            },
+            opacity: 1
+        });
+        return high_layer;
+    }
+    /**
+     * 获得绘制图层
+     * @returns 
+     */
+    function get_draw_layer() {
+        var draw_layer = new ol.layer.Vector({
+        	zIndex:99998,
+            source: new ol.source.Vector({ features: new ol.Collection() }),
+            style: new ol.style.Style({
+                fill: new ol.style.Fill({
+                    color: 'rgba(255, 255, 255, 0.2)'
+                }),
+                stroke: new ol.style.Stroke({
+                    color: '#ffcc33',
+                    width: 2
+                }),
+                image: new ol.style.Circle({
+                    radius: 7,
+                    fill: new ol.style.Fill({
+                        color: '#ffcc33'
+                    })
+                })
+            })
+        });
+        return draw_layer;
+    }
+    
+    /**
+     * 获得政区定位图层
+     * @returns 
+     */
+    function get_zqdw_layer() {
+        var zqdw_layer = new ol.layer.Vector({
+        	zIndex:999999,
+            source: new ol.source.Vector({ features: new ol.Collection() }),
+            style: new ol.style.Style({
+                fill: new ol.style.Fill({
+                    color: 'rgba(255, 255, 255, 0)'
+                }),
+                stroke: new ol.style.Stroke({
+                    color: 'rgba(255, 255, 255, 0)',
+                    width: 0
+                }),
+                image: new ol.style.Circle({
+                    radius: 7,
+                    fill: new ol.style.Fill({
+                        color: '#ffcc33'
+                    })
+                })
+            })
+        });
+        return zqdw_layer;
+    }
+    /**
+     * 获得编辑图层
+     * @returns 
+     */
+    function get_edit_layer() {
+        var draw_layer = new ol.layer.Vector({
+            source: new ol.source.Vector({ features: new ol.Collection() }),
+            zIndex:99998,
+            style: new ol.style.Style({
+                fill: new ol.style.Fill({
+                    color: 'rgba(255,255,255, 0.5)'
+                }),
+                stroke: new ol.style.Stroke({
+                    color: "rgb(247, 85, 100)",
+                    width: 2
+                }),
+                image: new ol.style.Circle({
+                    radius: 7,
+                    fill: new ol.style.Fill({
+                        color: '#ffcc33'
+                    })
+                })
+            })
+        });
+        return draw_layer;
+    }
+    /**
+     * 获得高亮图层
+     * @returns 
+     */
+    function get_create_layer() {
+        var create_layer = new ol.layer.Vector({
+        	zIndex:99998,
+            source: new ol.source.Vector(),
+            style: function (feature) {
+                if (feature.get('style')) {
+                    return feature.get('style');
+                } else {
+                    var style__ = new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: '#92f9f8',
+                            width: 5
+                        }),
+                       /* fill: new ol.style.Fill({
+                            color: '#abe81c'
+                        })*/
+                    });
+                    return style__;
+                }
+            },
+            opacity: 0.8
+        });
+        return create_layer;
+    }
+    /**
+     * 获得缓冲图层
+     * @returns 
+     */
+    function get_buffer_layer() {
+        var buffer_layer = new ol.layer.Vector({
+        	zIndex:99998,
+            source: new ol.source.Vector(),
+            style: function (feature) {
+                if (feature.get('style')) {
+                    return feature.get('style');
+                } else {
+                    var style__ = new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: '#FF51E4',
+                            width: 3
+                        }),
+                       /* fill: new ol.style.Fill({
+                            color: '#abe81c'
+                        })*/
+                    });
+                    return style__;
+                }
+            },
+            opacity: 0.8
+        });
+        return buffer_layer;
+    }
+    return {
+        getLayer: getLayer,
+        get_high_layer: get_high_layer,
+        get_draw_layer: get_draw_layer,
+        get_edit_layer: get_edit_layer,
+        get_create_layer:get_create_layer,
+        get_zqdw_layer: get_zqdw_layer,
+        get_show_layer:get_show_layer,
+        get_buffer_layer:get_buffer_layer
+    }
+});

@@ -1,0 +1,282 @@
+package com.forestar.controller;
+
+import com.alibaba.fastjson.JSONObject;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.core.session.SessionFactory;
+import com.forestar.data.general.IWorkspace;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.metadata.IMetadataWorkspace;
+import com.forestar.data.service.BaseService;
+import com.forestar.joint.resouces.model.UserDataModel;
+import com.mysql.jdbc.Util;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+@Controller
+public class BhdkController
+{
+  Logger logger=Logger.getLogger(getClass());
+  @Autowired
+  BaseService baseService;
+  private static final String TABLENAME = "FS_BUSINESS_DATAREG";
+  private static final String TABLENAME_LOG = "FS_BUSINESS_TABLECATALOG";
+  private static final String TABLENAME2 = "FS_BUSINESS_USERBUSLAYERS";
+
+  
+  /**
+   * 添加
+   * @param request
+   * @param response
+   * @param data
+   * @param model
+   * @return
+   * @throws ServiceException
+   */
+  @RequestMapping(value={"/bhdk/add.do"}, produces={"text/html;charset=UTF-8"})
+  @ResponseBody
+  public String add(HttpServletRequest request, HttpServletResponse response, String data, Model model) throws ServiceException
+  {
+	  String res ="";
+	  if (data != null) {
+	    IWorkspace workspace = baseService.openTable(TABLENAME2).getWorkspace();
+	    JSONObject jsonData = JSONObject.parseObject(data);
+	    workspace.startEditing();
+	    try {
+		  res=createTree(jsonData,workspace,"add");
+	      logger.info("变化地块添加成功！");
+	      workspace.stopEditing(true);
+	    }catch (Exception e) {
+	      e.printStackTrace();
+	      logger.info("变化地块添加失败！");
+	      workspace.stopEditing(false);
+	    } 
+	  }
+	  return res;
+  }
+
+  /*
+   * 变化图斑--创建
+   */
+  @RequestMapping(value={"/bhdk/create.do"}, produces={"text/html;charset=UTF-8"})
+  @ResponseBody
+  public String create(HttpServletRequest request, HttpServletResponse response, String data, Model model)
+    throws ServiceException
+  {
+	String res="";
+    if (data != null) {
+	  IWorkspace workspace = baseService.openTable(TABLENAME).getWorkspace();
+      UserDataModel userEntity = (UserDataModel)SessionFactory.getSession().getObject("UserEntity");
+      String userId = userEntity.getUserid();
+      JSONObject jsonData = JSONObject.parseObject(data);
+      SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+      String createDate = format.format(new Date());
+      HashMap map = new HashMap();
+      map.put("C_APPID", "ZYJG");
+      map.put("C_SHENG", jsonData.getString("sheng"));
+      map.put("C_XIAN", jsonData.getString("xian"));
+      map.put("C_XIANNAME", jsonData.getString("Xname"));
+      map.put("C_FULLNAME", jsonData.getString("fullName"));
+      map.put("C_WORKYEAR", jsonData.getString("nd"));
+      map.put("C_CREATEUSER", userId);
+      map.put("C_CREATEDATE", createDate);
+      RowBase row = new RowBase();
+      row.setCurrentObjects(map);
+      workspace.startEditing();
+      try {
+        this.baseService.save(TABLENAME, row);
+        HashMap map_log = new HashMap();
+        map_log.put("C_APPID", "ZYJG");
+        map_log.put("C_SHENG", jsonData.getString("sheng"));
+        map_log.put("C_XIAN", jsonData.getString("xian"));
+        map_log.put("C_NAME", jsonData.getString("Xname"));
+        map_log.put("C_TABLENAME", "ZYJG_BHTB");
+        map_log.put("C_TABLEMETA", "ZYJG_BHTB");
+        map_log.put("I_TABLETYPE", Integer.valueOf(5));
+        RowBase row_log = new RowBase();
+        row_log.setCurrentObjects(map_log);
+        this.baseService.save(TABLENAME_LOG, row_log);
+        res=createTree(jsonData,workspace,"create");
+        workspace.stopEditing(true);
+        logger.info("变化地块创建成功！");
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        logger.info("变化地块创建失败！");
+        workspace.stopEditing(false);
+      }
+    }
+    return res;
+  }
+  
+	 /*
+	  * 应用图层表，保存树形结构数据
+	  */
+	private String createTree(JSONObject jsonData,IWorkspace workspace, String type) throws ServiceException {
+		UserDataModel userEntity = (UserDataModel)SessionFactory.getSession().getObject("UserEntity");
+	    String userId = userEntity.getUserid();
+		String res="";
+		HashMap map = new HashMap();
+		map.put("I_PARID", 0);
+		map.put("I_USERID", userId);
+	    map.put("C_APPID", "ZYJG");
+	    map.put("C_SHENG", jsonData.getString("sheng"));
+	    map.put("C_SHENGNAME", jsonData.getString("shengName"));
+    	String sheng_id =null;
+    	String dataSource = "{\"type\":\"0\",\"tablename\":\"ZYJG_BHTB\",\"where\":\"C_XIAN='"+jsonData.getString("xian")+"'\"}";
+		RowBase row_sheng = new RowBase();
+		row_sheng.setCurrentObjects(map);
+		//根据省code和用户id、C_APPID判断是否存在
+		String where ="C_SHENG='"+jsonData.getString("sheng")+"' AND I_USERID='"+userId+"' AND C_APPID='ZYJG' AND I_PARID=0";
+		QueryFilter query = new QueryFilter();
+		query.setWhereString(where);
+		List<RowBase> list = baseService.getEntityList(TABLENAME2, query);
+		//如果该用户已经有省节点，则获取省节点的I_ID
+		if(list.size()>0){
+			sheng_id=list.get(0).getOriginalObjects().get("I_ID").toString();
+			map.put("I_PARID", sheng_id);
+			map.put("C_XIAN", jsonData.getString("xian"));
+		    map.put("C_XIANNAME", jsonData.getString("Xname"));
+		    map.put("I_LYRORDERID", "0");
+		    map.put("C_DATANAME", "变化图班"+jsonData.getString("nd"));
+			map.put("C_DATASOURCE", dataSource);
+		}else{
+			RowBase rBase_s = this.baseService.save(TABLENAME2,row_sheng);
+			//返回主键
+			sheng_id = rBase_s.getCurrentObjects().get("I_ID").toString();
+			//县
+			map.put("I_PARID", sheng_id);
+			map.put("C_XIAN", jsonData.getString("xian"));
+		    map.put("C_XIANNAME", jsonData.getString("Xname"));
+		    map.put("I_LYRORDERID", "0");
+		    map.put("C_DATANAME", "变化图班"+jsonData.getString("nd"));
+			map.put("C_DATASOURCE", dataSource);
+		}
+		RowBase row_xian = new RowBase();
+		row_xian.setCurrentObjects(map);
+		RowBase rBase_x = this.baseService.save(TABLENAME2,row_xian);
+		//返回主键
+		String xian_id = rBase_x.getCurrentObjects().get("I_ID").toString();
+		if(type.endsWith("create")){
+			res="{\"id\" : \""+sheng_id+"\",\"text\" : \""+jsonData.getString("shengName")+"\",\"code\" : \""+jsonData.getString("sheng")+"\","
+					+ "\"children\" : [{\"id\" : \""+xian_id+"\",\"text\" : \""+jsonData.getString("Xname")+"\",\"code\" : \""+jsonData.getString("xian")+"\","
+					+ "\"children\" : [{\"id\" : \""+xian_id+"\",\"text\" : \"变化图班2017\"}]}]}";
+		}else{
+			res="{\"id\" : \""+xian_id+"\",\"text\" : \""+jsonData.getString("Xname")+"\",\"pid\":\""+sheng_id+"\",\"code\" : \""+jsonData.getString("xian")+"\","
+					+ "\"children\" : [{\"id\" : \""+xian_id+"\",\"text\" : \"变化图班2017\"}]}";
+		}
+		/*//变化图斑
+		map.put("I_PARID", xian_id);
+		map.put("C_DATANAME", "变化图班"+jsonData.getString("nd"));
+		map.put("C_DATASOURCE", dataSource);
+		RowBase row_tb = new RowBase();
+		row_tb.setCurrentObjects(map);
+		RowBase rBase_tb = this.baseService.save(TABLENAME2,row_tb);
+		//返回主键
+		String tb_id = rBase_tb.getCurrentObjects().get("I_ID").toString();
+		if(type.endsWith("create")){
+			res="{\"id\" : \""+sheng_id+"\",\"text\" : \""+jsonData.getString("shengName")+"\",\"code\" : \""+jsonData.getString("sheng")+"\","
+					+ "\"children\" : [{\"id\" : \""+xian_id+"\",\"text\" : \""+jsonData.getString("Xname")+"\",\"code\" : \""+jsonData.getString("xian")+"\","
+					+ "\"children\" : [{\"id\" : \""+tb_id+"\",\"text\" : \"变化图班2017\"}]}]}";
+		}else{
+			res="{\"id\" : \""+xian_id+"\",\"text\" : \""+jsonData.getString("Xname")+"\",\"pid\":\""+sheng_id+"\",\"code\" : \""+jsonData.getString("xian")+"\","
+					+ "\"children\" : [{\"id\" : \""+tb_id+"\",\"text\" : \"变化图班2017\"}]}";
+		}*/
+		return res;
+	}
+	
+	/**
+	 * 根据条件查表是否有数据，控制按钮显示状态
+	 * @param request
+	 * @param response
+	 * @param data
+	 * @param model
+	 * @return
+	 * @throws ServiceException
+	 */
+	  @RequestMapping(value={"/bhdk/getData.do"}, produces={"text/html;charset=UTF-8"})
+	  @ResponseBody
+	  public String getData(HttpServletRequest request, HttpServletResponse response, String data, Model model)
+	    throws ServiceException
+	  {	
+		 String flag="false";
+		 if (data != null) {
+			 JSONObject jsonData = JSONObject.parseObject(data);
+			 String tableName=jsonData.getString("tableName");
+			 String where = jsonData.getString("where");
+			 QueryFilter query = new QueryFilter();
+			 query.setWhereString(where);
+			 List<RowBase> list = baseService.getEntityList(tableName, query);
+			 if(list.size()>0){
+				 flag ="true";
+			 }else{
+				 flag = "false";
+			 }
+		 }
+		 return flag;
+	  }
+	  
+	  /**
+		 * 获取树的数据
+		 * @param request
+		 * @param response
+		 * @param data
+		 * @param model
+		 * @return
+		 * @throws ServiceException
+		 */
+		  @RequestMapping(value={"/bhdk/getTData.do"})
+		  @ResponseBody
+		  public List getTData(HttpServletRequest request, HttpServletResponse response, String data, Model model)
+		    throws ServiceException
+		  {	
+			 List dataList = new ArrayList();
+			 if (data != null) {
+				 JSONObject jsonData = JSONObject.parseObject(data);
+				 String tableName=jsonData.getString("tableName");
+				 String where = jsonData.getString("where");
+				 QueryFilter query = new QueryFilter();
+				 query.setWhereString(where);
+				 List<RowBase> list = baseService.getEntityList(tableName, query);
+				 if(list.size()>0){
+					 for (int i = 0; i < list.size(); i++) {
+						    HashMap obj1 = list.get(i).getOriginalObjects();
+	                        HashMap temp1 = new HashMap();
+	                        if (obj1.get("C_XIAN") == null) { // 是一级节点
+	                            temp1.put("id", obj1.get("I_ID").toString());
+	                            temp1.put("text", obj1.get("C_SHENGNAME").toString());
+	                            for (int j = 0; j < list.size(); j++) {
+	                            	HashMap obj2 = list.get(j).getOriginalObjects();
+	                                if (obj1.get("I_ID").equals(obj2.get("I_PARID"))) { // 有子节点
+	                                	HashMap temp2 = new HashMap();
+	                                    temp2.put("id", obj2.get("I_PARID").toString());
+	                                    temp2.put("text", obj2.get("C_XIANNAME").toString());
+	                                    if (obj2.get("C_DATANAME")!=null) {
+	                                        String children = "[{\"text\" : \""+obj2.get("C_DATANAME").toString()+"\", \"xian\": \""+obj2.get("C_XIAN").toString()+"\",\"type\":\"bhdk\"}]";
+	                                        temp2.put("children", children);
+	                                    }
+	                                    temp1.put("children", temp2);
+	                                }
+	                            } 
+	                            dataList.add(temp1);
+	                        } 
+	                    }
+				 }
+			 }
+			return dataList;
+		  }
+}

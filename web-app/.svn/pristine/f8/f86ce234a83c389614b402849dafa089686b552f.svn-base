@@ -1,0 +1,6 @@
+OperDataType = {
+	String                 : "String",
+	Number             : "Number",
+	Date                : "Date",
+	DateTime: "DateTime"
+}

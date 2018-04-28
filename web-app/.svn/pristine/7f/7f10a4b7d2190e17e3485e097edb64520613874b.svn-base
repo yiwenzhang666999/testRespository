@@ -1,0 +1,106 @@
+package com.forestar.initDB;
+
+import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
+import com.forestar.core.Config;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.core.spring.SpringBeanFactory;
+import com.forestar.data.service.BaseService;
+import com.forestar.service.PartitionSchemaImpl;
+
+/**
+ * Servlet implementation class initSchemaServlet
+ */
+@WebServlet(name = "/initSchemaServlet", urlPatterns = { "/initSchema" }, loadOnStartup = 10)
+public class initSchemaServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	private static final Logger logger = Logger.getLogger(initSchemaServlet.class
+			.getName());
+
+	/**
+	 * @see HttpServlet#HttpServlet()
+	 */
+	public initSchemaServlet() {
+		super();
+		// TODO Auto-generated constructor stub
+
+		PartitionSchemaImpl partitionSchemaImpl = (PartitionSchemaImpl) SpringBeanFactory
+				.getBean(PartitionSchemaImpl.class);
+		partitionSchemaImpl.initAllSchema();
+		Runnable runnable = new Runnable() {  
+            public void run() {  
+                // task to run goes here  
+            	initConnectionQuery();
+            }  
+        };  
+        ScheduledExecutorService service = Executors  
+                .newSingleThreadScheduledExecutor();
+        // 第二个参数为首次执行的延时时间，第三个参数为定时执行的间隔时间  
+        service.scheduleAtFixedRate(runnable, 0, 1000*60*50, TimeUnit.MILLISECONDS);
+
+	}
+
+	protected void initConnectionQuery() {
+		PartitionSchemaImpl partitionSchemaImpl = (PartitionSchemaImpl) SpringBeanFactory
+				.getBean(PartitionSchemaImpl.class);
+		String zqArr[] = new String[] { "11", "12", "13", "14", "15", "21", "22", "23", "31", "32", "33", "34", "35",
+				"36", "37", "41", "42", "43", "44", "45", "46", "50", "51", "52", "53", "54", "61", "62", "63", "64",
+				"65", "91", "92", "93", "94", "95" };
+		for (int j = 0; j < zqArr.length; j++) {
+			partitionSchemaImpl.setSchema(zqArr[j]);
+			logger.info("政区"+zqArr[j]+"开始查询");
+			int length = Integer.parseInt(Config.getValue("connNum"));
+			for (int i = 0; i < length; i++) {
+				Thread thread = new Thread() {
+					public void run() {
+						BaseService baseService = (BaseService) SpringBeanFactory.getBean(BaseService.class);
+						try {
+							PartitionSchemaImpl partitionSchemaImpl = (PartitionSchemaImpl) SpringBeanFactory
+									.getBean(PartitionSchemaImpl.class);
+							String schemaName =partitionSchemaImpl.getSchema();
+							if(null!=schemaName){
+								System.out.println(schemaName);
+								baseService.executeSql("ZYJG_BHTB", "select sde.st_geometry(Point(114.06171163419259 27.606446268916766),4490),sde.GDB_UTIL.NEXT_ROWID('"+schemaName+"','ZYJG_BHTB') from dual");
+							}
+						} catch (ServiceException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				};
+				thread.start();
+			}
+		}
+	}
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		response.getWriter().append("Served at: ").append(request.getContextPath());
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		doGet(request, response);
+	}
+}

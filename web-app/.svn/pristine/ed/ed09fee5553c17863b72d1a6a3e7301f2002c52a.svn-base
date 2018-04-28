@@ -1,0 +1,76 @@
+/**
+ *
+ */
+define([
+    'map',
+], function (map_) {
+    'use strict';
+    var layer;
+    var interaction_draw;
+    var now_coor;
+    var last_coor = [999,999];
+    /**
+     * 图层画 点、线、面
+     * @param {string} type  'Point', 'LineString', 'LinearRing', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection', 'Circle'.
+     * @param {function} callBack
+     */
+    function draw(type, callBack) {
+        var map=map_.getMap();
+        if (!layer) {
+            layer = map_.getLayerByName("DRAW_LAYER");
+        }
+        //
+        var source = layer.getSource();
+        source.clear();
+        clear();
+        //
+        interaction_draw = new ol.interaction.Draw({
+            source: source,
+            type: type,
+            snapTolerance:12/*,
+            finishCondition:function(evt){
+            	now_coor = evt.coordinate;
+            	return !(now_coor[0]===last_coor[0]&&now_coor[1]===last_coor[1]);
+            }*/
+            
+        });
+        window.interaction_draw = interaction_draw;
+        map.addInteraction(interaction_draw);
+        interaction_draw.on('drawend', function (evt) {
+            setTimeout(function(){
+                layer.getSource().clear();
+            },0)
+            map.render();
+            map.removeInteraction(interaction_draw);
+            interaction_draw=null;
+            callBack(evt);
+        })
+    }
+    /**
+    * 清除地图交互
+    */
+    function clear() {
+        var ia = map_.getMap().getInteractions().getArray();
+        for (var i = 0; i < ia.length; i++) {
+            if (ia[i] instanceof ol.interaction.Draw || ia[i] instanceof ol.interaction.Select) {
+               /* ia[i].setActive(false)*/
+            	map_.getMap().removeInteraction(ia[i]);
+            	interaction_draw=null;
+            }
+        }
+    }
+   
+    /**
+     * 移出最后一个绘制点
+     * */
+    function removeLastPoint(){
+    	if(interaction_draw&&interaction_draw.a&&interaction_draw.a[0].length>1){
+    		interaction_draw.removeLastPoint();
+    	}
+    }
+    return {
+        draw:draw,
+        removeLastPoint:removeLastPoint,
+        clear:clear
+    }
+});

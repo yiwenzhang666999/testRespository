@@ -1,0 +1,11 @@
+EventsType = {
+		saveBefore    : "saveBefore",
+		saveAfter     : "saveAfter",
+		saveFail      : "saveAfter",
+		queryBefore   : "queryBefore",
+		queryAfter    : "queryAfter",
+		queryFail     : "queryFail",
+		deleteBefore  : "deleteBefore",
+		deleteAfter   : "deleteAfter",
+		deleteFail    : "deleteFail"
+}

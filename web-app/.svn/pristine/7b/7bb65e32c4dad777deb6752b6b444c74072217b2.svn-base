@@ -1,0 +1,212 @@
+/**
+ *分割  只是线分割
+ */
+define([
+    'map',
+    'drawMap'
+], function (map, drawMap) {
+    'use strict';
+    var wktFormat = new ol.format.WKT();
+    var jsts4wkt = new jsts.io.WKTReader();
+    var ol4jsts = new jsts.io.OL3Parser();
+    var active ;
+    var map_;
+    var layer;
+    var feature;
+    var selectStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,0,0)', width: 3 })
+    });
+    function setActive(bool,fea, done,util) {
+    	if(bool==active){
+    		return;
+    	}
+    	if(bool){
+    		if(!map_){
+    			map_ = map.getMap();
+    		}
+    		if(!layer){
+    			layer = map.getLayerByName("HIGH_LAYER");
+    		}
+    		feature = fea.clone();
+    		feature.setStyle(selectStyle);
+    		layer.getSource().addFeature(feature);
+    		var call = function (evt) {
+    			var splitLine = evt.feature;
+                var targetFeature = feature;
+                var f = split(splitLine, targetFeature);
+                if (f.length > 1) {
+                	
+                    var maxAreaFeature = getMaxArea(f);
+                  //TODO 地图大面积高亮，未保存数据库
+                    maxAreaFeature.setStyle(selectStyle);
+                    layer.getSource().removeFeature(feature);
+                    layer.getSource().removeFeature(fea);
+                    
+                    var polygon = maxAreaFeature.getGeometry().getCoordinates();
+                    var coor = PL.Polylabel(polygon,"EPSG:4490");
+                    var lngArr = util.getDFM(coor[0]);
+                    
+                    var lngArr = util.getDFM(coor[0]);
+            		var latArr = util.getDFM(coor[1]);
+                    
+                    var area = util.getArea(maxAreaFeature.getGeometry());
+                    fea.setProperties({LNG_D:lngArr[0],LNG_F:lngArr[1],LNG_M:lngArr[2],LAT_D:latArr[0],LAT_F:latArr[1],LAT_M:latArr[2],AREA:area});
+                    var fea_obj = fea.getProperties();
+                    delete fea_obj.geometry;
+                    maxAreaFeature.setProperties(fea_obj)
+                    feature = null;
+            		layer.getSource().addFeature(maxAreaFeature);
+            		done();
+                }
+            };
+            drawMap.draw("LineString", call);
+    	}else{
+    		if(feature){
+    			if(layer){
+    				layer.getSource().removeFeature(feature);
+    			}
+    			feature = null;
+    		}
+    		drawMap.clear();
+    	}
+    	active = bool;
+    }
+    /**
+     * 
+     * @param {ol.feature} splitLine 
+     * @param {ol.feature} targetFeature 
+     */
+    function split(splitLine, targetFeature) {
+        var features = [];
+        var polygonizer = new jsts.operation.polygonize.Polygonizer();
+        //
+        var line = jsts4wkt.read(wktFormat.writeFeature(splitLine));
+        var polygon = jsts4wkt.read(wktFormat.writeFeature(targetFeature));
+        //分割 目标（线、多线、面、多面）
+        var type = targetFeature.getGeometry().getType();
+        switch (type) {
+            case "Polygon":
+                var union = polygon.getExteriorRing().union(line);
+                polygonizer.add(union);
+                var polygons = polygonizer.getPolygons();
+                for (var pIter = polygons.iterator(); pIter.hasNext();) {
+                    var polygon = pIter.next();
+                    var f = new ol.Feature(ol4jsts.write(polygon));
+                    features.push(f);
+                }
+                break;
+            case "MultiPolygon":
+            case "GeometryCollection":
+                var polygonizer_ = new jsts.operation.polygonize.Polygonizer();
+                polygonizer_.add(polygon);
+                var polygons=polygonizer_.getPolygons();
+                var res=getCount(polygons,line);
+                var count=res['count'];
+                var index=res['index'];
+                if(count>1){
+                    mini.alert("所选要素为多面，分割只能针对其中一个面",2000);
+                    features.push(targetFeature);
+                }else if(count===0){
+                    features.push(targetFeature);
+                }else if(count===1){//处理
+                    var item=polygons.get(index);
+                    var union = item.getExteriorRing().union(line);
+                    polygonizer.add(union);
+                    var ps = polygonizer.getPolygons();
+                    var p=getLargeJsts(ps);
+                    //
+                    polygons.set(index,ps.get(p));
+                    //
+                    var polygonizer__ = new jsts.operation.polygonize.Polygonizer();
+                    polygonizer__.add(polygons);
+                    var f = new ol.Feature(ol4jsts.write(polygonizer__.getGeometry()));
+                    features.push(f);
+                    //
+                    ps.remove(ps.get(p));
+                    var polygonizer_s = new jsts.operation.polygonize.Polygonizer();
+                    polygonizer_s.add(ps);
+                    var p_s=polygonizer_s.getPolygons();
+                    for (var pIter = p_s.iterator(); pIter.hasNext();) {
+                        var p_item = pIter.next();
+                        var f_item= new ol.Feature(ol4jsts.write(p_item));
+                        features.push(f_item);
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        return features;
+    }
+    
+    function getLargeJsts(ps){
+        var p;
+        var area=0;
+        var size=ps.size();
+        for(var i=0;i<size;i++){
+            var p_=ps.get(i);
+            var area_=p_.getArea();
+            if(area_>area){ 
+                area=area_;
+                p=i
+            }
+        }
+        return p;
+    }
+    /**
+     * 针对与多面 获得相交面数据量
+     */
+    function getCount(polygons,line){
+        var num=0;
+        var index;
+        var count=polygons.size();
+        for(var i=0;i<count;i++){
+            var item=polygons.get(i);
+            if(line.crosses(item)){ //可分割
+               ++num;
+               index=i;
+            }
+        }
+        return {
+            count:num,
+            index:index
+        }
+    }
+    /**
+     * 获得面积最大的feature  针对于面  或者多面
+     * @param {array} fs 
+     * @returns 
+     */
+    function getMaxArea(fs) {
+        fs.sort(function (f1, f2) {
+            var area1 = getArea(f1);
+            var area2 = getArea(f2);
+            return area2 - area1;
+        })
+        return fs[0];
+    }
+    /**
+     * 获得 面或多面feature的面积
+     * @param {any} f 
+     */
+    function getArea(f){
+        var area=0;
+        var g=f.getGeometry();
+        var type=g.getType();
+        if(type==='GeometryCollection'){
+            var gs=g.getGeometries();
+            for(var i=0;i<gs.length;i++){
+                area+=gs[i].getArea();
+            }
+        }
+        if(type==='Polygon'){
+            area=g.getArea();
+        }
+        return area;
+    }
+    return {
+    	setActive: setActive,
+        getMaxArea: getMaxArea
+    }
+});

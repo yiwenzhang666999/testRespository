@@ -1,0 +1,314 @@
+/**
+ * 专题展示图层控制显示
+ */
+define([
+    'map','config','publicObj','queryLayer','layerFactory','treeHelper','toolCro'
+], function (map,config,publicObj,queryLayer,layerFactory,treeHelper,toolCro) {
+	'use strict';
+	//地图高亮样式
+    var selectStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,0,0)', width: 3 })
+    });
+    
+    function init() {
+    	//图层控制
+        layerCtr();
+        //应用中心控制
+        functionSwitch();
+        //地图交互关闭双击
+		initInteraction();
+    }
+    /*隐藏全屏按钮*/
+    function removeFullScr(){
+    	$("#map_continer .ol-full-screen").hide();
+    }
+    /**
+     * 初始化map的交互，关闭双击放大
+     */
+    function initInteraction() {
+        var map_ = map.getMap();
+        var actions = map_.getInteractions().getArray();
+        for (var j = 0; j < actions.length; j++) {
+            var action = actions[j]
+            //关掉双击放大
+            if (action instanceof ol.interaction.DoubleClickZoom) {
+                action.setActive(false);
+            }
+        }
+    }
+    /**
+     * 图层控制
+     */
+    function layerCtr() {
+    	var ckBox = $(".zs-tree .ck-box.service");
+    	ckBox.on("click", function () {
+            var $target = $(this);
+            var bool_all = $target.hasClass("switch");
+            /*全选*/
+            var server_all = $target.hasClass("all");
+            //图层名称
+            var show_layer = $target.attr("layer");
+            //仅能展示一个图层
+            var hide_layer = $target.attr("hide");
+            //选中
+            var checked = $target.parent().hasClass("selected");
+            if (show_layer || server_all) {
+                if (bool_all) {        //专题图 选中
+                    if (checked) {
+                    	//显示图层方法
+                        map.showLayer(show_layer);
+                        //处理互斥
+                        if (hide_layer) {
+                            $.each(hide_layer.split(","), function (k, v) {
+                                map.hideLayer(v);
+                                //处理单选框显示
+                                var $only = $("i[layer='" + v + "']");
+                                $only.parent().removeClass("selected")
+                            });
+                        }
+                    }else{
+                    	 map.hideLayer(show_layer);
+                    }
+                }else if(server_all){//父节点
+                	//父节点选中，说明子节点至少一个选中了
+                	if(checked){
+                		//显示所有子节点服务
+                		$.each($target.parent().next().find('i.switch'),function(a,b){
+                			var layer_ = $(b).attr('layer');
+                			map.showLayer(layer_);
+                		})
+                	}else{
+                		//隐藏所有子节点服务
+                		$.each($target.parent().next().find('i.switch'),function(a,b){
+                			var layer_ = $(b).attr('layer');
+                			map.hideLayer(layer_);
+                		})
+                	}
+                }else{//底图控制
+                    map.showLayer(show_layer);
+                    map.hideLayer(hide_layer);
+                    //页面样式
+                    $target.parent().addClass("selected");
+                    $("i[layer='" + hide_layer + "']").parent().removeClass("selected");
+                }
+            }
+            //左侧树结构选中的每个影像最后节点的个数
+            /*var selYx = $('#zyjg>li').eq(1).find("li>a.third.selected");*/
+//            var selYx = $('#zyjg>li').eq(1).find(".fifth-list li>a.selected")
+//            if(selYx.length>=2){
+//            	$(".tool-jl").removeClass('disable');
+//            }else{
+//            	$(".tool-jl").addClass('disable');
+//            	toolCro.removeSwipe();
+//            }
+
+        });
+    	//影像定位,TODO 根据节点来添加点击事件，节点可变？
+    	var yxZw = $('#zyjg>li').eq(1).find(".fifth-list li a");
+    	var hbyx = $(".hb_yxsj");
+    	//TODO 影像数据定位的点是死的，不是查到的！
+    	hbyx.on('click',function(){
+    		if(!$(this).hasClass('selected')){
+    			return;
+    		}
+    		var center = "117.49,42.32";
+    		//缩放级别
+    		var level = 11;
+			var arr = center.split(",");
+	        arr[0] = parseFloat(arr[0]);
+	        arr[1] = parseFloat(arr[1]);
+	        var jb = level;
+			map.getMap().getView().setCenter(arr);
+			map.getMap().getView().setZoom(jb);
+    	});
+    	yxZw.on('click',function(){
+    		if(!$(this).hasClass('selected')){
+    			return;
+    		}
+    		var zqCode = $(this).attr('zqcode');
+    		//缩放级别
+    		var level = 11;
+    		zqDw(zqCode,level);
+    	});
+
+    	var t=treeHelper.getTree("zyjg");
+    	//点击最下级的节点，定位缩放地图
+    	t.bindEvent(treeHelper.eventTarget.BHDK,treeHelper.events.NODE_CLICK,function(node){
+    		if(node.checked){
+    			if(!node._data){
+    				return;
+    			}
+    			var zqCode = node._data.xian;
+    			//缩放级别
+    			var level = 14;
+    			zqDw(zqCode,level);
+    		}
+
+        });
+		t.bindEvent(treeHelper.eventTarget.YWSJ,treeHelper.events.NODE_CLICK,function(node){
+			/*if(node.checked){
+    			var zqCode = node._data.xian;
+    			zqDw(zqCode);
+    		}*/
+		});
+    	//TODO 左侧树点击勾选，渲染展示功能绑定
+    	t.bindEvent(treeHelper.eventTarget.YWSJ,treeHelper.events.CHECKED,function(node){
+    		getChildrenNode(node);
+        });
+    	t.bindEvent(treeHelper.eventTarget.BHDK,treeHelper.events.CHECKED,function(node){
+    		getChildrenNode(node);
+        });
+    	map.getMap().on('moveend',function(event){
+    		var nodes=t.getCheckedNodes();
+    		for(var i=0;i<nodes.length;i++){
+    			if(nodes[i]._data&&nodes[i]._data.isQuery){
+        			getData(nodes[i]);
+    			}
+    		}
+        });
+    }
+    //根据政区code进行定位(无政区边界高亮)
+    function zqDw(code,level){
+    	var level = level;
+    	$.ajax({
+	        type:"GET",
+	        url:config.publicService+"/ws/rest/LS/search/"+code,
+	        dataType:"JSON",
+			success :function(result){
+				if(!result){
+					return;
+				}
+				//可以调用zyjg.js中的地图定位的方法
+				var center = result.item.center;
+				//var l = result.item.level;
+				var shape = result.item.shape;
+				/**
+				 * 郭鹏
+				 * 2018年3月15日
+				 * 功能：选择时高亮
+				 * */
+				//s
+				var geojsonFormat = new ol.format.GeoJSON();
+	            var feature = geojsonFormat.readFeature(shape);
+	            feature.setStyle(selectStyle);
+	            map.getLayerByName("ZQDW_LAYER").getSource().clear();
+	            map.getLayerByName("ZQDW_LAYER").getSource().addFeature(feature);
+	            //e
+				var arr = center.split(",");
+		        arr[0] = parseFloat(arr[0]);
+		        arr[1] = parseFloat(arr[1]);
+		        var jb = level;
+				map.getMap().getView().setCenter(arr);
+				map.getMap().getView().setZoom(jb);
+			},
+			error:function(err){
+				console.error(err);
+			}
+		});
+    }
+    function getChildrenNode(node){
+    	if(node.children&&node.children.length!=0){
+        	for(var i=0;i<node.children.length;i++){
+        		getChildrenNode(node.children[i]);
+        	}
+    	}else{
+    		getData(node);
+    	}
+    }
+    function getData(node){
+		var zoom = map.getMap().getView().getZoom();
+		var data=node["_data"];
+		if (data) {
+			var type = data["type"];
+			if(type=="bhdk"){
+				var nd = data["nd"]||"2017";
+				var xian = data["xian"];
+				var color = data["color"]||'#FFFF00';
+				if(zoom>=14&&node["checked"]){
+					var layer = null;
+					if(publicObj.getLayerByName(xian+"_"+nd)){
+						layer = publicObj.getLayerByName(xian+"_"+nd);
+						layer.setVisible(true);
+					}else{
+						layer = layerFactory.get_show_layer(color);
+						publicObj.setBHDKLayer(xian+"_"+nd,layer);
+						map.getMap().addLayer(layer);
+					}
+					var url = config.publicService+"/ws/rest/DS/export/zyjg/";
+					var extents = map.getMap().getView().calculateExtent();
+					var whereString = "";
+					if(publicObj.queryWhereArr.length>0){
+						whereString=publicObj.queryWhereArr.join(",");
+					}else{
+						whereString = "999";
+					}
+					url += extents[0]+"/"+extents[1]+"/"+extents[2]+"/"+extents[3]+"/"+nd+"/"+xian+"/"+whereString;
+					queryLayer.queryByExtent(url,xian+"_"+nd,true);
+				}else{
+					/**
+					 * 郭鹏
+					 * 2018年3月15日
+					 * 功能：取消选择时去掉高亮
+					 * */
+					//s
+					if(!node["checked"])
+					{
+						map.getLayerByName("ZQDW_LAYER").getSource().clear();
+					}
+					//e
+					if(publicObj.getLayerByName(xian+"_"+nd)){
+						publicObj.getLayerByName(xian+"_"+nd).setVisible(false);
+					}
+				}
+			}else if(type=="ywsj"){
+				var layerid = data["layerId"];
+				var color = data["color"]||'#FFFF00';
+				var zqCode = data["zqCode"];
+				if(zoom>=14&&node["checked"]){
+					var layer = null;
+					if(publicObj.getLayerByName(layerid)){
+						layer=publicObj.getLayerByName(layerid);
+						layer.setVisible(true);
+					}else{
+						layer = layerFactory.get_show_layer(color);
+						publicObj.setYWSJLayer(layerid,layer);
+						map.getMap().addLayer(layer);
+					}
+					var url = config.publicService+"/ws/rest/DS/commonExport/zyjg/";
+					var extents = map.getMap().getView().calculateExtent();
+					url += extents[0]+"/"+extents[1]+"/"+extents[2]+"/"+extents[3]+"/"+layerid+"/"+zqCode;
+					queryLayer.queryByExtent(url,layerid);
+				}else{
+					if(publicObj.getLayerByName(layerid)){
+						publicObj.getLayerByName(layerid).setVisible(false);
+					}
+				}
+			}
+		}
+		
+    }
+
+    /**
+     * 应用中心切换
+     *
+     * */
+    function functionSwitch(){
+    	 var inners_func = $(".zs-apply .inner").not(".add");
+         inners_func.click(function(){
+        	 //隐藏应用面板
+        	 $(".zs-apply .btn").click();
+        	//判断是否已经选中
+        	 if($(this).hasClass('selected')) return;
+        	 var yyName = $(this).attr("name");
+        	 var yyId = yyName+'_yzt';
+        	 //展示树结构
+        	 $("#"+yyId).show().siblings('.container').hide();
+         });
+    }
+    return {
+        init: init,
+        getData:getData,
+        zqDw:zqDw
+    }
+});

@@ -1,0 +1,55 @@
+/**
+ *分割功能
+ */
+define([
+    'map',
+    'drawMap', 'publicObj', 'config'
+], function (map, drawMap, publicObj, config) {
+    'use strict';
+    var wktFormat = new ol.format.WKT();
+    var jsts4wkt = new jsts.io.WKTReader();
+    var ol4jsts = new jsts.io.OL3Parser();
+    var active;
+    var map_;
+    var layer;
+    var url = config.publicService + "/geometry/difference.do";
+    function setActive(bool, fea, done) {
+        if (bool == active) {
+            return;
+        }
+        if (bool) {
+            fea.setStyle(publicObj.selectStyle);
+            var call = function (evt) {
+                var burrowWkt = wktFormat.writeFeature(evt.feature);
+                var geoWkt = wktFormat.writeFeature(fea);
+                var data = { geoWkt: geoWkt, geo1Wkt: burrowWkt, tolerance: "0" };
+                $.ajax({
+                    url: url,
+                    type: "POST",
+                    data: { "data": JSON.stringify(data) },
+                    success: function (res) {
+                        if (res.result) {
+                            $("#map").removeClass("inleave");
+                            //map.getLayerByName("HIGH_LAYER").getSource().addFeature(feature)
+                            done(res.data);
+                        }
+                    },
+                    error: function (err) {
+                        if (err) {
+                            util.validateSession(err);
+                            console.error(err)
+                        }
+                    }
+                });
+            };
+            drawMap.draw("Polygon", call);
+            $("#map").addClass("inleave");
+        } else {
+            drawMap.clear();
+        }
+        active = bool;
+    }
+    return {
+        setActive: setActive
+    }
+});

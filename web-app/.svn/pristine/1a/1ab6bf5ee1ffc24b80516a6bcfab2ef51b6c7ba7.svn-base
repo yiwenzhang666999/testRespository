@@ -1,0 +1,6 @@
+//初始化
+require(['shapeMain'], function (shapeMain) {
+	//shape
+	'use strict';
+	shapeMain.init();
+});

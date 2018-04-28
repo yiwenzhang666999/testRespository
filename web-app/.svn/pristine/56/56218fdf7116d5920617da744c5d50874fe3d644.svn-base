@@ -1,0 +1,194 @@
+package com.forestar.controller;
+
+import com.alibaba.fastjson.JSONObject;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.core.session.SessionFactory;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.metadata.IMetadataWorkspace;
+import com.forestar.data.service.BaseService;
+import com.forestar.joint.resouces.model.UserDataModel;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+@Controller
+public class BhdkController
+{
+
+  @Autowired
+  BaseService baseService;
+  private static final String TABLENAME = "FS_BUSINESS_DATAREG";
+  private static final String TABLENAME_LOG = "FS_BUSINESS_TABLECATALOG";
+  private static final String TABLENAME2 = "FS_BUSINESS_USERBUSLAYERS";
+
+  
+  /**
+   * 添加
+   * @param request
+   * @param response
+   * @param data
+   * @param model
+   * @return
+   * @throws ServiceException
+   */
+  @RequestMapping(value={"/bhdk/add.do"}, produces={"text/html;charset=UTF-8"})
+  @ResponseBody
+  public String add(HttpServletRequest request, HttpServletResponse response, String data, Model model) throws ServiceException
+  {
+	  String msg = "";
+	  if (data != null) {
+	    JSONObject jsonData = JSONObject.parseObject(data);
+	    try {
+		  createTree(jsonData);
+	      msg = "添加成功！";
+	    }catch (Exception e) {
+	      e.printStackTrace();
+	      msg = "添加失败！";
+	    } 
+	  }
+	  return msg;
+  }
+
+  /*
+   * 变化图斑--创建
+   */
+  @RequestMapping(value={"/bhdk/create.do"}, produces={"text/html;charset=UTF-8"})
+  @ResponseBody
+  public String create(HttpServletRequest request, HttpServletResponse response, String data, Model model)
+    throws ServiceException
+  {
+    String msg = "";
+    if (data != null) {
+      UserDataModel userEntity = (UserDataModel)SessionFactory.getSession().getObject("UserEntity");
+      JSONObject jsonData = JSONObject.parseObject(data);
+      SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+      String createDate = format.format(new Date());
+      HashMap map = new HashMap();
+      map.put("C_APPID", "ZYJG");
+      map.put("C_SHENG", jsonData.getString("sheng"));
+      map.put("C_XIAN", jsonData.getString("xian"));
+      map.put("C_XIANNAME", jsonData.getString("Xname"));
+      map.put("C_FULLNAME", jsonData.getString("fullName"));
+      map.put("C_WORKYEAR", jsonData.getString("nd"));
+      map.put("C_CREATEUSER", "2");
+      map.put("C_CREATEDATE", createDate);
+      RowBase row = new RowBase();
+      row.setCurrentObjects(map);
+      try {
+        this.baseService.save("FS_BUSINESS_DATAREG", row);
+        HashMap map_log = new HashMap();
+        map_log.put("C_APPID", "ZYJG");
+        map_log.put("C_SHENG", jsonData.getString("sheng"));
+        map_log.put("C_XIAN", jsonData.getString("xian"));
+        map_log.put("C_NAME", jsonData.getString("Xname"));
+        map_log.put("C_TABLENAME", "ZYJG_BHTB");
+        map_log.put("C_TABLEMETA", "ZYJG_BHTB");
+        map_log.put("I_TABLETYPE", Integer.valueOf(5));
+        RowBase row_log = new RowBase();
+        row_log.setCurrentObjects(map_log);
+        this.baseService.save("FS_BUSINESS_TABLECATALOG", row_log);
+        createTree(jsonData);
+        msg = "创建成功！";
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        msg = "创建失败！";
+      }
+    }
+    return msg;
+  }
+  
+     /*
+      * 应用图层表
+      */
+	private void createTree(JSONObject jsonData) {
+		UserDataModel userEntity = (UserDataModel)SessionFactory.getSession().getObject("UserEntity");
+	    String userId = userEntity.getUserid();
+		HashMap map = new HashMap();
+		map.put("I_PARID", 0);
+		map.put("I_USERID", "2");
+	    map.put("C_APPID", "ZYJG");
+	    map.put("C_SHENG", jsonData.getString("sheng"));
+	    map.put("C_SHENGNAME", jsonData.getString("shengName"));
+	    map.put("C_XIAN", jsonData.getString("xian"));
+	    map.put("C_XIANNAME", jsonData.getString("Xname"));
+	    map.put("I_LYRORDERID", "0");
+	    map.put("C_DATANAME", "0");
+	    map.put("C_DATASOURCE", "0");
+	    try {
+	    	String sheng_id =null;
+			RowBase row_sheng = new RowBase();
+			row_sheng.setCurrentObjects(map);
+			//根据省code和用户id、C_APPID判断是否存在
+			String where ="C_SHENG='"+jsonData.getString("sheng")+"' AND I_USERID='"+userId+"' AND C_APPID='ZYJG'";
+			QueryFilter query = new QueryFilter();
+			query.setWhereString(where);
+			List<RowBase> list = baseService.getEntityList(TABLENAME2, query);
+			//如果该用户已经有省节点，则获取省节点的I_ID
+			if(list.size()>0){
+				sheng_id=list.get(0).getOriginalObjects().get("I_ID").toString();
+				map.put("I_PARID", sheng_id);
+			}else{
+				RowBase rBase_s = this.baseService.save(TABLENAME2,row_sheng);
+				//返回主键
+				sheng_id = rBase_s.getCurrentObjects().get("I_ID").toString();
+				//县
+				map.put("I_PARID", sheng_id);
+			}
+			RowBase row_xian = new RowBase();
+			row_xian.setCurrentObjects(map);
+			RowBase rBase_x = this.baseService.save(TABLENAME2,row_xian);
+			//返回主键
+			String xian_id = rBase_x.getCurrentObjects().get("I_ID").toString();
+			//变化图斑
+			map.put("I_PARID", xian_id);
+			RowBase row_tb = new RowBase();
+			row_tb.setCurrentObjects(map);
+			this.baseService.save(TABLENAME2,row_xian);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+		/**
+		 * 根据条件查表是否有数据，控制按钮显示状态
+		 * @param request
+		 * @param response
+		 * @param data
+		 * @param model
+		 * @return
+		 * @throws ServiceException
+		 */
+	  @RequestMapping(value={"/bhdk/getData.do"}, produces={"text/html;charset=UTF-8"})
+	  @ResponseBody
+	  public String getData(HttpServletRequest request, HttpServletResponse response, String data, Model model)
+	    throws ServiceException
+	  {	
+		  String flag="false";
+		 if (data != null) {
+			 JSONObject jsonData = JSONObject.parseObject(data);
+			 String tableName=jsonData.getString("tableName");
+			 String where = jsonData.getString("where");
+			 QueryFilter query = new QueryFilter();
+			 query.setWhereString(where);
+			 List<RowBase> list = baseService.getEntityList(tableName, query);
+			 if(list.size()>0){
+				 flag ="true";
+			 }else{
+				 flag = "false";
+			 }
+		 }
+		return flag;
+	  }
+}

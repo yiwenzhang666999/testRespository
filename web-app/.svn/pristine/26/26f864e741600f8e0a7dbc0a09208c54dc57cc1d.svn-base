@@ -1,0 +1,64 @@
+/**
+ * 全局初始化设置
+ */
+
+require(["map","severZtree","ztLayerCro","toolCro","querySpace","report","zyjg","shapeMain","loadTree","bhdk"], function (map,severZtree,ztLayerCro,toolCro,querySpace,report,zyjg,shapeMain,loadTree,bhdk) {
+    window.map = map;//暴露map用于调试
+	map.init();
+	//右下角地图控制
+	ztLayerCro.init();
+	//左侧树控制
+	severZtree.init();
+	//工具条按钮控制
+	toolCro.init();
+	//查询初始化
+    querySpace.init();
+    //初始化政区
+    zyjg.init();
+    //初始化统计报表
+	report.init();
+	//初始化 导入map
+	shapeMain.init();
+	//初始化 加载树
+	loadTree.init();
+    if(window.addEventListener){
+		if(document.body.requestFullscreen){
+			 document.addEventListener('fullscreenchange',function(){
+				 if(document.fullscreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}else if(document.body.msRequestFullscreen){
+			 document.addEventListener('MSFullscreenChange',function(){
+				 if(document.msFullscreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}else if(document.body.mozRequestFullScreen){
+			 document.addEventListener('mozfullscreenchange',function(){
+				 if(document.mozFullScreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}else if(document.body.webkitRequestFullscreen){
+			 document.addEventListener('webkitfullscreenchange',function(){
+				 if(document.webkitFullscreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}
+	}
+    //判断下用户级别，如果是市、县级  图层树默认展开
+    if(userObj["userJb"]=="XIAN"||userObj["userJb"]=="SHI"){
+    	//TODO 暂时用 settimeout 处理！
+    	setTimeout(function(){$("#tree_container a.first").click();},1000);
+    }
+});

@@ -1,0 +1,104 @@
+package com.forestar.initDB;
+
+import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
+import com.forestar.core.Config;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.core.spring.SpringBeanFactory;
+import com.forestar.core.util.StringUtils;
+import com.forestar.data.metadata.PartitionSchema;
+import com.forestar.data.service.BaseService;
+import com.forestar.data.service.PartitionSchemaImpl;
+
+/**
+ * Servlet implementation class initSchemaServlet
+ */
+@WebServlet(name = "/initSchemaServlet", urlPatterns = { "/initSchema" }, loadOnStartup = 10)
+public class initSchemaServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	private static final Logger logger = Logger.getLogger(initSchemaServlet.class.getName());
+
+	/**
+	 * @see HttpServlet#HttpServlet()
+	 */
+	public initSchemaServlet() {
+		super();
+		logger.error("initServlet开始！");
+		Runnable runnable = new Runnable() {
+			public void run() {
+				initConnectionQuery();
+			}
+		};
+		ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+		// 第二个参数为首次执行的延时时间，第三个参数为定时执行的间隔时间
+		service.scheduleAtFixedRate(runnable, 1000*60, 1000 * 60 * 50, TimeUnit.MILLISECONDS);
+	}
+
+	protected void initConnectionQuery() {
+		logger.info("开始初始化链接!");
+		double time1 = System.currentTimeMillis();
+		PartitionSchemaImpl partitionSchemaImpl = (PartitionSchemaImpl) SpringBeanFactory
+				.getBean(PartitionSchemaImpl.class);
+		String zqArr[] = new String[] { "11", "12", "13", "14", "15", "21", "22", "23", "31", "32", "33", "34", "35",
+				"36", "37", "41", "42", "43", "44", "45", "46", "50", "51", "52", "53", "54", "61", "62", "63", "64",
+				"65", "91", "92", "93", "94", "95" };
+		for (int j = 0; j < zqArr.length; j++) {
+			partitionSchemaImpl.setSchemaByZQCode(zqArr[j]);
+			int length = Integer.parseInt(Config.getValue("connNum"));
+			double zqT1 = System.currentTimeMillis();
+			String schemaName = partitionSchemaImpl.getSchemaName();
+			if (StringUtils.isNotEmpty(schemaName)) {
+				for (int i = 0; i < length; i++) {
+					BaseService baseService = (BaseService) SpringBeanFactory.getBean(BaseService.class);
+					try {
+						double qt1 = System.currentTimeMillis();
+						baseService.executeSql("ZYJG_BHTB",
+								"select sde.st_geometry('Point(114.06171163419259 27.606446268916766)',4490),sde.GDB_UTIL.NEXT_ROWID('"
+										+ schemaName + "','ZYJG_BHTB') from dual");
+						double qt2 = System.currentTimeMillis();
+						logger.debug(schemaName + "第" + (i + 1) + "次查询时间:" + (qt2 - qt1) / 1000 + "秒");
+					} catch (ServiceException e) {
+						logger.error(e.getMessage());
+						e.printStackTrace();
+					}
+				}
+				double zqT2 = System.currentTimeMillis();
+				logger.info(schemaName + "表空间,初始化查询完成！");
+				logger.debug(schemaName + "表空间,初始化时间：" + (zqT2 - zqT1) / 1000 + "秒");
+			}else{
+				logger.error("数据库中没有此代码（"+zqArr[j]+"）的数据库配置！");
+			}
+		}
+		double time2 = System.currentTimeMillis();
+		logger.info("initDB执行结束;");
+		logger.debug("执行时间：" + (time2 - time1) / 1000 + "秒");
+	}
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		response.getWriter().append("Served at: ").append(request.getContextPath());
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
+	 *      response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		doGet(request, response);
+	}
+}

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<title>全国互联国+林地更新</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="content-type" context="text/html" charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+<meta http-equiv="cache-control" context="no-cache" />
+<meta http-equiv="Pragma" content="no-cache">
+<script type="text/javascript">
+	/*****************登陆*******/
+	window.onload = function() {
+		window.location = window.location.href + "login.do";
+	}
+</script>
+</head>
+<body>
+</body>
+</html>

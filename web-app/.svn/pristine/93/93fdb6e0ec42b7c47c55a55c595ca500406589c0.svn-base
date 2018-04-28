@@ -1,0 +1,21 @@
+.zs-tree li>a.second{
+	left:1px;
+}
+/*定位*/
+.zs-position {
+	top: 20px;
+	left: 100px;
+}
+/*制图功能使用请勿移除*/
+#testDiv{ 
+	background-color: transparent; 
+	background-repeat: repeat; 
+	background-attachment: scroll; 
+	color: #f70318; 
+	overflow: hidden; 
+	z-index: 2;
+	position:absolute;          
+	margin: 0px;
+	padding: 2px; 
+	background-position: 0% 50%;
+    cursor : default	}

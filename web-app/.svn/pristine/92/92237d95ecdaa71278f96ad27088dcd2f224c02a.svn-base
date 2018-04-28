@@ -1,0 +1,98 @@
+/**
+ * 
+ */
+package com.forestar.service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.forestar.core.exception.ServiceException;
+import com.forestar.core.util.StringUtils;
+import com.forestar.data.general.GlobalDataType;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.metadata.PartitionSchema;
+import com.forestar.data.metadata.entity.DataSchema;
+import com.forestar.data.metadata.entity.DataSchemaTable;
+
+/**
+ * 分表空间转换辅助工具
+ * 
+ * @author wy
+ *
+ */
+@Component
+public class PartitionSchemaImpl implements PartitionSchema {
+
+	private Map<String, String> schemaMap = new HashMap<String, String>();
+	/**
+	 * 当前操作表空间
+	 */
+	private String schema;
+
+	@Autowired
+	DataSchemaTable dataSchemaTable;
+
+	public DataSchemaTable getDataSchemaTable() {
+		return dataSchemaTable;
+	}
+
+	public void setDataSchemaTable(DataSchemaTable dataSchemaTable) {
+		this.dataSchemaTable = dataSchemaTable;
+		initAllSchema();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.forestar.data.metadata.PartitionSchema#initAllSchema()
+	 */
+	@Override
+	public void initAllSchema() {
+		if(schemaMap.isEmpty()){
+			QueryFilter qf = new QueryFilter();
+			qf.setIsAddSecurityFilter(false);
+			try {
+				List schemaList = dataSchemaTable.getEntityList(qf);
+				for (Object object : schemaList) {
+					RowBase schemaRow = (RowBase) object;
+					String codeKey = (String) schemaRow.getValue(GlobalDataType.String, DataSchema.FIELD_CODE);
+					String schemaName = (String) schemaRow.getValue(GlobalDataType.String, DataSchema.FIELD_SCHEMA);
+					schemaMap.put(codeKey, schemaName);
+				}
+			} catch (ServiceException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	@Override
+	public List<String> getSchemas() {
+		List<String> schemas = new ArrayList<String>();
+		Set<String> keySet = schemaMap.keySet();
+		for (String codeKey : keySet) {
+			schemas.add(schemaMap.get(codeKey));
+		}
+		return schemas;
+	}
+
+	@Override
+	public String getSchema() {
+		return schema;
+	}
+
+	@Override
+	public void setSchema(String condition) {
+		
+		if (StringUtils.isNotEmpty(condition)) {
+			String sheng = condition.substring(0, 2); // 截取县编码code的前两位省编码
+			schema = schemaMap.get(sheng);
+		}
+	}
+}

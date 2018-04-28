@@ -1,0 +1,743 @@
+define([
+    'map','util','config','publicObj',"addTool",'selectTool','modifyTool','paramTool','analyzeTool','queryLayer','unionTool','splitTool','cutTool','measureMap'
+], function (map,util,config,publicObj,addTool,selectTool,modifyTool,paramTool,analyzeTool,queryLayer,unionTool,splitTool,cutTool,measureMap) {
+    'use strict';
+    var geojsonFormat = new ol.format.GeoJSON();
+    var createFeature;//绘制的对象原型，用于更新本地layer
+    var selectTemplate;//当前选中的模板
+    var lastType;
+    var toolType;
+    //高亮图层默认颜色
+    var defaultStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,255,0)', width: 3 })
+    });
+    //选中的颜色
+    var selectStyle = new ol.style.Style({
+    	fill:new ol.style.Fill({color:"rgba(255,255,255,0)"}),
+    	stroke:new ol.style.Stroke({color:"rgb(255,0,0)",width:3})
+    });
+    //初始化方法，查询
+    function init(){
+    	layer = map.getLayerByName("HIGH_LAYER");
+    	layer.setZIndex(999999);
+    	query();//初始化查询
+    }
+    //查询当前用户创建的图形，高亮
+    function query(){
+    	var callBack = {
+    			callback:function(res){
+    				if(res&&res.length>0){
+    					var f ;
+    					for(var i=0;i<res.length;i++){
+    						var data = res[i].originalObjects;
+    						f = geojsonFormat.readFeature(data.C_NR);
+    						f.setStyle(defaultStyle);
+    						f.setProperties({I_MBID:data.I_MBID,ID:data.ID});
+    						layer.getSource().addFeature(f);
+    					}
+    				}
+    			},
+    			exceptionHandler:function(err){
+    				console.log(err);
+    			}
+    	};
+    	var param={
+    			"selectFields":"ID,C_NR,I_MBID",
+    			"whereString":"1=1",
+    	};
+    	FsService.getEntityList("GZGL_LAYER",param,callBack);
+    }
+    /**
+     *工具条点击事件
+     * @param {string} tool
+     * @param {string} layerName
+     */
+    function start(tool){
+    	window.startTool = true;
+    	lastType=toolType;
+    	if(tool==="select"){
+    		//TODO 清除其他所有状态,启动选择
+    		if(lastType=="move"){
+    			clear(false);
+    		}else{
+    			clear(true);
+    		}
+    		selectTool.setActive(true,selectFun);
+    	}else if(tool==="move"){
+    		//TODO 清除所有状态，启动平移
+    		window.startTool = false;
+    		clear(false);
+    		selectTool.setActive(false);
+    		//restore();
+    	}else if(tool==="clear"){
+    		//TODO 清除所有状态
+    		clear(true);
+    		restore();
+    	}else if(tool==""){
+    		//TODO 待定义
+    	}else{
+    		//区划中的实际编辑工具
+    		var selectFeatures = getSelecteds(); 
+    		switch(tool){
+    		case "add"://创建
+    			//TODO 清除所有装态，启动创建
+    			clear(true);
+    			addTool.setActive(true,popFun);
+    			break;
+    		case "trim"://修边
+    			//TODO 清除除选择外的所有状态，启动修边，修边完成后清除选择状态
+    			if(selectFeatures.length===1){
+    				clear(false);
+            		splitTool.setActive(true,selectFeatures[0],trimFun,util);
+            	}else{
+            		clear(true);
+            		restore();
+            		alert("请选择一个图形，进行修边！");
+            	}
+    			break;
+    		case "modify"://节点编辑
+    			//TODO 清除所有状态，启动节点编辑
+    			if(selectFeatures.length===1){
+    				clear(false);
+    				selectTool.setActive(false);
+            		modifyTool.setActive(true,saveModifyFun,selectFeatures[0]);
+            	}else{
+            		clear(true);
+            		restore();
+            		alert("请选择一个图形！");
+            	}
+    			break;
+    		case "cut"://分割
+    			//TODO 清除除选择外的所有状态，启动分割，分割后清除选择状态
+    			if(selectFeatures.length===1){
+    				clear(false);
+            		cutTool.setActive(true,selectFeatures[0],cutFun);
+            	}else{
+            		clear(true);
+            		restore();
+            		alert("请选择一个图形，进行分割！");
+            	}
+    			break;
+    		case "union"://合并
+    			//TODO 清除除选择外的所有状态，合并后清除选择状态
+    			if(selectFeatures.length==2){
+    				clear(false);
+            		var unionedFeature = unionTool.union(selectFeatures);
+            		if(unionedFeature)
+            		 unionFun(unionedFeature);
+            	}else{
+            		clear(true);
+            		restore();
+            		alert("请选择两个图形，进行合并！");
+            	}
+    			break;
+    		case "del"://删除
+    			//TODO 清除除选择外的所有状态，删除后清除选择状态
+    			if(selectFeatures.length>0){
+    				clear(false);
+            		del(selectFeatures);
+            	}else{
+            		alert("请选择一个图形！");
+            	}
+    			break;
+    		case "param"://属性编辑
+    			//TODO 清除除选择外的所有状态，编辑后清除选择状态
+    			if(selectFeatures.length===1){
+    				clear(false);
+            		paramTool.handler(selectFeatures[0],popFun);
+            	}else{
+            		clear(true);
+            		restore();
+            		alert("请选择一个图形！");
+            	}
+    			break;
+    		case "revoke"://撤回
+    			//TODO 目前和add 联合使用
+    			if(lastType=="add"){
+    				addTool.undo();
+    				return;
+    			}else{
+    				window.startTool = false;
+    			}
+    			break;
+    		}
+    	}
+    	toolType=tool;
+    }
+    /**
+     * 选择回调
+     * @param ol.feature 被选中的feature
+     * **/
+    function selectFun(feature){
+    	/*for(var i=0;i<selectFeatures.length;i++){
+    		if(selectFeatures[i]===feature){
+    			feature.setStyle(defaultStyle);
+    			selectFeatures.splice(i,1);
+    			return;
+    		}
+    	}
+    	selectFeatures.push(feature);*/
+    }
+    /**
+     * 合并回调 
+     * @para ol.feature 合并后的feature
+     * */
+    function unionFun(unionedFeature){
+    	window.openAlert();
+    	var maxAreaFeature = splitTool.getMaxArea(getSelecteds());
+    	var properties = maxAreaFeature.getProperties();
+    	delete properties.geometry;
+    	properties.D_AREA = util.getArea(unionedFeature.getGeometry());
+    	unionedFeature.setProperties(properties);
+    	unionedFeature.setStyle(defaultStyle);
+    	var layerName = maxAreaFeature.getProperties().C_XIAN+"_"+maxAreaFeature.getProperties().C_WORKYEAR;
+    	var layer = publicObj.getLayerByName(layerName);
+    	var z_wkt =new ol.format.WKT();
+    	var C_WKT=z_wkt.writeFeature(unionedFeature);
+    	var delId = 0;
+    	var selectFeatures = getSelecteds();
+    	for(var i=0;i<selectFeatures.length;i++){
+    		if(selectFeatures[i].getProperties().ID!==maxAreaFeature.getProperties().ID){
+    			delId = selectFeatures[i].getProperties().ID;
+    		}
+    	}
+    	//properties.wkt = C_WKT;
+    	properties.C_OBJINFO=C_WKT;
+    	var data = {
+    			addRow:null,
+    			updateRow:properties,
+    			delRow:{ID:delId},
+    			type:"updateGeom",
+    			tableName:'ZYJG_BHTB',
+    			xianCode:properties.C_XIAN
+    	}
+    	$.ajax({
+    		url:"dataService.do",
+    		type:"POST",
+    		data:{jsonStr:JSON.stringify(data)},
+    		success:function(res){
+    			if(res.success){
+    				var selectFeatures = getSelecteds();
+    				for(var i=0;i<selectFeatures.length;i++){
+    		    		layer.getSource().removeFeature(selectFeatures[i]);
+    		    	}
+    		    	layer.getSource().addFeature(unionedFeature);
+    				editEnd();
+    			}else{
+    				alert("合并失败！");
+    			}
+    		},
+    		error:function(err){
+    			util.validateSession(err);
+    			console.log(err);
+    		}
+    	});
+    }
+    /**
+     * 分割后方法
+     * 
+     * */
+    function cutFun(features){
+    	window.openAlert();
+    	var polygon_old = getSelecteds()[0].getGeometry().getCoordinates();
+    	var coor_old = PL.Polylabel(polygon_old,"EPSG:4490");
+    	var x = coor_old[0];
+    	var y = coor_old[1];
+    	var property = getSelecteds()[0].getProperties();
+    	delete property.geometry;
+    	var callback = function (res){
+    		if(typeof res == 'object'&&res.success){
+    			var data = JSON.parse(res.data);
+    			delete data.shape;
+    			var layerName = property.C_XIAN+"_"+property.C_WORKYEAR;
+            	var layer = publicObj.getLayerByName(layerName);
+            	var z_wkt =new ol.format.WKT();
+            	var adds = [];
+            	for(var i=0;i<features.length;i++){
+            		features[i].setProperties(data);
+            		var area = util.getArea(features[i].getGeometry());
+            		var polygon = features[i].getGeometry().getCoordinates();
+                	var coor = PL.Polylabel(polygon,"EPSG:4490");
+                	var lon = coor[0];
+                	var lat = coor[1];
+                	var C_OBJINFO = z_wkt.writeFeature(features[i]);
+                	features[i].setProperties({D_AREA:area,I_LON_DEG:lon,I_LAT_DEG:lat,C_OBJINFO:C_OBJINFO});
+                	features[i].setStyle(defaultStyle);
+                	adds.push(features[i].getProperties());
+                	delete adds[i].geometry;
+            	}
+            	var data = {
+            			addRow:adds,
+            			updateRow:null,
+            			delRow:{ID:property.ID},
+            			type:"cut",
+            			tableName:'ZYJG_BHTB',
+            			xianCode:adds[0].C_XIAN
+            	}
+            	$.ajax({
+            		url:"dataService.do",
+            		type:"POST",
+            		data:{jsonStr:JSON.stringify(data)},
+            		success:function(res){
+            			if(res.success){
+            				if(res.rowId){
+            					var ids = res.rowId;
+            					for(var i=0;i<ids.length;i++){
+            						features[i].setProperties({"ID":ids[i]});
+            					}
+            					layer.getSource().removeFeature(getSelecteds()[0]);
+            					layer.getSource().addFeatures(features);
+            				}
+            				editEnd();
+            			}else{
+            				alert("分割失败！");
+            			}
+            		},
+            		error:function(err){
+            			util.validateSession(err);
+            			console.log(err);
+            		}
+            	});
+    		}
+    	}
+    	queryLayer.queryBySpace([x,y],'2017',{queryType:"bhdk"},callback);
+    	
+    }
+    /**
+     * 修边后方法
+     * 
+     * */
+    function trimFun(feature){
+    	window.openAlert();
+    	var property = feature.getProperties();
+    	delete property.geometry;
+    	var z_wkt =new ol.format.WKT();
+    	var C_WKT=z_wkt.writeFeature(feature);
+    	//property.wkt = C_WKT;
+    	property.C_OBJINFO=C_WKT;
+    	var data = {
+    			addRow:null,
+    			updateRow:property,
+    			delRow:null,
+    			type:"updateGeom",
+    			tableName:'ZYJG_BHTB',
+    			xianCode:property.C_XIAN
+    	}
+    	$.ajax({
+    		url:"dataService.do",
+    		type:"POST",
+    		data:{jsonStr:JSON.stringify(data)},
+    		success:function(res){
+    			if(res.success){
+    				editEnd();
+    			}
+    		},
+    		error:function(err){
+    			util.validateSession(err);
+    			console.log(err);
+    		}
+    	});
+    }
+    /**
+     * 弹窗方法
+     * @param type：类型(add)目前只有这一个标识，不是新增情况null
+     * @param feature：图形元素ol.feature
+     * @param template：模板
+     * **/
+    function popFun(type,feature,template){
+    	createFeature = feature;
+    	selectTemplate = template;
+        if(window.ldyzt_fullScreen){
+            var fullScreenId="map_continer";
+        }else{
+            var fullScreenId=null;
+        }
+        var html = getPopHtml(feature,template);
+        var ibox = $("#public_pop").modal({
+        	title: "属性信息",
+			overlay: false,
+			showMin: false,
+			showMax: false,
+			showTop: false,
+			isDrag: true,
+			fullScreenId:fullScreenId,
+			contentWidth:350,
+			type:"clone",
+			target: html||"",
+            addCallBack: function () {
+            	var iBox = this;
+                $(".zs-nicescroll").niceScroll({
+                    cursorcolor: "#777",
+                    cursorborder: "none",
+                });
+                $(".close-button").on('click',function(){
+                	$(".close-btn").click();
+                });
+                $(".save-button").on('click',function(){
+                	save(feature);
+                });
+                var polygon = feature.getGeometry().getCoordinates();
+                var coor = PL.Polylabel(polygon,"EPSG:4490");
+                var form = $('#popIbox_xbsx')[0];
+        		var elements = form.getElementsByTagName('input');
+               if(toolType=="add"){
+                	var url = config.PROXY+"?"+config.queryUrl+"?";
+                	var callback = function(res){
+                		var data = typeof res == 'object' ? res : JSON.parse(res);
+                		var xian = data.xian_name||data.lin_ye_ju;
+                		var xiang = data.xiang_name||data.lin_chang;
+                		var cun = data.cun_name||data.lin_ban;
+                		var xiaoban = data.xiao_ban||'';
+                		elements.C_XIAN.value = data.xian||data.lin_ye_ju;
+                		elements.C_XIANNAME.value=(xian)||'';
+                		elements.C_XIANG.value=(xiang)||'';
+                		elements.C_CUN.value=Number(cun)?(Number(cun)):(cun||'');
+                		elements.C_XIAOBAN.value=Number(xiaoban)?(Number(xiaoban)):(xiaoban||'');
+                		elements.C_WORKYEAR.value=userObj.defineNd;
+                		elements.I_LON_DEG.value = coor[0].toFixed(2);
+                		var lonArr = util.getDFM(coor[0]);
+                		elements.lon.value = lonArr[0]+"°"+lonArr[1]+"′"+lonArr[2]+"″";
+                		elements.I_LAT_DEG.value = coor[1].toFixed(2);
+                		var latArr = util.getDFM(coor[1]);
+                		elements.lat.value = latArr[0]+"°"+latArr[1]+"′"+latArr[2]+"″";
+                		elements.D_AREA.value=util.getArea(feature.getGeometry());
+                	}
+                	queryLayer.queryBySpace(coor,'2009',{url:url},callback);
+                }else if(toolType=="param"){
+                	var callback = function(res){
+                		if(typeof res == 'object'&&res.success){
+                			var data = JSON.parse(res.data);
+                			elements.C_XIAN.value=data.C_XIAN||'';
+                			elements.C_XIANNAME.value = data.C_XIANNAME||'';
+                    		elements.C_XIANG.value=data.C_XIANG||'';
+                    		elements.C_CUN.value=Number(data.C_CUN)?(Number(data.C_CUN)):(data.C_CUN||'');
+                    		elements.C_XIAOBAN.value=Number(data.C_XIAOBAN)?(Number(data.C_XIAOBAN)):(data.C_XIAOBAN||'');
+                    		elements.C_WORKYEAR.value=data.C_WORKYEAR||'';
+                    		elements.I_LON_DEG.value = coor[0].toFixed(2);
+                    		var lonArr = util.getDFM(coor[0]);
+                    		elements.lon.value = lonArr[0]+"°"+lonArr[1]+"′"+lonArr[2]+"″";
+                    		elements.I_LAT_DEG.value = coor[1].toFixed(2);
+                    		var latArr = util.getDFM(coor[1]);
+                    		elements.lat.value = latArr[0]+"°"+latArr[1]+"′"+latArr[2]+"″";
+                    		elements.D_AREA.value=util.getArea(feature.getGeometry());
+                    		elements.C_YSBHYY.value = data.C_YSBHYY||'';
+                    		$(elements.C_YSBHYY).siblings().val(data.C_YSBHYY);
+                    		elements.C_HSBHYY.value = data.C_HSBHYY||'';
+                    		$(elements.C_HSBHYY).siblings().val(data.C_HSBHYY);
+                    		elements.C_YIJU.value = data.C_YIJU||'';
+                		}
+                	}
+                	queryLayer.queryBySpace(coor,'2017',{queryType:"bhdk"},callback);
+                }
+            }
+        });
+        ibox.click();
+    }
+    //解析模板，生成表单的html
+    function getPopHtml(feature,template){
+    	var arr=typeof template.C_NR == 'object' ? template.C_NR : JSON.parse(template.C_NR);
+        var data = feature.getProperties();
+        var html = "<form id='popIbox_xbsx' style='width:300px'><table class='fore-common-form-tabs'";
+        window.optionClick=optionClick;
+        for(var i=0;i<arr.length;i++){
+            var fieldObj = arr[i];
+            html+="<tr><td class='text'>"+fieldObj.DICTNAME+"</td>";
+            var value = data[fieldObj.FIELDNAME]?data[fieldObj.FIELDNAME]:'';
+            if(fieldObj.GROUP){
+            	html+="<td class='input'>";
+            	var groupArr = fieldObj.GROUP;
+            	for(var z=0;z<groupArr.length;z++){
+            		var item = groupArr[z];
+            		var itemValue = data[item.FIELDNAME]?data[item.FIELDNAME]:'';
+            		html+="<input type='text' style='width:35px;' name= '"+item.FIELDNAME+"'value='"+itemValue+"'/> "+item.DICTNAME+" ";
+            	}
+            	html+="</td></tr>";
+            }else if(fieldObj.DICTITEM){
+                var itemArr = fieldObj.DICTITEM;
+                html+="<td class='input'>"+
+                "<input type='hidden' value='"+value+"' name='"+fieldObj.FIELDNAME+"'/>"+
+                "<select style='width:160px;' onchange='optionClick(this)'>"+
+                "<option value=''>--请选择--</option>";
+                for(var j=0;j<itemArr.length;j++){
+                    var item = itemArr[j];
+                    if(value==item.NAME){
+                    	html+="<option selected='selected' value='"+item.NAME+"'>"+item.NAME+"</option>";
+                    }else{
+                    	html+="<option value='"+item.NAME+"'>"+item.NAME+"</option>";
+                    }
+                }
+                html+="</select>"+"</td></tr>";
+            }else{
+            	if(fieldObj.FIELDNAME=="I_LON_DEG"){
+            		html+="<td class='input'>"
+            			+"<input type='hidden' style='width:160px;' value='"+value+"' name='"+fieldObj.FIELDNAME+"'/>"
+            			+"<input type='text' style='width:160px;' value='' name='lon'/>"
+            			+"</td></tr>";
+            	}else if(fieldObj.FIELDNAME=="I_LAT_DEG"){
+            		html+="<td class='input'>"
+            		+"<input type='hidden' style='width:160px;' value='"+value+"' name='"+fieldObj.FIELDNAME+"'/>"
+        			+"<input type='text' style='width:160px;' value='' name='lat'/>"
+        			+"</td></tr>";
+            	}else if(fieldObj.FIELDNAME=="C_XIAN"){
+            		html+="<td class='input'>"
+                		+"<input type='hidden' style='width:160px;' value='"+value+"' name='"+fieldObj.FIELDNAME+"'/>"
+            			+"<input type='text' style='width:160px;' value='' name='C_XIANNAME'/>"
+            			+"</td></tr>";
+            	}
+            	else{
+            		html+="<td class='input'>"
+            			+"<input type='text' style='width:160px;' value='"+value+"' name='"+fieldObj.FIELDNAME+"'/>"
+            			+"</td></tr>";
+            	}
+            }
+        }
+        html+="</table></form>";
+        html+="<div class='fore-core-btnboxs'>"+
+		"<button class='zs-btn close-button'>关闭</button>"+
+        "<button class='zs-btn save-button'>保存</button></div>";
+        return html;
+    }
+    //select标签的change事件
+    function optionClick(e){
+    	$(e).siblings("input").val(e.value);
+    }
+    function closePop(){
+    	$(".close-btn").click();
+    }
+    /**
+     * feature：ol.feature
+     * 保存方法
+     * **/
+    function save(feature){
+    	window.openAlert();
+    	var form = $('#popIbox_xbsx')[0];
+    	var elements = form.getElementsByTagName('input');
+    	var property = {};
+    	for(var i=0;i<elements.length;i++){
+    		var element = elements[i];
+    		if(element.name&&element.name!='lon'&&element.name!='lat'){
+    			property[element.name]=element.value;
+    		}
+    	}
+    	feature.setProperties(property);
+    	//新增 wkt 字段 by zzq 20171205
+    	var z_wkt =new ol.format.WKT();
+    	var C_WKT=z_wkt.writeFeature(feature);
+    	//property.wkt=C_WKT;
+    	property.C_OBJINFO = C_WKT;
+    	if(getSelecteds().length===1){
+    		//属性编辑的保存
+    		property.ID = getSelecteds()[0].getProperties().ID;
+    		delete property.C_OBJINFO;
+    		var data = {
+        			addRow:null,
+        			updateRow:property,
+        			delRow:null,
+        			type:"updateParam",
+        			tableName:'ZYJG_BHTB',
+        			xianCode:property.C_XIAN
+        	}
+    		
+    	}else{
+    		//新增
+    		var data = {
+        			addRow:[property],
+        			updateRow:null,
+        			delRow:null,
+        			type:"insert",
+        			tableName:'ZYJG_BHTB',
+        			xianCode:property.C_XIAN
+        	}
+    	}
+    	$.ajax({
+    		url:"dataService.do",
+    		type:"POST",
+    		data:{jsonStr:JSON.stringify(data)},
+    		success:function(res){
+    			if(res.success){
+    				feature.setStyle(defaultStyle);
+    				if(res.rowId.length>0){
+    					var ID = res.rowId[0];
+    					feature.setProperties({ID:ID});
+    				}
+    			}else{
+    				createFeature=null;
+    			}
+    			closePop();
+    			editEnd();
+    		},
+    		error:function(err){
+    			util.validateSession(err);
+    			console.log(err);
+    		}
+    	});
+    }
+    /**
+     * 删除方法
+     * @param features [ol.feature] 
+     * */
+    function del(features){
+    	if(!confirm("确定删除？")){
+    		return;
+    	}
+    	window.openAlert();
+    	var ids=[];
+    	for(var i=0;i<features.length;i++){
+    		var f = features[i];
+    		ids.push(f.getProperties().ID);
+    	}
+    	if(ids){
+    		var delFilter = {
+    				whereString:"ID in ("+ids.join(',')+")"
+    		};
+    		var callBack = {
+    				callback:function(res){
+    					for(var i=0;i<features.length;i++){
+    						var feature = features[i];
+    						var layerName = feature.getProperties().C_XIAN+"_"+feature.getProperties().C_WORKYEAR;
+    						var layer = publicObj.getLayerByName(layerName);
+    						layer.getSource().removeFeature(feature);
+    					}
+    					editEnd();
+    				},
+    				exceptionHandler:function(err){
+    					console.log(err);
+    	    		}
+    		};
+    		FsService.del("ZYJG_BHTB",delFilter,callBack);
+    	}
+    }
+    /**
+     * 保存编辑后要素
+     */
+    function saveModifyFun(feature){
+    	window.openAlert();
+    	var oldData = null;
+    	feature.setProperties({D_AREA:util.getArea(feature.getGeometry())});
+    	var z_wkt =new ol.format.WKT();
+    	var C_WKT=z_wkt.writeFeature(feature);
+    	var property = feature.getProperties();
+    	delete property.geometry;
+    	//property.wkt = C_WKT;
+    	property.C_OBJINFO = C_WKT;
+    	//新增
+		var data = {
+    			addRow:null,
+    			updateRow:property,
+    			delRow:null,
+    			type:"modify",
+    			tableName:'ZYJG_BHTB',
+    			xianCode:property.C_XIAN
+	    	}
+		$.ajax({
+			url:"dataService.do",
+			type:"POST",
+			data:{jsonStr:JSON.stringify(data)},
+			success:function(res){
+				window.closeAlert();
+				if(res.success){
+					if(getSelecteds().length===1){
+						getSelecteds()[0].setGeometry(feature.getGeometry().clone());
+						//refresh();
+	    			}
+				}else{
+					modifyTool.setActive(false);
+					alert("操作失败!")
+				}
+			},
+			error:function(err){
+				util.validateSession(err);
+			}
+		});
+    }   
+    /**
+    *保存，编辑，删除等编辑操作结束后的处理方法；
+    *用于清空状态；
+    */
+    function editEnd(){
+    	var tipMsg = "";
+    	window.closeAlert();
+    	switch(toolType){
+    	case 'add'://
+    		addTool.setActive(false);
+    		var layerName = createFeature.getProperties().C_XIAN+"_"+createFeature.getProperties().C_WORKYEAR;
+    		var layer = publicObj.getLayerByName(layerName);
+    		if(createFeature)
+    		layer.getSource().addFeature(createFeature);
+    		break;
+    	case 'param':
+    		selectTool.clear();
+    		modifyTool.setActive(false);
+    		break;
+    	case 'del':
+    		selectTool.clear();
+    		modifyTool.setActive(false);
+    		break;
+    	case 'union':
+    		selectTool.clear();
+    		break;
+    	case 'cut':
+    		selectTool.clear();
+    		cutTool.setActive(false);
+    		break;
+    	case 'trim':
+    		selectTool.clear();
+    		splitTool.setActive(false);
+    		break;
+    	}
+    	createFeature=null;
+    	restore();
+    	/*if(tipMsg){
+    		alert(tipMsg);
+    	}*/
+    }
+    /**
+     * 清除
+     */
+    function clear(isAll){
+    	if(isAll){
+    		selectTool.clear();
+    	}
+    	addTool.setActive(false);
+    	createFeature=null;
+    	splitTool.setActive(false);
+    	modifyTool.setActive(false);
+    	cutTool.setActive(false);
+    	//清除测量
+    	measureMap.clear();
+    	//清除定位
+    	//map.getLayerByName("ZQDW_LAYER").getSource().clear();
+    	//test_query临时加的
+    	window.istest_query=false;
+    }
+    /**
+     * 还原状态值
+     * */
+    function restore(){
+    	//恢复鼠标样式
+        document.getElementById("map").style.cursor = "";
+        window.startTool = false;
+        lastType = "";
+        toolType="";
+    }
+    /**
+     * 刷新修改的图层
+     */
+    function refresh(){
+        var m=map.getMap();
+        var v=m.getView();
+        var c=v.getCenter();
+        c[1]=c[1]+0.000001;
+        v.setCenter(c)
+        //map.render();
+    }
+    function getSelecteds(){
+    	return publicObj.features;
+    }
+    return {
+        start: start,
+        clear: clear,
+        init:init
+    }
+});

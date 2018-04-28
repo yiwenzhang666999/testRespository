@@ -1,0 +1,62 @@
+/**
+ * 全局初始化设置
+ */
+
+require(["map","severZtree","ztLayerCro","toolCro","querySpace","report","zyjg","shapeMain","loadTree","bhdk","pointQuery"], function (map,severZtree,ztLayerCro,toolCro,querySpace,report,zyjg,shapeMain,loadTree,bhdk,pointQuery) {
+    window.map = map;//暴露map用于调试
+    
+	map.init();
+	//右下角地图控制
+	ztLayerCro.init();
+	//初始化 加载树
+	loadTree.init();
+	//左侧树控制
+	severZtree.init();
+	//工具条按钮控制
+	toolCro.init();
+	//查询初始化
+    querySpace.init();
+    //初始化政区
+    zyjg.init();
+    //初始化统计报表
+	report.init();
+	//初始化 导入map
+	shapeMain.init();
+	//变化地块导入数据
+	bhdk.init();
+    if(window.addEventListener){
+		if(document.body.requestFullscreen){
+			 document.addEventListener('fullscreenchange',function(){
+				 if(document.fullscreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}else if(document.body.msRequestFullscreen){
+			 document.addEventListener('MSFullscreenChange',function(){
+				 if(document.msFullscreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}else if(document.body.mozRequestFullScreen){
+			 document.addEventListener('mozfullscreenchange',function(){
+				 if(document.mozFullScreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}else if(document.body.webkitRequestFullscreen){
+			 document.addEventListener('webkitfullscreenchange',function(){
+				 if(document.webkitFullscreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}
+	}
+});

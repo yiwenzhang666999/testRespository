@@ -1,0 +1,22 @@
+<!--资源监管-->
+<div class="zs-zyjg-header">
+	<div class="user">
+	<i class="logo-icon"></i>
+		<span class="name"><i class="icon"></i>tcdos</span>
+	</div>
+	<div class="tool">
+		<p class="location"><span id="zyjg_jb_mc"></span></p>
+		<div class="map-tool">
+			<a href="javascript:;" class="tool-xz" ref="feature_select">选择</a>
+			<a href="javascript:;" class="tool-py" ref="feature_move">平移</a>
+			<a href="javascript:;" class="tool-cl" ref=''>测量
+				<div class="card">
+					<span class="selected" id="length_nav">长度测量</span>
+					<span id="area_nav">面积测量</span>
+				</div>
+			</a>
+			<a href="javascript:;" class="tool-qc" ref="feature_clear" id="qingchu">清除</a>
+			<a href="javascript:;" class="tool-qp">全屏</a>
+		</div>
+	</div>
+</div>

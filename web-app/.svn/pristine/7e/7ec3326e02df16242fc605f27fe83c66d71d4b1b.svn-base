@@ -1,0 +1,49 @@
+		/*地图编辑表单样式*/
+.fore-common-form-tabs {
+	margin: 0px auto;
+	width: 100%;
+	border-collapse: collapse;
+	background-color: #fff;
+}
+.fore-common-form-tabs td {
+	padding: 3px 5px;
+	height: 25px;
+	line-height: 25px;
+	font-weight: normal;
+	text-align: center;
+	border: 1px solid #E8E8E8;
+}
+.fore-common-form-tabs td.title {
+	padding: 2px 5px;
+	height: 25px;
+	line-height: 25px;
+	text-align: left;
+	font-weight: bold;
+	background: url(../images/fore-common-tab-head-bg.png);
+}
+.fore-common-form-tabs td.text {
+	text-align: right;
+	background-color: #F5F5F5;
+}
+.fore-common-form-tabs td.input {
+	text-align: left;
+}
+.fore-common-form-tabs td.btn {
+	width: 100%;
+	text-align: center;
+	border: 0px;
+	background: none;
+}
+.fore-common-form-tabs td.left {
+	text-align: left;
+}
+.fore-common-form-tabs td.right {
+	text-align: right;
+}
+.fore-common-form-tabs td.center {
+	text-align: center;
+}
+.fore-core-btnboxs{
+	text-align: center;
+	padding: 10px;
+}

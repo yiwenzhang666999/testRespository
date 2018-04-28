@@ -1,0 +1,676 @@
+define(['canvasDarg'],function(canvasDarg) {
+	'use strict';
+    var regional = document.getElementById('label');
+    var getImage = document.getElementById('get_image');
+    var clipPic = document.getElementById('edit_pic');
+    var coverBox = document.getElementById('cover_box');
+    var achieve = document.getElementById('show_edit');
+    var createCanvas={};
+    var clipPos={};
+    var imgUrl="";
+    var cover=null;
+    var ex=0;
+    var ey=0;
+    var index=1;
+//    var zzsize={
+//		"A0":"841*1189",
+//		"A1":"594*841",
+//		"A2":"420*594",
+//		"A3":"297*420",
+//		"A4":"210*297",
+//		"A5":"148*210",
+//	}
+    var divsize={
+		"A3":{"width":1587,"height":1122},
+		"A4":{"width":1122,"height":793},
+		"A5":{"width":793,"height":559},
+	}
+    var pos={
+	    "scale": {
+	        "jz": 0,
+	        "js": 0,
+	        "tpkd": 135,
+	        "tpgd": 160,
+	        "type": "img",
+	        "url": "images/features/0.png"
+	    },
+	    "zoom": {
+	        "jz": 0,
+	        "js": 450,
+	        "tpkd": 270,
+	        "tpgd": 32,
+	        "type": "img",
+	        "url": "images/features/1.png"
+	    },
+	    "Title": {
+	        "jz": 0,
+	        "js": 0,
+	        "tpkd": 80,
+	        "tpgd": 26,
+	        "font-size":"20",
+	        "type": "text",
+	        "text": "地图打印",
+	        "url": ""
+	    }
+	};
+    //初始化图片基本参数
+    var bgPagePos = {
+            x: 0,
+            y: 0,
+            height: 0,
+            width: 0
+          };
+	function init(options) {
+      var t = this;
+      clipPos = options.clipPos;
+      //传进图片
+      document.getElementById('post_file').addEventListener("change", handleFiles, false);
+      //新增图片
+//      document.getElementById('new_file').addEventListener("change", newFiles, false);
+      //开始裁切
+//      document.getElementById('start_button').addEventListener("click", startCut, false);
+      //结束裁切
+//      document.getElementById('end_button').addEventListener("click", endCut, false);
+      //点击保存按钮后再裁剪图片
+//      document.getElementById('save_button').addEventListener("click", saveImg, false);
+      //改变纸张时触发
+      document.getElementById('zz').addEventListener("change", divchange, false);
+      //改变方向时触发
+      document.getElementById('fx').addEventListener("change", divchange, false);
+      //导出图片
+      document.getElementById('dc').addEventListener("click", dcImg, false);
+      //右侧元素列表
+      $('#right_ul li').on("click", liClick);
+      //修改元素位置
+//      $('#button_pos').on("click", butClick);
+      $("#table_ys input").on("input propertychange",butClick);
+      $("#button_dy").on("click",butPrint);
+      $("#button_zjdy").on("click",butPrint1);
+      $("#button_xzdyj").on("click",butPrint2);
+
+      divchange();
+      setTimeout(initPrint, 500);
+//		canvasDarg.divDrag();
+    }
+	function dcImg(){
+		var data=[];
+		var img=[];
+		var text=[];
+		var $canvas=$("[id^=canvas]");
+		var size=0;
+		for(var i=0;i<$canvas.length;i++){
+		    var id=$canvas.eq(i).attr("id");
+		    var posid=id.replace("canvas","");
+			var posData=pos[posid];
+			if(posData.type=="img"){
+			    var d={
+			    		src:document.getElementById(id).toDataURL(),
+			    		pos:posData
+			    }
+			    size++;
+			    img.push(d);
+			}else if(posData.type=="text"){
+				var d={
+			    		src:"",
+			    		pos:posData
+			    }
+				text.push(d);
+			}
+			data.push(d);
+		}
+//		data.push({"img":img,"text":text});
+		draw(data,size);
+	}
+	function draw(data,size){
+		var c=document.createElement('canvas'),
+		ctx=c.getContext('2d');
+		c.width=793;
+		c.height=1122;
+		ctx.rect(0,0,c.width,c.height);
+		ctx.fillStyle='#fff';
+		ctx.fill();
+
+//		ctx.fillStyle='#000000';
+//		ctx.font = '20px Adobe Ming Std'; 
+//		ctx.fillText("地图打印1",0,26);
+		//记录地图url
+		var img=new Image;
+//		img.crossOrigin = 'Anonymous'; //解决跨域
+		img.src=getImage.toDataURL();
+		img.onload=function(){
+			if(bgPagePos.x!=0)
+			ctx.drawImage(img,Number(bgPagePos.x.replace("px","")),Number(bgPagePos.y.replace("px","")),bgPagePos.width,bgPagePos.height);
+			if(data.length==0){
+				drawing(0,data,ctx,c,size);
+			}else{
+				drawing(0,data,ctx,c,size);
+			}
+		}
+	}
+	function drawing(n,data,ctx,c,size){
+		var len=data.length;
+		var posData=data[n]["pos"];
+		if(posData.type=="img"){
+			var img=new Image;
+			img.src=data[n]["src"];
+			img.onload=function(){
+				var imgWidth=0;
+				var imgHeight=0;
+				if(posData.offsetWidth&&posData.offsetHeight){
+					imgWidth=posData.offsetWidth;
+					imgHeight=posData.offsetHeight;
+				}else{
+					imgWidth=posData.tpkd;
+					imgHeight=posData.tpgd;
+				}
+				ctx.drawImage(img,posData.jz,posData.js,imgWidth,imgHeight);
+				if(n==(len-1)){
+					$("#tttt").attr("href", c.toDataURL("image/jpeg")).attr("download", "order-1111111111.png");
+					$("#tttt")[0].click();
+				}else{
+					drawing(n+1,data,ctx,c,size);//递归
+				}
+			}
+		}else if(posData.type=="text"){
+			var imgWidth=0;
+			var imgHeight=0;
+			if(posData.offsetWidth&&posData.offsetHeight){
+				imgWidth=posData.offsetWidth;
+				imgHeight=posData.offsetHeight;
+			}else{
+				imgWidth=posData.tpkd;
+				imgHeight=posData.tpgd;
+			}
+			ctx.fillStyle='#000000';var font=imgHeight+'px Adobe Ming Std';
+			ctx.font = font;
+			ctx.fillText(posData.text,posData.jz,posData.js+imgHeight);//需加上文字的高度
+			if(n==(len-1)){
+				$("#tttt").attr("href", c.toDataURL("image/jpeg")).attr("download", "order-1111111111.png");
+				$("#tttt")[0].click();
+			}else{
+				drawing(n+1,data,ctx,c,size);//递归
+			}
+		}
+		
+	}
+	function initPrint(){
+		
+		var LODOP=getLodop();
+		//获取打印机个数
+		var size=LODOP.GET_PRINTER_COUNT();
+		//获取默认打印机
+		var tname=LODOP.GET_PRINTER_NAME(-1)
+		//循环获取打印机名称,并加载到页面上
+		var html="";
+		for(var i=0;i<size;i++){
+			var name=LODOP.GET_PRINTER_NAME(i);
+			if(tname!=name){
+				html+="<option value='"+i+"'>"+name+"</option>";
+			}else{
+				html+="<option selected='selected' value='"+i+"'>"+name+"</option>";
+			}
+		}
+		$("#dyj").html(html);
+	}
+	function divchange(){
+		var fx=$("#fx").val();
+		var zz=$("#zz").val();
+		if(fx==1){
+			$("#label").width(divsize[zz]["height"]);
+			$("#label").height(divsize[zz]["width"]);
+		}else if(fx==2){
+			$("#label").width(divsize[zz]["width"]);
+			$("#label").height(divsize[zz]["height"]);
+		}
+	}
+	//打印预览
+	function butPrint(){
+		var flag=CreateOneFormPage();
+		LODOP.SET_PRINTER_INDEX(Number($("#dyj").val()));//指定打印机
+		LODOP.SET_PRINT_PAGESIZE(Number($("#fx").val()),0,0,$("#zz").val());//指定方向和纸张
+		LODOP.SET_PRINT_COPIES(Number($("#dyfs").val()));//指定份数
+	    if(flag){
+			LODOP.PREVIEW();
+	    }
+	}
+	//直接打印
+	function butPrint1(){
+		var flag=CreateOneFormPage();
+		LODOP.SET_PRINTER_INDEX(Number($("#dyj").val()));//指定打印机
+		LODOP.SET_PRINT_PAGESIZE(Number($("#fx").val()),0,0,$("#zz").val());//指定方向和纸张
+		LODOP.SET_PRINT_COPIES(Number($("#dyfs").val()));//指定份数
+	    if(flag){
+	    	LODOP.PRINT();
+	    }
+	}
+	//选择打印机
+	function butPrint2(){
+		var flag=CreateOneFormPage();
+	    if(flag){
+	    	LODOP.PRINTA();
+	    }
+	}
+	function CreateOneFormPage(){
+		var $canvas=$("[id^=canvas]");
+		if($canvas.length==0){
+			alert("暂无需要打印的地图！");
+			return false;
+		}
+		var LODOP=getLodop();
+	    LODOP.PRINT_INIT("打印插件功能演示_Lodop功能_BASE64编码串打印图片");
+	    //底图
+	    var get_image=document.getElementById("get_image");
+	    var strBASE64Code=get_image.toDataURL();
+	    var left=Number(get_image.style.left.replace("px",""));
+	    var top=Number(get_image.style.top.replace("px",""));
+	    LODOP.ADD_PRINT_IMAGE(top,left,"100%","100%",strBASE64Code);
+		for(var i=0;i<$canvas.length;i++){
+			var id=$canvas.eq(i).attr("id");
+			var posid=id.replace("canvas","");
+			var posData=pos[posid];
+			if(posData.type=="img"){
+				var strBASE64Code=document.getElementById(id).toDataURL();
+			    LODOP.ADD_PRINT_IMAGE(posData.js,posData.jz,"100%","100%",strBASE64Code);
+			}else if(posData.type=="text"){
+				LODOP.ADD_PRINT_TEXT(posData.js,posData.jz,"100%","100%",posData.text);
+			}
+		}
+		return true;
+	}
+	function butClick(e){
+		var dqys=$("#dqys").attr("dqys");
+		var text=$("#dqys").text();
+		$("#table_ys input").each(function(e){
+		    var $input=$("#table_ys input").eq(e);
+		    var id=$input.attr("id");
+			var value=$input.val();
+			pos[dqys][id]=value;
+		})
+		console.log(pos);
+		newCanvas(dqys,text);
+	}
+	function liClick(e){
+		var id=$(this).attr("id");
+		var text=$(this).text();
+		newCanvas(id,"当前元素:"+text);
+	}
+	function newCanvas(id,text){
+		var posData=pos[id];
+		$("#dqys").html(text);
+		$("#dqys").attr("dqys",id);
+		$("#dqys").attr("dqyscan",canvasid);
+
+		var canvasid="canvas"+id;
+		$("#dqys").attr("dqyscan",canvasid);
+		if($("#"+canvasid).length>0){
+			$("#"+canvasid).remove();
+		}
+		$("#jz").val(posData.jz);
+		$("#js").val(posData.js);
+		$("#table_img").hide();
+		$("#table_text").hide();
+		if(posData.type=="img"){
+			$("#table_img").show();
+			var imgWidth=0;
+			var imgHeight=0;
+			if(posData.offsetWidth&&posData.offsetHeight){
+				imgWidth=posData.offsetWidth;
+				imgHeight=posData.offsetHeight;
+			}else{
+				imgWidth=posData.tpkd;
+				imgHeight=posData.tpgd;
+			}
+			$("#tpgd").val(imgWidth);
+			$("#tpkd").val(imgHeight);
+			$("#label").append('<canvas dqys="'+id+'" id="'+canvasid+'" width="'+imgWidth+'" height="'+imgHeight+'" style="position:absolute;left:'+posData.jz+'px;top:'+posData.js+'px;"></canvas>');
+			var tb = document.getElementById(canvasid);
+			var Canvas = tb.getContext("2d");
+			var img = new Image();
+			img.src =posData.url;
+			img.onload = function(){
+				Canvas.drawImage(img,0,0,imgWidth,imgHeight);
+				canDrag(tb);
+				tb.addEventListener("mousewheel",canMousewheel, false);
+				
+				var url = tb.toDataURL("image/png");//PNG格式
+			    //以下代码为下载此图片功能
+			    var triggerDownload = $("#show_img").attr("href", url).attr("download", "order-1111111111.png");
+			    triggerDownload[0].click();
+			}
+		}else if(posData.type=="text"){
+			$("#table_text").show();
+			$("#font-size").val(posData["font-size"]);
+			$("#text").val(posData.text);
+			$("#label").append('<h2 dqys="'+id+'" id="'+canvasid+'" style="position:absolute;left:'+posData.jz+'px;top:'+posData.js+'px;font-size:'+posData["font-size"]+'px;">'+posData.text+'</h2>');
+			var text = document.getElementById(canvasid);
+			canDrag(text);
+			text.addEventListener("dblclick",dbH2Click, false);
+			text.addEventListener("mousewheel",canMousewheel, false);
+		}
+	}
+	function canMousewheel(e){
+		var dqys=$(this).attr("dqys");
+		var text=$(this).text();
+		var zoom=parseFloat($(this).attr("zoom"))||1;
+		zoom+=event.wheelDelta/12/100;
+		if (zoom>0){
+			pos[dqys]["offsetWidth"]=parseFloat(this.offsetWidth*zoom).toFixed(1);
+			pos[dqys]["offsetHeight"]=parseFloat(this.offsetHeight*zoom).toFixed(1);
+			$(this).attr("zoom",zoom);
+			newCanvas(dqys,text);
+		}
+		e = e || window.event;
+        if (e.stopPropagation) e.stopPropagation();
+        else e.cancelBubble = true;
+        if (e.preventDefault) e.preventDefault();
+        else e.returnValue = false;
+	}
+	function dbH2Click(){
+        var text=$(this).text();
+        var input=$('<input id="textinput" type="text" class="edit" value="'+text+'">');
+        $(this).html(input);
+        $('#textinput').keypress(function(){
+        	//谷歌能识别event，火狐识别不了，所以增加了这一句，chrome浏览器可以直接支持event.keyCode
+		 	var theEvent = window.event || arguments.callee.caller.arguments[0];
+		 	var code = theEvent.keyCode;
+			if (code == 13) {
+	        	h2input(this);
+			}
+        });
+        $('#textinput').click(function(){
+            return false;
+        }); //阻止表单默认点击行为
+        
+        $('#textinput').select(); //点击自动全选中表单的内容
+
+        $('#textinput').blur(function(){
+        	h2input(this);
+        }); //表单失去焦点文本框变成文本
+	}
+	function h2input(e){
+		var nextxt=$(e).val();
+		var h2=$(e).parent();
+		h2.html(nextxt);
+        var dqys=h2.attr("dqys");
+        $("#text").val(nextxt);
+		pos[dqys]["text"]=nextxt;
+	}
+	function startCut(){
+	    ex=0;
+	    ey=0;
+		clipImg();
+		drag();
+	}
+	function endCut(){
+      cover.clearRect(0,0, bgPagePos.width, bgPagePos.height);
+      coverBox.onmousemove=null;
+	}
+	function saveImg(){
+        //绘制剪切后的图片：
+        clipPic.height = clipPos.height;
+        clipPic.width = clipPos.width;
+ 
+        var ctx = clipPic.getContext('2d');
+        var images = new Image();
+        images.src = imgUrl;
+        images.onload = function(){
+          //drawImage(images,相对于裁剪图片的X, 相对于裁剪图片的Y, 裁剪的高度, 裁剪的宽度, 显示在画布的X, 显示在画布的Y, 显示在画布多高, 显示在画布多宽);
+          ctx.drawImage(images,clipPos.x, clipPos.y, clipPos.height, clipPos.width, 0, 0, clipPos.height, clipPos.width); //裁剪图片
+           
+          document.getElementById('show_pic').getElementsByTagName('img')[0].src = clipPic.toDataURL();
+        }
+	}
+    function newFiles() {
+ 
+      var fileList = this.files[0];
+      var oFReader = new FileReader();
+ 
+      //读取文件内容
+      oFReader.readAsDataURL(fileList);
+ 
+      //当读取操作成功完成时调用.
+      oFReader.onload = function (oFREvent) {
+    	  var id="aaaa"+index;
+    	  $("#label").append('<canvas id="'+id+'" style="position:absolute;left:'+pos.scale.x+'px;top:'+pos.scale.y+'px;"></canvas>');
+    	  var aaaa = document.getElementById(id);
+    	  var aaaaCanvas = aaaa.getContext("2d");
+    	  var img = new Image();
+          img.src = oFREvent.target.result;
+          img.onload = function(){
+        	  aaaaCanvas.drawImage(img,0,0,pos.scale.width,pos.scale.height);
+        	  index++;
+          }
+      };
+    }
+    function handleFiles() {
+ 
+      var fileList = this.files[0];
+      var oFReader = new FileReader();
+ 
+      //读取文件内容
+      oFReader.readAsDataURL(fileList);
+ 
+      //当读取操作成功完成时调用.
+      oFReader.onload = function (oFREvent) { 
+ 
+        //把预览图片URL传给函数
+        paintImage(oFREvent.target.result);
+      };
+    }
+    function paintImage(url) {
+      var t = this;
+      createCanvas = getImage.getContext("2d");
+ 
+      var img = new Image();
+      img.src = url;
+ 
+      //把传进来的图片进行等比例缩放
+      img.onload = function(){
+        //等比例缩放图片(如果图片宽高都比容器小，则绘制的图片宽高 = 原图片的宽高。)
+        //如果图片的宽度或者高度比容器大，则宽度或者高度 = 容器的宽度或者高度，另一高度或者宽度则等比例缩放
+ 
+        //bgPagePos.width：绘制后图片的宽度;
+        //bgPagePos.height：绘制后图片的高度;
+        //bgPagePos.x：绘制后图片的X轴;
+        //bgPagePos.y：绘制后图片的Y轴
+        if ( img.width < regional.offsetWidth && img.height < regional.offsetHeight) {
+          bgPagePos.width = img.width;
+          bgPagePos.height = img.height;
+ 
+        } else {
+          var pWidth = img.width / (img.height / regional.offsetHeight);
+          var pHeight = img.height / (img.width / regional.offsetWidth);
+ 
+          bgPagePos.width = img.width > img.height ? regional.offsetWidth : pWidth;
+          bgPagePos.height = img.height > img.width ? regional.offsetHeight : pHeight;
+        }
+ 
+        //图片的坐标
+        bgPagePos.x = (regional.offsetWidth - bgPagePos.width) / 2 + 'px';
+        bgPagePos.y = (regional.offsetHeight - bgPagePos.height) / 2 + 'px';
+         
+        getImage.height = bgPagePos.height;
+        getImage.width = bgPagePos.width;
+        getImage.style.left = bgPagePos.x;
+        getImage.style.top = bgPagePos.y;
+ 
+        createCanvas.drawImage(img,0,0,bgPagePos.width,bgPagePos.height);//没用直接插入背景图片而用canvas绘制图片，是为了调整所需框内图片的大小
+         
+        imgUrl = getImage.toDataURL();//储存canvas绘制的图片地址
+ 
+//        clipImg();
+      };
+    }
+    function clipImg() {
+      //绘制遮罩层：
+      coverBox.height = bgPagePos.height;
+      coverBox.width = bgPagePos.width;
+      coverBox.style.display = 'block';
+      coverBox.style.left = bgPagePos.x;
+      coverBox.style.top = bgPagePos.y;
+ 
+      cover = coverBox.getContext("2d");
+      cover.fillStyle = "rgba(0, 0, 0, 0.5)";
+      cover.fillRect (0,0, bgPagePos.width, bgPagePos.height);
+      cover.clearRect(clipPos.x, clipPos.y, clipPos.height, clipPos.width);
+ 
+      achieve.style.background = 'url(' + imgUrl + ')' + -clipPos.x + 'px ' + -clipPos.y + 'px no-repeat';
+      achieve.style.height = clipPos.height + 'px';
+      achieve.style.width = clipPos.width + 'px';
+    }
+    function drag() {
+      var t = this;
+      var draging = false;
+      var _startPos = null;
+      coverBox.onmousemove = function(e) {
+        e = e || window.event;
+        if ( e.pageX == null && e.clientX != null ) {
+ 
+          var doc = document.documentElement, body = document.body;
+ 
+          e.pageX = e.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc && doc.clientLeft || body && body.clientLeft || 0);
+          e.pageY = e.clientY + (doc && doc.scrollTop || body && body.scrollTop);
+        }
+ 
+        //获取鼠标到背景图片的距离
+        var _mousePos = {
+          left: e.pageX - ( regional.offsetLeft + this.offsetLeft ),
+          top: e.pageY - ( regional.offsetTop + this.offsetTop )
+        }
+ 
+        //判断鼠标是否在裁剪区域里面：
+        if ( _mousePos.left > clipPos.x && _mousePos.left < clipPos.x + clipPos.width && _mousePos.top > clipPos.y && _mousePos.top < clipPos.y + clipPos.height ) {
+          this.style.cursor = 'move';
+           
+          this.onmousedown = function(){
+            draging = true;
+            //记录上一次截图的坐标
+            ex = clipPos.x; 
+            ey = clipPos.y;
+ 
+            //记录鼠标按下时候的坐标
+            _startPos = {
+              left: e.pageX - ( regional.offsetLeft + this.offsetLeft ),
+              top: e.pageY - ( regional.offsetTop + this.offsetTop )
+            }
+          }
+ 
+          if (draging) {
+            //移动时裁剪区域的坐标 = 上次记录的定位 + (当前鼠标的位置 - 按下鼠标的位置)，裁剪区域不能超出遮罩层的区域;
+            if ( ex + ( _mousePos.left - _startPos.left ) < 0 ) {
+              clipPos.x = 0;
+            } else if ( ex + ( _mousePos.left - _startPos.left ) + clipPos.width > bgPagePos.width ) {
+              clipPos.x = bgPagePos.width - clipPos.width;
+            } else {
+              clipPos.x = ex + ( _mousePos.left - _startPos.left );
+            };
+ 
+            if (ey + ( _mousePos.top - _startPos.top ) < 0) {
+              clipPos.y = 0;
+            } else if ( ey + ( _mousePos.top - _startPos.top ) + clipPos.height > bgPagePos.height ) {
+              clipPos.y = bgPagePos.height - clipPos.height;
+            } else {
+              clipPos.y = ey + ( _mousePos.top - _startPos.top );
+            }
+ 
+            clipImg();
+          }
+ 
+          document.body.onmouseup = function() {
+            draging = false;
+            document.onmousemove = null;
+            document.onmouseup = null;
+          }
+        } else{
+          this.style.cursor = 'auto';
+        }
+      };
+    }
+    function canDrag(dqys){
+    	var draging = false;
+    	var _startPos = null;
+    	var _mousePos = null;
+    	var bgPagePos = {
+    	  x: regional.offsetLeft,
+    	  y: regional.offsetTop,
+    	  height: regional.offsetHeight,
+    	  width: regional.offsetWidth
+    	};
+    	var clipPos={    //裁剪框的默认尺寸与定位
+    	  x: dqys.offsetLeft,
+    	  y: dqys.offsetTop,
+    	  height: dqys.offsetHeight,
+    	  width: dqys.offsetWidth,
+    	}
+    	if(!dqys.onmousemove)
+    	dqys.onmousemove = function(e) {
+    		e = e || window.event;
+    		if ( e.pageX == null && e.clientX != null ) {
+    			var doc = document.documentElement, body = document.body;
+			    e.pageX = e.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc && doc.clientLeft || body && body.clientLeft || 0);
+			    e.pageY = e.clientY + (doc && doc.scrollTop || body && body.scrollTop);
+    		}
+    		//获取鼠标到背景图片的距离
+            _mousePos = {
+                left: e.pageX-bgPagePos.x,
+                top: e.pageY-bgPagePos.y
+            }
+			//判断鼠标是否在裁剪区域里面：
+			if ( _mousePos.left > clipPos.x && _mousePos.left < clipPos.x + clipPos.width && _mousePos.top > clipPos.y && _mousePos.top < clipPos.y + clipPos.height ) {
+				this.style.cursor = 'move';
+    	           
+				this.onmousedown = function(){
+					draging = true;
+					//记录上一次截图的坐标
+					ex = clipPos.x; 
+					ey = clipPos.y;
+					//记录鼠标按下时候的坐标
+		            _startPos = {
+	                    left: e.pageX-bgPagePos.x,
+	                    top: e.pageY-bgPagePos.y
+		            }
+				}
+    	 
+				if (draging) {
+					//移动时裁剪区域的坐标 = 上次记录的定位 + (当前鼠标的位置 - 按下鼠标的位置)，裁剪区域不能超出遮罩层的区域;
+					if ( ex + ( _mousePos.left - _startPos.left ) < 0 ) {
+						clipPos.x = 0;
+					} else if ( ex + ( _mousePos.left - _startPos.left ) + clipPos.width > bgPagePos.width ) {
+						clipPos.x = bgPagePos.width - clipPos.width;
+					} else {
+						clipPos.x = ex + ( _mousePos.left - _startPos.left );
+					};
+
+					if (ey + ( _mousePos.top - _startPos.top ) < 0) {
+						clipPos.y = 0;
+					} else if ( ey + ( _mousePos.top - _startPos.top ) + clipPos.height > bgPagePos.height ) {
+						clipPos.y = bgPagePos.height - clipPos.height;
+					} else {
+						clipPos.y = ey + ( _mousePos.top - _startPos.top );
+					}
+					//重新定位元素
+					this.style.left = clipPos.x+"px";
+					this.style.top = clipPos.y+"px";
+					$("#jz").val(clipPos.x);
+					$("#js").val(clipPos.y);
+					//保存当前元素位置
+					var dqys=$(this).attr("dqys");
+					pos[dqys]["jz"]=clipPos.x;
+					pos[dqys]["js"]=clipPos.y;
+					console.log(pos);
+				}
+    	 
+			    document.body.onmouseup = function() {
+			    	draging = false;
+			    	document.onmousemove = null;
+			    	document.onmouseup = null;
+			    }
+			} else{
+				this.style.cursor = 'default';
+			}
+    	};
+    }
+    return {
+    	init:init
+    }
+});

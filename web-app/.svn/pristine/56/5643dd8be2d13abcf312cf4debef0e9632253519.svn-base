@@ -1,0 +1,9 @@
+FillChildType = {
+		No                 : "No",
+		FirstOnlySelect    : "FirstOnlySelect",
+		AllOnlySelect      : "AllOnlySelect",
+		FirstUpdateRelation : "FirstUpdateRelation",
+		AllUpdateRelation : "AllUpdateRelation",
+		FirstUpdateChild : "FirstUpdateChild",
+		AllUpdateChild : "AllUpdateChild"
+}

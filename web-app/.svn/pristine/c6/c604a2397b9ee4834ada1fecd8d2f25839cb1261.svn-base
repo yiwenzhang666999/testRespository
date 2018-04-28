@@ -1,0 +1,63 @@
+package com.forestar.report.controller;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.core.util.StringUtils;
+import com.forestar.report.service.ReportService;
+import com.forestar.report.service.TableService;
+import java.util.ArrayList;
+import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+@Controller
+@RequestMapping({"/report"})
+public class ReportController
+{
+
+  @Autowired
+  private ReportService reportService;
+
+  @Autowired
+  private TableService tableService;
+
+  @RequestMapping({"/showreporta.do"})
+  @ResponseBody
+  public List reportRorm(String reportId, String queryJson, String strFilter, String country, String showthead)
+    throws ServiceException
+  {
+    if (StringUtils.isNotEmpty(reportId)) {
+      List pageform = this.reportService.reportform(reportId, queryJson, strFilter, country, showthead);
+      List listsr = new ArrayList();
+      listsr.addAll(pageform);
+      return listsr;
+    }
+    return null;
+  }
+
+  @RequestMapping({"/category.do"})
+  public String category(HttpServletRequest request, HttpServletResponse response)
+    throws ServiceException
+  {
+    String queryJson = request.getParameter("queryJson");
+    JSONObject jsonObject = JSON.parseObject(queryJson);
+    Object reportid = jsonObject.get("OBJECTID");
+
+    return null;
+  }
+
+  @RequestMapping({"/treeCategory.do"})
+  public void treeCategory(HttpServletRequest request, HttpServletResponse response)
+    throws ServiceException
+  {
+    String queryJson = request.getParameter("queryJson");
+    String oid = request.getParameter("reportid");
+    String name = request.getParameter("sname");
+    String used = request.getParameter("isused");
+  }
+}

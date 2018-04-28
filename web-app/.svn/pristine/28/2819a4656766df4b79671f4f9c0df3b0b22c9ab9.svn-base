@@ -1,0 +1,325 @@
+package com.forestar.report.controller;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.util.CellRangeAddress;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.core.util.StringUtils;
+import com.forestar.data.general.GlobalDataType;
+import com.forestar.data.general.GlobalParameter;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.metadata.IMetadataTable;
+import com.forestar.data.metadata.MetadataField;
+import com.forestar.data.service.BaseService;
+import com.forestar.data.util.DateUtil;
+import com.forestar.form.excel.utils.ExcelTemplate;
+import com.forestar.report.service.ExcelService;
+
+@Controller
+public class customExportExcelController {
+	@Autowired(required=true)
+	private ExcelService excelService;
+	@Autowired
+	BaseService baseService;
+	@Autowired
+	ExportController ExportController;
+	@Autowired
+	customReportController ReportController;
+	  /**
+	   * 
+	   * @param req
+	   * @param res
+	   * @param crosswise	横向数据
+	   * @param lengthways	纵向数据
+	   * @param queryJson	条件
+	   * @param country
+	 * @throws Exception 
+	   */
+	@RequestMapping(value="/customExportExcel.web",method = RequestMethod.POST)
+	@ResponseBody
+	public void customExportExcel(HttpServletRequest req, HttpServletResponse res, HttpSession session)
+	    throws Exception{
+		String jsonStr = req.getParameter("data");
+		JSONObject jsonObj = JSON.parseObject(jsonStr);
+		//字典集合
+		Map<String, Map<String, String>> codeMap = new LinkedHashMap<String,Map<String,String>>();
+		//横向
+		Object crosswise = jsonObj.get("crosswise");
+		//纵向
+		JSONArray lengthways = jsonObj.getJSONArray("lengthways");
+		//横向字段集合（例：表头翻译项）
+		Map<String,String>  colSpan=null;
+		//纵向字段集合（例：统计单位）
+		Map<String,String>  rowSpan=new LinkedHashMap<String,String>();
+		colSpan = (Map<String, String>) crosswise;
+		for(int j = 0;j < lengthways.size();j++){
+			JSONObject lengthwaysObj =(JSONObject) lengthways.get(j);
+			for (Entry<String, Object> entry : lengthwaysObj.entrySet()) {
+				rowSpan.put(entry.getKey(), (String) entry.getValue());
+			}
+		}
+		//字段顺序集合fieldSort
+		Map<String,String> fieldSort=null;
+		fieldSort=new LinkedHashMap<String,String>();
+		for (Entry<String, String> entry : rowSpan.entrySet()) {
+			fieldSort.put(entry.getKey(), entry.getValue());
+		}
+		for (Entry<String, String> entry : colSpan.entrySet()) {
+			fieldSort.put(entry.getKey(), entry.getValue());
+		}
+
+		//条件
+		JSONObject queryJson = JSON.parseObject(jsonObj.get("whereStr").toString());
+		//政区编码
+		String zqCode = queryJson.getString("XIAN");
+		//变化图斑Id
+		String bhtbId = queryJson.getString("ID");
+
+		//组装sql查询数据库
+		String SqlData = "select OBJECTID,XIAN_NAME,XIANG_NAME,CUN_NAME,XIAO_BAN,MIAN_JI,C_YSBHYY,C_HSBHYY,C_YIJU,DI_LEI,QI_YUAN,SEN_LIN_LB,SHI_QUAN_D,BH_DJ,inter_area,ori_area "
+						+"from ("
+						+"select t.OBJECTID,t2.ID,XIAN_NAME,XIANG_NAME,CUN_NAME,XIAO_BAN,MIAN_JI,C_YSBHYY,C_HSBHYY,C_YIJU,DI_LEI,QI_YUAN,SEN_LIN_LB,SHI_QUAN_D,BH_DJ,sde.st_area(sde.st_intersection(t2.shape, t.shape)) as inter_area,sde.st_area(t.shape) as ori_area "
+						+"from LDGX_P_V t, ZYJG_BHTB t2 where sde.st_intersects(t2.shape, t.shape) = 1";
+		//判断是否
+		if (!zqCode.equals("")) {
+			// 分析所有图班数据
+			SqlData += " and t.XIAN = '"+zqCode+"')";
+		} else if(!bhtbId.equals("")){
+			// 分析单个图班数据
+			SqlData += " and t2.ID in ("+bhtbId+"))";
+		}
+		GlobalParameter[] para = new GlobalParameter[]{
+				new GlobalParameter(null, null, "XIAN_NAME","STRING"),
+				new GlobalParameter(null, null, "XIANG_NAME","STRING"),
+				new GlobalParameter(null, null, "CUN_NAME","STRING"),
+				new GlobalParameter(null, null, "XIAO_BAN","STRING"),
+				new GlobalParameter(null, null, "MIAN_JI","DOUBLE"),
+				new GlobalParameter(null, null, "C_YSBHYY","STRING"),
+				new GlobalParameter(null, null, "C_YIJU","STRING"),
+				new GlobalParameter(null, null, "DI_LEI","STRING"),
+				new GlobalParameter(null, null, "QI_YUAN","STRING"),
+				new GlobalParameter(null, null, "SEN_LIN_LB","STRING"),
+				new GlobalParameter(null, null, "SHI_QUAN_D","STRING"),
+				new GlobalParameter(null, null, "BH_DJ","STRING"),
+				new GlobalParameter(null, null, "ORI_AREA","STRING")
+		};
+		List<RowBase> ListDatas = baseService.getDataTableSql("LDGX_P_V", SqlData, para);
+		
+		//进行字典值的翻译
+		for(int i =0;i<ListDatas.size();i++){
+			Map CurrentObjects =ListDatas.get(i).getCurrentObjects();
+			Map OriginalObjects =ListDatas.get(i).getOriginalObjects();
+			Iterator Citer = CurrentObjects.entrySet().iterator();
+			Iterator Oiter = OriginalObjects.entrySet().iterator();
+			while (Citer.hasNext()) {
+				Map.Entry Centry = (Map.Entry) Citer.next();
+				Object Ckey = Centry.getKey();
+				Object Cval = Centry.getValue();
+				while (Oiter.hasNext()){
+					Map.Entry Oentry = (Map.Entry) Oiter.next();
+					Object Okey = Oentry.getKey();
+					Object Oval = Oentry.getValue();
+					int endIndex = Ckey.toString().indexOf("_");
+					if(Ckey.toString().indexOf(Okey.toString()+"_")>-1){
+						Oentry.setValue(Centry.getValue());
+					}
+				}
+				
+			}
+		}
+		
+		//字典合集生成
+		String instr="";
+		for(String code : colSpan.keySet()){
+			instr+=colSpan.get(code)+"','";
+		}
+		instr=instr.substring(0,instr.length()-3);
+		codeMap =new LinkedHashMap<String,Map<String,String>>();
+		QueryFilter qf= new QueryFilter();
+		qf.setWhereString("C_DOMAINNAME in ('"+instr+"') and L_JB>1");
+		qf.setOrderByString("C_DOMAINNAME,C_CODE");
+		//qf.setWhereString("C_DOMAINNAME in ('"+instr+"') and I_JB>0");
+		//qf.setOrderByString("C_DESCRIBE,C_CODE");
+		List<RowBase> codeList=baseService.getDataTable("FL_SYS_ZYSJZD", qf);
+		if(codeList.size()!=0){
+			for(String code : colSpan.keySet()){
+				codeMap=ReportController.getMap(codeMap,codeList,code,colSpan.get(code));
+			}
+		}
+	
+		ExportController.exportSheets(req, res, session,ListDatas, codeMap, rowSpan, colSpan, fieldSort); 
+	  }
+	
+	/**
+	 * 
+	 * @param req
+	 * @param res
+	 * @param session
+	 * @throws Exception
+	 */
+	
+	@RequestMapping(value="/exporttable.web",method = RequestMethod.POST)
+	@ResponseBody
+	public void exporttable(HttpServletRequest req, HttpServletResponse res, HttpSession session)
+			  throws Exception
+	{
+		String jsonStr = req.getParameter("data");
+		JSONObject jsonObj = JSON.parseObject(jsonStr);
+		//存储表头的主键
+		String customId = jsonObj.getString("customId");
+		String Sql = "select OBJECTID,ROWSFIELD,ROWSFIELDNAME,COLFIELD,COLFIELDNAME from FS_REPORT_HEAD where OBJECTID = "+customId;
+		
+		GlobalParameter[] para = new GlobalParameter[]{
+				new GlobalParameter(null, null, "ROWSFIELD","STRING"),
+				new GlobalParameter(null, null, "ROWSFIELDNAME","STRING"),
+				new GlobalParameter(null, null, "COLFIELD","STRING"),
+				new GlobalParameter(null, null, "COLFIELDNAME","STRING"),
+				new GlobalParameter(null, null, "OBJECTID","INT32")
+		};
+		List<RowBase> headDatas = baseService.getDataTableSql("FS_REPORT_HEAD", Sql, para);
+		//获取数据
+		HashMap headData = headDatas.get(0).getOriginalObjects();
+		//获取纵向字段
+		String[] rowsField = (String[]) ((String) headData.get("ROWSFIELD")).split(",");
+		//获取纵向字段名称
+		String[] rowsFieldName = (String[]) ((String) headData.get("ROWSFIELDNAME")).split(",");
+		//获取横向字段
+		String[] colFields = (String[]) ((String) headData.get("COLFIELD")).split(",");
+		//获取横向字段名称
+		String[] colFieldName = (String[]) ((String) headData.get("COLFIELDNAME")).split(",");
+		
+		Map<String,String>  rowSpan=new LinkedHashMap<String,String>();
+		for(int i =0;i<rowsField.length;i++){
+			rowSpan.put(rowsField[i], rowsFieldName[i]);
+		}
+		//横向字段集合（例：表头翻译项）
+		Map<String,String>  colSpan=new LinkedHashMap<String,String>();
+		for(int j =0;j<colFields.length;j++){
+			colSpan.put(colFields[j], colFieldName[j]);
+		}
+		//字典集合
+		Map<String, Map<String, String>> codeMap = new LinkedHashMap<String,Map<String,String>>();		
+		//条件
+		JSONObject queryJson = JSON.parseObject(jsonObj.get("whereStr").toString());
+		//政区编码
+		String zqCode = queryJson.getString("XIAN");
+		//变化图斑Id
+		String bhtbId = queryJson.getString("ID");
+
+		//组装sql查询数据库
+		String SqlData = "select OBJECTID,XIAN_NAME,XIANG_NAME,CUN_NAME,XIAO_BAN,MIAN_JI,C_YSBHYY,C_HSBHYY,C_YIJU,DI_LEI,QI_YUAN,SEN_LIN_LB,SHI_QUAN_D,BH_DJ,inter_area,ori_area "
+						+"from ("
+						+"select t.OBJECTID,t2.ID,XIAN_NAME,XIANG_NAME,CUN_NAME,XIAO_BAN,MIAN_JI,C_YSBHYY,C_HSBHYY,C_YIJU,DI_LEI,QI_YUAN,SEN_LIN_LB,SHI_QUAN_D,BH_DJ,sde.st_area(sde.st_intersection( t2.shape,t.shape)) as inter_area,sde.st_area(t.shape) as ori_area "
+						+"from LDGX_P_V t, ZYJG_BHTB t2 where sde.st_intersects( t2.shape,t.shape) = 1";
+		//判断是否
+		if (!zqCode.equals("")) {
+			// 分析所有图班数据
+			SqlData += " and t.XIAN = '"+zqCode+"') where inter_area>0";
+		} else if(!bhtbId.equals("")){
+			// 分析单个图班数据
+			SqlData += " and t2.ID in ("+bhtbId+")) where inter_area>0";
+		}
+		GlobalParameter[] para2 = new GlobalParameter[]{
+				new GlobalParameter(null, null, "XIAN_NAME","STRING"),
+				new GlobalParameter(null, null, "XIANG_NAME","STRING"),
+				new GlobalParameter(null, null, "CUN_NAME","STRING"),
+				new GlobalParameter(null, null, "XIAO_BAN","STRING"),
+				new GlobalParameter(null, null, "MIAN_JI","DOUBLE"),
+				new GlobalParameter(null, null, "C_YSBHYY","STRING"),
+				new GlobalParameter(null, null, "C_YIJU","STRING"),
+				new GlobalParameter(null, null, "DI_LEI","STRING"),
+				new GlobalParameter(null, null, "QI_YUAN","STRING"),
+				new GlobalParameter(null, null, "SEN_LIN_LB","STRING"),
+				new GlobalParameter(null, null, "SHI_QUAN_D","STRING"),
+				new GlobalParameter(null, null, "BH_DJ","STRING"),
+				new GlobalParameter(null, null, "ORI_AREA","STRING")
+		};
+		List<RowBase> ListDatas = baseService.getDataTableSql("LDGX_P_V", SqlData, para2);
+		//进行字典值的翻译
+		for(int i =0;i<ListDatas.size();i++){
+			Map CurrentObjects =ListDatas.get(i).getCurrentObjects();
+			Map OriginalObjects =ListDatas.get(i).getOriginalObjects();
+			Iterator Citer = CurrentObjects.entrySet().iterator();
+			Iterator Oiter = OriginalObjects.entrySet().iterator();
+			while (Citer.hasNext()) {
+				Map.Entry Centry = (Map.Entry) Citer.next();
+				Object Ckey = Centry.getKey();
+				Object Cval = Centry.getValue();
+				while (Oiter.hasNext()){
+					Map.Entry Oentry = (Map.Entry) Oiter.next();
+					Object Okey = Oentry.getKey();
+					Object Oval = Oentry.getValue();
+					int endIndex = Ckey.toString().indexOf("_");
+					if(Ckey.toString().indexOf(Okey.toString()+"_")>-1){
+						Oentry.setValue(Centry.getValue());
+					}
+				}
+				
+			}
+		}
+		
+		//字典合集生成
+		String instr="";
+		for(String code : colSpan.keySet()){
+			instr+=colSpan.get(code)+"','";
+		}
+		instr=instr.substring(0,instr.length()-3);
+		codeMap =new LinkedHashMap<String,Map<String,String>>();
+		QueryFilter qf= new QueryFilter();
+		qf.setWhereString("C_DOMAINNAME in ('"+instr+"') and L_JB>1");
+		qf.setOrderByString("C_DOMAINNAME,C_CODE");
+		//qf.setWhereString("C_DOMAINNAME in ('"+instr+"') and I_JB>0");
+		//qf.setOrderByString("C_DESCRIBE,C_CODE");
+		List<RowBase> codeList=baseService.getDataTable("FL_SYS_ZYSJZD", qf);
+		if(codeList.size()!=0){
+			for(String code : colSpan.keySet()){
+				codeMap=ReportController.getMap(codeMap,codeList,code,colSpan.get(code));
+			}
+		}
+		//字段顺序集合fieldSort
+		Map<String,String> fieldSort=null;
+		fieldSort=new LinkedHashMap<String,String>();
+		for (Entry<String, String> entry : rowSpan.entrySet()) {
+			fieldSort.put(entry.getKey(), entry.getValue());
+		}
+		for (Entry<String, String> entry : colSpan.entrySet()) {
+			fieldSort.put(entry.getKey(), entry.getValue());
+		}
+		ExportController.exportSheets(req, res, session,ListDatas, codeMap, rowSpan, colSpan, fieldSort);
+	}
+	
+	
+}

@@ -1,0 +1,167 @@
+<div  class="import_pop">
+	<div id="drtc-ibox">
+	<div class="item">
+		<p class="title">选择本地数据</p>
+		<p class="line">
+			<input type="radio" class="zs-radio" name="bdsj" value="0" />矢量数据（*.zip shapefile压缩包）
+		</p>
+		<p class="line">
+			<input type="radio" class="zs-radio" name="bdsj" value="1" />山各市局（*.jpg、*.tif）
+		</p>
+		<p class="line">
+			<input type="file" id="import-btn-input"/>
+			<!-- <input type="text" class="zs-input file" />
+			<input type="button" class="zs-btn" value="..." /> -->
+		</p>
+	</div>
+	<div class="item">
+		<p class="title">选择地图坐标匹配方式</p>
+		<p class="line">
+			<input type="radio" class="zs-radio" name="ppfs" value="0" />本地手动匹配
+		</p>
+		<p class="line">
+			<input type="radio" class="zs-radio" name="ppfs" value="1" />申请地图匹配校正服务
+		</p>
+	</div>
+	<div class="bottom">
+		<input type="button" class="zs-btn" value="开始" id="zs-btn-start" />
+		<input type="button" class="zs-btn reset cancel" id="zs-btn-cancle" value="取消"/>
+	</div>
+</div>
+</div>
+<!--导入时的map-->
+<div id="import_map" class="import_map">
+	<div class="zs-zyjg-zt-body">
+		<div class="left-con">
+			<div class="header dtpp">
+				<i class="icon"></i>
+				<span class="txt">地图匹配</span>
+			</div>
+			<div class="tree-wrapper zs-nicescroll">
+				<ul class="zs-tree zt">
+					<!--一级-->
+					<li>
+						<a href="javascript:;" class="btns first">
+							<img class="icon" src="images/zs-tree-pzdlb.png" alt="" />
+							<span class="txt">配准点列表</span>
+							<div class="opa-box txt-btn">
+								<span class="btn txt btn-del">删除</span>
+								<span class="btn txt btn-clear">清空</span>
+							</div>
+						</a>
+						<ul class="sec-list content" id="point-check">
+						</ul>
+					</li>
+					<!-- <li>
+						<a href="javascript:;" class="btns first">
+							<img class="icon" src="images/zs-tree-pzdpg.png" alt="" />
+							<span class="txt">配准点评估</span>
+						</a>
+						<ul class="sec-list content">
+							<ul class="zs-block-list">
+								<li>
+									<a href="javascript:;">配准标识个数：5个</a>
+								</li>
+								<li>
+									<a href="javascript:;">配准误差评估：</a>
+								</li>
+							</ul>
+						</ul>
+					</li> -->
+				</ul>
+			</div>
+		</div>
+		<div class="right-con">
+			<div class="zs-zt-tool">
+				<div class="options">
+					<a href="javascript:;" class="tool-tjpzd" id="check_point">添加配准点</a>
+					<a href="javascript:;" class="" id="uncheck_point">取消绘制</a>
+					<!-- <a href="javascript:;" class="tool-py">平移</a> -->
+				</div>
+				<div class="layout">
+					<div class="zip-select" >
+					<form name="f1" id="f1">
+						<a><input size="30" type="file" name="file" data-validate="required:请选择上传文件,regexp#.+.(jpg|jpeg|png|gif)$:只能上传jpg|gif|png格式文件" /></a> 
+						<input style="display: none;"  id="checkPoints" type="text" name="checkPoints"/>
+           			 </form></div>
+					<a href="javascript:;" class="tool-kspz">开始配准</a>
+					<!-- <a href="javascript:;" class="tool-qp">全屏</a> -->
+					<a href="javascript:;" class="tool-close">关闭</a>
+				</div>
+			</div>
+			<div class="map-wrapper">
+				<div class="inner">
+					<!--<h2 class="title">全国专题图</h2>-->
+					<div class="map" id="test_map" >
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- <div class="import_map-left">
+		<div>
+			<div>校验点集合</div>
+			<ul id="point-check">
+			</ul>
+		</div>
+		<input id="check_point" value="绘制校验点" type="button"/>
+		<input id="uncheck_point" value="取消绘制" type="button"/>
+		<input type="file" class="import-btn" id="import-btn-zip" value="上传zip文件"/>
+	</div>
+	<div class="import_map-right" id="test_map"> -->
+	<div class="layer-control">
+		<div class="mapType-wrapper-import">
+			<div class="mapType-import">
+				<div class="clk mapTypeCard first active" layer="TIAN_VEC" hide="TIAN_IMG">
+					<span class="title_span">天地图行政图</span>
+				</div>
+				<div class="clk mapTypeCard second-import" layer="TIAN_IMG" hide='TIAN_VEC'>
+					<span class="title_span">天地图影像图</span>
+				</div>
+				<div class="mapTypeCard card ldxb-import">
+					<label class="switch-box">
+						<input layer='LDXB' type="checkbox" class="clk switch" />
+						<a>林地小班</a>
+					</label>
+					<span class="title_span">林地小班</span>
+				</div>
+				<div class="mapTypeCard card dcfw-import">
+					<label class="switch-box">
+						<input layer='XZQH' type="checkbox" class="clk switch" />
+						<a>调查范围界</a>
+					</label>
+					<span class="title_span">调查范围界</span>
+				</div>
+				<div class="mapTypeCard card ygyx-import">
+					<label class="switch-box">
+						<!-- <input layer='19_cg_DOM' type="checkbox" class="clk switch" />
+						<input layer='LDYX' type="checkbox" class="clk switch" /> -->
+						<a>遥感影像</a>
+					</label>
+					<div class="sub-menu">
+		                         <ul>
+		                             <li>
+		                                 <label>
+		                                         <input layer='LDYX' type="checkbox" class="clk switch"/>
+		                                         <!-- <span style="background-color:#38a800;">&nbsp; </span> --><a>2010版影像</a>
+		                                     </label></li>
+		                             <li>
+		                                 <label>
+		                                         <input layer='YNYBYX' type="checkbox" class="clk switch"/>
+		                                         <!-- <span style="background-color:#89cd66;">&nbsp; </span> --><a>2016版影像</a>
+		                                     </label></li>
+		                             <li>
+		                                 <label>
+		                                         <input layer='SSYX' type="checkbox" class="clk switch"/>
+		                                         <!-- <span style="background-color:#febee8;">&nbsp; </span> --><a>2017版影像</a>
+		                                 </label>
+		                             </li>
+		                         </ul>
+		                         <div class="trigon"></div>
+		                     </div>
+					<span class="title_span">遥感影像</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	</div>

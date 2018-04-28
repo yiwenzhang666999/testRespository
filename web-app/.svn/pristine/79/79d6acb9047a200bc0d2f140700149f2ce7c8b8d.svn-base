@@ -1,0 +1,264 @@
+define([
+    "treeHelper","config"
+], function (treeHelper,config) {
+    'use strict';
+    /**
+	 * 查询
+	 * */
+    var datas=[];
+    var xian_code=null;
+    var treeObj = $("#zyjg_bhdk"); 
+    function initSearch(){
+    	var tree=treeHelper.getTree("zyjg");
+    	console.log(tree);
+    	var i=0;
+    	tree.bindEvent(treeHelper.eventTarget.BHDK,treeHelper.events.ADD_CLICK,function(node){
+    		console.log(node);
+//    		$(".zs-tree .add").modal({
+//    			title: "添加变化地块数据",
+//    			overlay: false,
+//    			showMin: false,
+//    			showMax: false,
+//    			showTop: false,
+//    			isDrag: true,
+//    			contentWidth: 'auto',
+//    			type:"ajax",
+//    			target: "./ibox/zyjg/bhdk/_tjdkbhsj.html"
+//    		});
+//    		$(".zs-tree .add").click();
+        });
+    	$("#xianName").on("keypress",function(){search()});
+		$(".cancel").unbind("click").on("click",cancel);
+    }
+    function cancel(){
+    	$("#xianName").val("");
+    	document.getElementById("bhdk_item").innerHTML = "";
+    }
+	function funclick(){
+		$("input[name='add']").unbind("click").on("click",add);
+		$("input[name='create']").unbind("click").on("click",create);
+	}
+    function search(){
+	    	var xianName=$("#xianName").val();
+	    	var userId=$("#userId")[0].innerText;//需要获取登录者的id
+	    	var style="background: rgb(238, 238, 238); color: rgb(136, 136, 136); border: 1px solid rgb(170, 170, 170);"
+	    	$.ajax({  
+		        type:"GET",  
+		        url:config.zq_tree_url+"/ws/rest/LS/analyze/"+xianName, 
+		        dataType:"JSON", 
+		        async:false ,
+		        success:function(data){
+		        	document.getElementById("bhdk_item").innerHTML = "";
+	    			datas=[];
+		        	if(data.length>0){
+		        		for(var i=0;i<3;i++){
+				        	var htmlStr = "";
+		        			htmlStr+="<p class='line'><span class='name'>"+data[i].fullName+"</span>";
+		        			htmlStr+="<span class='opa'><input type='button' id='yl"+i+"' class='zs-btn reset' value='预览' disabled='disabled' style='"+style+"'/>";
+		        			//根据省code判断来判断是否已经创建过，控制按钮创建/添加可用不可用, 获取需要添加年度判断
+		        			//根据县code和用户id判断来判断是否已经添加过变化地块，控制按钮添加可用不可用
+		        			var flag=getDatareg("C_SHENG='"+data[i].location.code.substring(0,2)+"' AND C_APPID='ZYJG'","FS_BUSINESS_DATAREG");//表1
+		        			var flag2=getDatareg("C_XIAN='"+data[i].location.code+"' AND I_USERID='-1' AND C_APPID='ZYJG'","FS_BUSINESS_USERBUSLAYERS");//表2
+		        			htmlStr+="<input type='button' id='add"+i+"' name='add' data='"+i+"' class='zs-btn reset' value='添加' />";
+		        			htmlStr+="<input type='button' id='create"+i+"' name='create' data='"+i+"' class='zs-btn reset' value='创建'/></span></p>";
+			        		$("#bhdk_item").append(htmlStr);
+			        		if(flag && !flag2){//表1有值，表2没值,创建按钮不可用，添加按钮可用
+				        		$("#create"+i).attr("disabled","disabled");
+				        		$("#create"+i)[0].style.cssText = style;
+		        			}
+		        			if(flag && flag2){//两者都有值，两个按钮都隐藏
+				        		$("#add"+i).attr("disabled","disabled");
+				        		$("#add"+i)[0].style.cssText = style;
+				        		
+				        		$("#create"+i).attr("disabled","disabled");
+				        		$("#create"+i)[0].style.cssText = style;
+		        			}
+		        			if(!flag){//表1没有值，两个按钮都可用
+				        		$("#add"+i).attr("disabled","disabled");
+				        		$("#add"+i)[0].style.cssText = style;
+		        			}
+	        			}
+		        		datas=data;
+		        		funclick();//绑定事件
+		    		}
+		        }
+		    });
+    }
+	
+	/**
+	 * 判断按钮可用不
+	 */
+	function getDatareg(where,tableName){
+		var flag=false;
+		$.ajax({
+			url:"bhdk/getData.do",
+			type:"POST",
+			async:false,
+			data:{data:JSON.stringify({"where":where,"tableName":tableName})},
+			success:function(result){
+				if(result=="true"){
+					flag=true;
+				}
+			},
+			error : function(msg){
+			}
+		});
+		return flag;
+	}
+	
+	/**
+	 * 添加
+	 * **/
+	function add(e){
+		var that=$(this);
+		var data=datas[that.attr("data")];
+		var userId=$("#userId")[0].innerText;//用户id
+		//按钮样式
+		that.removeClass();
+		that.addClass("zs-btn");
+		var data=datas[that.attr("data")];
+		if(data){
+			var sheng=data.location.code.substring(0,2);
+			var xian=data.location.code;
+			var Xname=data.location.name;
+			var nd=$("#bhdkNd").val();
+			var shengName=queryShengName(sheng);
+			xian_code=xian;
+			$.ajax({
+				url:"bhdk/add.do",
+				type:"POST",
+				async:false,
+				data:{data:JSON.stringify({"sheng":sheng,"shengName":shengName,"xian":xian,"Xname":Xname,"nd":nd})},
+				success:function(result){
+					if(result){
+						//清除创建成功条目
+						//that.parents(".line").remove();
+						//模拟触发下查询事件
+						$("#xianName").trigger("keypress");
+						//数据库保存成功，需要将节点添加到树，
+						//treeHelper.appendNode(JSON.parse(result));
+						//var TData=getTreeData("FS_BUSINESS_USERBUSLAYERS","I_USERID = '"+userId+"' And C_APPID = 'ZYJG'");
+						//appendNode(result,xian,[]);
+						var tree=treeHelper.getTree("zyjg");
+						tree.appendNode(JSON.parse(result));
+						//重新绑定事件
+	    	            $(".del.btn").unbind("click").on("click",function(e){
+	    	            	e.stopPropagation();
+	    	            	var layerid=$(this).attr("layerid");
+	    	            	var xian=$(this).parents("a").siblings().find("i").attr("xian");
+	    	            	var where ="C_XIAN='"+xian+"' and I_USERID = '-1' And C_APPID = 'ZYJG'";
+//	    	            	var where ="C_XIAN='"+xian+"' and I_USERID = '"+userId+"' And C_APPID = 'ZYJG'";
+	    	            	del(where,layerid);
+	    	            })
+					}
+				},
+				error : function(msg){
+				}
+			});
+		}
+	}
+	
+	/**
+	 * 创建
+	 * **/
+	function create(e){
+		var that=$(this);
+		//按钮样式
+		that.removeClass();
+		that.addClass("zs-btn");
+		//省+县+县名称+省市县全名+工作年度
+		var data=datas[that.attr("data")];
+		if(data){
+			var sheng=data.location.code.substring(0,2);
+			var xian=data.location.code;
+			var Xname=data.location.name;
+			var fullName=data.fullName;
+			var nd=$("#bhdkNd").val();
+			var shengName=queryShengName(sheng);
+			xian_code=xian;
+			$.ajax({
+				url:"bhdk/create.do",
+				type:"POST",
+				async:false,
+				data:{data:JSON.stringify({"sheng":sheng,"shengName":shengName,"xian":xian,"Xname":Xname,"fullName":fullName,"nd":nd})},
+				success:function(result){
+					if(result){
+						//清除创建成功条目
+						//that.parents(".line").remove();
+						//模拟触发下查询事件
+						$("#xianName").trigger("keypress");
+						//数据库保存成功，需要将节点添加到树，
+						var tree=treeHelper.getTree("zyjg");
+						tree.appendNode(JSON.parse(result));
+						//重新绑定事件
+	    	            $(".del.btn").unbind("click").on("click",function(e){
+	    	            	e.stopPropagation();
+	    	            	var layerid=$(this).attr("layerid");
+	    	            	var xian=$(this).parents("a").siblings().find("i").attr("xian");
+	    	            	var where ="C_XIAN='"+xian+"' and I_USERID = '-1' And C_APPID = 'ZYJG'";
+//	    	            	var where ="C_XIAN='"+xian+"' and I_USERID = '"+userId+"' And C_APPID = 'ZYJG'";
+	    	            	del(where,layerid);
+	    	            });
+					}
+				},
+				error : function(msg){
+				}
+			});
+		}
+	}
+	
+	//删除
+	function del(where,node_id){
+		$.ajax({
+			url:"bhdk/delTdata.do",
+			type:"POST",
+			async:false,
+			data:{data:JSON.stringify({"where":where})},
+			success:function(result){
+				//删除树节点
+				treeHelper.removeNodeById(node_id);
+			},
+			error : function(msg){
+			}
+		});
+	}
+	
+	 //根据code查询省name
+    function queryShengName(code){
+    	var shengName="";
+    	$.ajax({  
+	        type:"GET",  
+	        url:config.zq_tree_url+"/ws/rest/LS/search/"+code, 
+	        dataType:"JSON",  
+	        async:false,
+	        success:function(res){
+	        	if(res !=null){
+	        		shengName = res.item.name;
+	        	}
+	        }
+	    });
+    	return shengName;
+    }
+    //获取树data
+    function getTreeData(tableName, where){
+		var datas = [];
+		$.ajax({
+			url:"bhdk/getTData.do",
+			type:"POST",
+			async:false,
+			data:{data:JSON.stringify({"where":where,"tableName":tableName})},
+			success:function(result){
+				datas=result;
+			},
+			error : function(msg){
+			}
+		});
+        return datas;
+	}
+	return {
+		init:initSearch,
+		search:search,
+		create:create,
+		add:add
+	}
+});

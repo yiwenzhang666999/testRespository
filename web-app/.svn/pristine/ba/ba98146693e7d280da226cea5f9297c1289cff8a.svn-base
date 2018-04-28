@@ -1,0 +1,68 @@
+/**
+ * 对应图层要素选择
+ */
+define([
+    'map',
+    'drawMap'
+], function (map,drawMap) {
+    'use strict';
+    var feature;//绘画的克隆对象，以绘制的颜色增加在地图上
+    var active;
+    var layer;
+    var map_;
+    var popFun;
+    var addStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(0,0,255)', width: 3 })
+    });
+    var defaultStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,255,0)', width: 3 })
+    });
+    function setActive(bool,pop){
+    	if (bool == active) {
+            return;
+        }
+    	if(bool){
+    		if(!map_){
+    			map_ = map.getMap();
+    		}
+    		if(!layer){
+    			layer = map.getLayerByName("HIGH_LAYER");
+    		}
+            $("#map").css("cursor", "default");
+            popFun=pop;
+            handler();
+    	}else{
+    		if(layer&&feature){
+    			layer.getSource().removeFeature(feature);
+    		}
+    		feature = null;
+    		drawMap.clear();
+    	}
+    	active = bool;
+    }
+    function handler(){
+        drawMap.draw("Polygon",callback);
+    }
+    function undo(){
+    	drawMap.removeLastPoint();
+    }
+    function callback(evt){
+    	evt.feature.setStyle(defaultStyle);
+    	//克隆一个绘画图形，以绘画的颜色加载图层上
+    	feature = evt.feature.clone();
+    	feature.setStyle(addStyle);
+        layer.getSource().addFeature(feature);
+        for(var i=0;i<templates.length;i++){
+        	if(feature.getProperties().I_MBID==templates[i]["ID"]){
+        		popFun("add",evt.feature,templates[i]);
+        		return;
+        	}
+        }
+    }
+    return {
+        setActive:setActive,
+        undo:undo
+    }
+});

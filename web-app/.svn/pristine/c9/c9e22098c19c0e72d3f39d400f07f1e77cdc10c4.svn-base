@@ -1,0 +1,121 @@
+define([
+    'map',
+    'config'
+], function(map, config) {
+    'use strict';
+    /**
+     * @param {any} type
+     * @param {any} coor
+     * @param {any} tableName
+     * @param {any} propertyName
+     * @param {any} callback
+     */
+   
+    /**
+     * 针对geoServer进行查询（包括属性，空间) wfs方式
+     * @param {object} options 
+     * @param {function} callBack 
+     */
+    function query(options) {
+        $.ajax(config.PROXY + '?' + options.url + '?', {
+            type: 'GET',
+            data: {
+                service: 'WFS',
+                version: '1.0.0',
+                request: 'GetFeature',
+                typename: options.typename, //服务名称
+                outputFormat: 'application/json', //返回格式
+                maxFeatures: 5000, //最大返回值
+                filter: getFilter(options) //查询条件  可以传点、线、面、属性
+            },
+            success: options.success,
+            error: function(err) {
+                console.error("查询geoserver wfs 错误" + err);
+            }
+        });
+    };
+    /**
+     * 拼接geoserver查询格式
+     * */
+    function getFilter(options) {
+        var op = options.XY.toString();
+        var geo = "the_geom";
+        var filter = '<Filter xmlns="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml"><Intersects>  <PropertyName>' +
+            geo + '</PropertyName>  <gml:Point>  <gml:coordinates>' +
+            op + '</gml:coordinates>  </gml:Point>  </Intersects> </Filter>'
+        return filter;
+    };
+    /**
+     *空间查询
+     *@parma option{coor,layerName,nd}
+     *@callback function
+     * */
+    function queryBySpace(coor,nd,option,callback) {
+    	if(option.url){
+    		var datas = {
+                    lng:coor[0],
+                    lat:coor[1],
+                    years:nd
+               }
+    		$.ajax({
+                url:option.url,
+                type:"GET",
+                data:datas,
+                success:function(res){
+                    if(callback){
+                        callback(res);
+                    }
+                },
+                error:function(err){
+                    console.error("调用易伟航接口错误："+err);
+                }
+            });
+    	}else{
+    		$.ajax({
+    			url:"spaceQuery.do",
+    			type:"POST",
+    			data:JSON.stringify(option),
+    			success:function(res){
+    				if(callback){
+    					callback(res);
+    				}
+    			},
+    			error:function(err){
+    				console.error("查询服务错误："+err);
+    			}
+    		});
+    	}
+    }
+    
+    
+    
+    /*
+     * 获取政区名称方法（调用天地图接口）
+     * center 点坐标数组
+     * callback  回调函数
+     * */
+    function queryZqNameByPoint(center,callback) {
+            var coorJson="{'lon':"+center[0]+",'lat':"+center[1]+",'appkey':"+config.appKey+",'ver':1}";
+            $.ajax({
+                url:config.PROXY+"?"+config.queryZqUrl+"?",
+                type:"GET",
+                data:{
+                    postStr:coorJson,
+                    type:'geocode'
+                },
+                success:function(res){
+                    if(callback){
+                        callback(res);
+                    }
+                },
+                error:function(err){
+                    console.error("调用地址逆编码错误："+err);
+                }
+            });
+    }
+    return {
+        query:query,
+        queryBySpace:queryBySpace,
+        queryZqNameByPoint:queryZqNameByPoint
+    }
+});

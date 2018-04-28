@@ -1,0 +1,52 @@
+/**
+ * 合并 feature 图形合并
+ */
+define([
+    'map',
+], function (map) {
+    'use strict';
+    var wktFormat = new ol.format.WKT();
+    var jsts4wkt = new jsts.io.WKTReader();
+    var ol4jsts = new jsts.io.OL3Parser();
+    function union(features) {
+    	var bool = isOneXian(features);
+    	if(bool){
+    		var f = features[0];
+            var jsts_f = jsts4wkt.read(wktFormat.writeFeature(f));
+            for (var i = 0; i < features.length; i++) {
+                var jsts_f_ = jsts4wkt.read(wktFormat.writeFeature(features[i]));
+                jsts_f = jsts_f.union(jsts_f_);
+            }
+            var feature = new ol.Feature(ol4jsts.write(jsts_f));
+            return feature;
+    	}else{
+    		mini.alert("请选择同一个县内的图斑进行合并！","温馨提示");
+    		return null;
+    	}
+    }
+    function isOneXian(features){
+    	var item1 = features[0];
+    	var item2 = features[1];
+    	var b = false ;
+    	if(item1.getProperties().C_XIAN!=item2.getProperties().C_XIAN){
+    		b= false;
+    	}else{
+    		b= true;
+    	}
+    	return b;
+    }
+    function setActive(bool){
+    	if(bool==active){
+    		return;
+    	}
+    	if(bool){
+    		
+    	}else{
+    		
+    	}
+    	active=bool;
+    }
+    return { 
+    	union: union 
+    }
+});

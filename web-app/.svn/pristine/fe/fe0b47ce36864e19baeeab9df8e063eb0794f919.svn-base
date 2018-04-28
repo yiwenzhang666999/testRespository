@@ -1,0 +1,159 @@
+/**
+ * 全局初始化设置
+ */
+
+require(["map","severZtree","ztLayerCro","toolCro","querySpace","report","zyjg","shapeMain","loadTree","bhdk","pointQuery"], function (map,severZtree,ztLayerCro,toolCro,querySpace,report,zyjg,shapeMain,loadTree,bhdk,pointQuery) {
+    window.map = map;//暴露map用于调试
+    
+	map.init();
+	//右下角地图控制
+	ztLayerCro.init();
+	//初始化 加载树
+	loadTree.init();
+	//左侧树控制
+	severZtree.init();
+	//工具条按钮控制
+	toolCro.init();
+	//查询初始化
+    querySpace.init();
+    //初始化政区
+    zyjg.init();
+    //初始化统计报表
+	report.init();
+	//初始化 导入map
+	shapeMain.init();
+	//变化地块导入数据
+	bhdk.init();
+	//新增特殊查询 01.22
+	bindAndQuery();
+    if(window.addEventListener){
+		if(document.body.requestFullscreen){
+			 document.addEventListener('fullscreenchange',function(){
+				 if(document.fullscreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}else if(document.body.msRequestFullscreen){
+			 document.addEventListener('MSFullscreenChange',function(){
+				 if(document.msFullscreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}else if(document.body.mozRequestFullScreen){
+			 document.addEventListener('mozfullscreenchange',function(){
+				 if(document.mozFullScreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}else if(document.body.webkitRequestFullscreen){
+			 document.addEventListener('webkitfullscreenchange',function(){
+				 if(document.webkitFullscreenElement){
+					 window.ldyzt_fullScreen=true;
+				 }else{
+					 window.ldyzt_fullScreen=false;
+				 }
+			 });
+		}
+	}
+    
+function bindAndQuery(){
+    	$("#test_query").bind('click',function(){
+    		if(window.istest_query){
+    			return;
+    		}
+    		window.istest_query=true;
+    		/*var features = window.pointlay.getSource().getFeatures();
+    		for(var i=0;i<features.length;i++){
+    			var item = features[i];
+    			item.setStyle();
+    			item.setProperties({name:"刘永恒",age:i,sex:"男"});
+    		}
+    		window.test_layer.getSource().addFeatures(features);*/
+    	});
+    	 window.test_layer = new ol.layer.Vector({
+         	zIndex:99998,
+             source: new ol.source.Vector(),
+             style: function (feature) {
+                 if (feature.get('style')) {
+                     return feature.get('style');
+                 } else {
+                     var style__ = new ol.style.Style({
+                         stroke: new ol.style.Stroke({
+                             color: '#92f9f8',
+                             width: 5
+                         }),
+                         fill: new ol.style.Fill({
+                             color: '#abe81c'
+                         }),
+                         image: new ol.style.Circle({
+                             radius: 6,
+                             fill: new ol.style.Fill({
+                                 color: '#ffcc33'
+                             })
+                         })
+                     });
+                     return style__;
+                 }
+             },
+             opacity: 1
+         });
+    	 
+    	 map.getMap().addLayer(window.test_layer);
+    	 window.test_layer.setVisible(false);
+    	 var geojsonFormat = new ol.format.GeoJSON();
+         var callback = function(geojson){
+        	 if(geojson){
+        		 var features = geojsonFormat.readFeatures(geojson);
+        		 window.test_layer.getSource().addFeatures(features);
+        	 }
+         }
+         get_geojson("thefile",callback);
+         map.getMap().on('moveend',function(event){
+        	 var zoom = event.target.getView().getZoom();
+        	 if(zoom>9){
+        		 window.test_layer.setVisible(true);
+        	 }else{
+        		 window.test_layer.setVisible(false);
+        	 }
+         });
+}
+function get_geojson(name,callback){
+	 if (name){
+             var url ="geojson/" + name + ".json?"+new Date().getTime();   //加载路径
+             $.get(url).done(function (res) {
+            	 /*var geojson = {type:"FeatureCollection"};
+            	 var features = [];
+            	 for(var i=0;i<res.features.length;i++){
+            		 features.push(JSON.parse(res.features[i]));
+            	 }
+            	 geojson.features=features;*/
+                 callback(res);
+             }).fail(function (err) {
+                 console.log(err);
+             });
+     }
+}
+    	/* var queryFilter = {
+     			whereString:"I_USERID=1",
+     			selectFields:"ID,I_USERID,C_TYPE,C_ZQCODE,C_NR"
+     	};
+    	 FsService.getEntityList("",queryFilter,{
+    		 callback:function(res){
+    			 if(res&&res.length>0){
+    				 
+    			 }
+    		 },
+    		 exceptionHandler:function(err){
+    			 console.error(err);
+    		 }
+    	 });*/
+    	 
+    	 
+    	 
+});

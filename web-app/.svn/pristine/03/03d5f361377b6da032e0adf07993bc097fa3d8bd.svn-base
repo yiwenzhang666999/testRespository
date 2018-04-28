@@ -1,0 +1,90 @@
+/**
+ * 对应图层要素选择
+ */
+define([
+    'map',
+    'queryLayer'
+], function (map, queryLayer) {
+    'use strict';
+    var map_;
+    var done_;
+    var selectInteraction;
+    var active = null;
+    var features=[];
+    var defaultStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,255,0)', width: 3 })
+    });
+    var selectStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,0,0)', width: 3 })
+    });
+    function setActive(bool,done){
+       if(bool == active){
+    	   return;
+       }
+       if(bool){
+    	   map_ = map.getMap();
+           $("#map").css("cursor", "default");
+           selectInteraction = new ol.interaction.Select({
+        	  /* condition: ol.events.condition.click,*/
+        	   
+        	   layers:[map.getLayerByName("HIGH_LAYER")]
+           });
+           map_.addInteraction(selectInteraction);
+           selectInteraction.on('select',function(e){
+        	   if(e.selected&&e.selected.length>0){
+        		  var f = e.selected[0];
+        		  f.setStyle(selectStyle);
+        		  var isAdd=true;
+        		  for(var i=0;i<features.length;i++){
+        			 if(features[i]===f){
+        				 isAdd=false;
+        				 break;
+        			 }
+           	   	  }
+        		  if(isAdd){
+        			  features.push(f);
+        		  }
+        		  done(f);
+        	   }
+           })
+       }else{
+    	   if(map_){
+    		   selectInteraction.setActive(bool);
+    		   map_.removeInteraction(selectInteraction);
+    	   }
+    	   for(var i=0;i<features.length;i++){
+    		   features[i].setStyle(defaultStyle);
+    	   }
+    	   selectInteraction = null;
+       }
+       active=bool;
+    }
+    /**
+     * 处理
+     */
+    function handler() {
+    	map_.on("click", function (evt) {
+                var coor = evt.coordinate;
+                var pixel = evt.pixel;
+                var feature = map_.forEachFeatureAtPixel(pixel, function (fea, l) {
+                    if (fea && l) {
+                    	if(l===map.getLayerByName("HIGH_LAYER")){
+                    		return fea;
+                    	}else{
+                    		return null;
+                    	}
+                    }else{
+                    	return null;
+                    }
+                });
+                if(feature){
+                	done_(feature);
+                }
+        })
+    }
+    return {
+        setActive:setActive
+    }
+});

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>    
+<ormElementCollection DefaultItem="Oracle">
+   <!-- <ormElement Name="MySql" ConnectionString="Server=192.168.1.21;Port=3306;Database=zlyyht;NetName=;UserID=root;Password=root;Version=12" DbProvideType="12" /> -->
+	<ormElement Name="Oracle" ConnectionString="Server=192.168.1.171;Port=1521;Database=lydb;NetName=;UserID=ldgx_gzwl;Password=v1klpTYwWTRn0n2DW7zP3A==;Version=1" DbProvideType="1" />
+</ormElementCollection>
+<!-- 集群
+  <ormElement Name="Oracle" ConnectionString="ConnectType=cluster;Server=(DESCRIPTION =(ADDRESS = (PROTOCOL = TCP)(HOST = 192.168.1.171)(PORT = 1521))(FAILOVER = ON)(LOAD_BALANCE = yes)(CONNECT_DATA =(SERVER = DEDICATED)(SERVICE_NAME = lydb)(FAILOVER_MODE =(TYPE = SELECT)(METHOD = BASIC)(RETRIES = 60)(DELAY = 5))));UserID=hnlyywpt;Password=hnlyywpt;Version=1" DbProvideType="1" />
+  <ormElement Name="SqlServer" ConnectionString="Data Source=.;Initial Catalog=;User ID=;Password=" DbProvideType="2" />
+  <ormElement Name="Access" ConnectionString="Server=sun.jdbc.odbc.JdbcOdbcDriver;Port=;Database=D:\\data_systable.mdb;NetName=;UserID=;Password=;Version=" DbProvideType="4" />
+
+<ormElement Name="Oracle" ConnectionString="ConnectType=cluster;Server=(DESCRIPTION =(ADDRESS = (PROTOCOL = TCP)(HOST = 192.168.1.171)(PORT = 1521))(FAILOVER = ON)(LOAD_BALANCE = yes)(CONNECT_DATA =(SERVER = DEDICATED)(SERVICE_NAME = lydb)(FAILOVER_MODE =(TYPE = SELECT)(METHOD = BASIC)(RETRIES = 60)(DELAY = 5))));UserID=hnlyywpt;Password=hnlyywpt;Version=1" DbProvideType="1" />
+<ormElement Name="Oracle" ConnectionString="Server=192.168.1.171;Port=1521;Database=lydb;NetName=;UserID=hnlyywpt;Password=hnlyywpt;Version=1" DbProvideType="1" />
+  -->

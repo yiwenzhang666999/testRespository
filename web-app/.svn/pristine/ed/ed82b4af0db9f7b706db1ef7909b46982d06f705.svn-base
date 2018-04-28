@@ -1,0 +1,102 @@
+﻿.mini-textbox
+{
+    width:125px;
+    height:21px;
+    display:inline-block;
+      
+    padding:0;
+    margin:0;
+    border:0;
+    vertical-align:middle;    
+    overflow:hidden;	/*必须hidden*/
+    /*position:static;*/
+    position:relative;
+    
+}
+.mini-textbox .mini-errorIcon, 
+.mini-buttonedit .mini-errorIcon
+{
+    position:static;
+    float:right;
+    margin-right:2px;
+}
+
+/*修改*/
+.mini-textbox-input
+{
+    cursor:text;
+    background:#fff;
+	border-top: 1px solid #AAA;
+	border-left: 1px solid #AAA;
+	border-right: 1px solid #DDD;
+	border-bottom: 1px solid #DDD;       
+    width:170px;
+    height:19px;
+    line-height:19px;
+    
+    font-family: Verdana;
+    font-size: 9pt;        
+    padding: 0;
+    margin:0;
+    padding-left:1px;
+    padding-right:1px;
+     
+    outline:none;
+    float:left;
+}
+.mini-required .mini-textbox-input,
+.mini-required .mini-buttonedit-input
+{
+    background:#fff;
+}
+
+/*
+.mini-textbox .mini-errorIcon
+{   
+    display:block;
+    width:18px;
+    height:18px;    
+    overflow:hidden;    
+    position:absolute;
+    top:1px;right:0;
+    margin-top:0px;
+}*/
+
+/* focus */
+body .mini-textbox-focus .mini-textbox-input
+{
+    border-color:#1FB915;
+	background-color: #FFFFCC;
+}
+
+/* empty */
+.mini-placeholder-label
+{
+    position:absolute;left:0;top:0;padding:2px;line-height:17px;padding-left:2px;
+    color:#9a9a9a;cursor:text;
+}
+/*.mini-textbox-empty .mini-textbox-input
+{
+    color:#B1B1B8;
+}*/
+
+/* disabled */
+.mini-textbox-disabled
+{
+    cursor:default;
+    
+}
+body .mini-textbox-disabled .mini-textbox-input
+{
+    background:#f0f0f0;color:#6D6D6D;cursor:default;
+}
+
+/* textarea */
+/*修改*/
+.mini-textarea .mini-textbox-input
+{
+    resize:none;
+    height:100%;
+    margin:0;
+	overflow:auto;
+}

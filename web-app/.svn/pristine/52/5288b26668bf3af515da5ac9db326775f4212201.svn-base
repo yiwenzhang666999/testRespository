@@ -1,0 +1,23 @@
+.zs-tree li>a.second{
+	left:1px;
+}
+/* 01.18增加卷帘功能 */
+.zs-zyjg-header .tool .map-tool a.tool-jl{
+	background: url(../images/zs-map-tool-jl.png) no-repeat 20px center;
+}
+/* 禁用 */
+.zs-zyjg-header .tool .map-tool a.tool-jl.disable{
+	background: url(../images/zs-map-tool-jl-d.png) no-repeat 20px center;
+}
+/* 选中 */
+.zs-zyjg-header .tool .map-tool a.tool-jl.selected{
+	background: url(../images/zs-map-tool-jl-s.png) no-repeat 20px center;
+}
+
+/**
+*树会挡住下面的地图比例尺，设置高度
+*刘永恒  2018.01.08
+*/
+.zs-tree-box.zyjg{
+	/**height:89%;*/
+}

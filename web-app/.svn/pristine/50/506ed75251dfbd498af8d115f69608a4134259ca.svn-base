@@ -1,0 +1,30 @@
+define(function(){
+	var layerObj_bhdk = {};
+    var layerObj_ywsj = {};
+    var features=[];//选择集
+    function getLayerByName(layerName){
+    	var layer = null;
+    	if(layerObj_bhdk[layerName]){
+    		layer = layerObj_bhdk[layerName];
+    	}else{
+    		layer = layerObj_ywsj[layerName];
+    	}
+    	return layer;
+    }
+    function getLayers(){
+    	var layers = [];
+    	for(var obj in layerObj_bhdk){
+    		if(obj){
+    			layers.push(layerObj_bhdk[obj]);
+    		}
+    	}
+    	return layers;
+    }
+	return {
+		layerObj_bhdk:layerObj_bhdk,
+		layerObj_ywsj:layerObj_ywsj,
+		features:features,
+		getLayerByName:getLayerByName,
+		getLayers:getLayers
+	}
+});

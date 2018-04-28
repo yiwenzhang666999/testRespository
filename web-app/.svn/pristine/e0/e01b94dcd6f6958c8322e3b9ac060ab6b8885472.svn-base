@@ -1,0 +1,571 @@
+define(function () {
+	'use strict';
+	var map = {}; 
+	
+	var TREE_CLASS = "tree_class";
+	
+	var defaultSetting = {
+		showCheck : true,
+		data : {
+			id : "id",
+			text : "text",
+			pid : "pid",
+			children : "children"
+		},
+		callback : {}
+	}
+	
+	var eventsListener = {
+			MORE_CLICK : [],
+			ADD_CLICK : [],
+			CREATE_CLICK : [],
+			DEL_CLICK : [],
+			CHECKED : [],
+			LOADED : [],
+		}
+	
+	var event = {
+		MORE_CLICK : "MORE_CLICK",
+		ADD_CLICK : "ADD_CLICK",
+		CREATE_CLICK : "CREATE_CLICK",
+		DEL_CLICK : "DEL_CLICK",
+		CHECKED : "CHECKED",
+		LOADED : "LOADED",
+	}
+	
+	var eventTarget = {
+			BHDK : "变化地块",
+			YWSJ : "业务数据"
+		}
+	
+	/**
+	 * 树元素操作API对象,包括基本的节点添加，删除，编辑，以及树的构建
+	 */
+	function getTree(id,setting,data){
+		var tree = null;
+		if(map[id]){
+			return map[id];
+		}else{
+			tree =  new treeHelper(id,setting,data);
+			map[id] = tree;
+		}
+		return tree;
+	}
+	
+	
+	function treeHelper(id,setting,data){
+		this.setting = combineSetting(setting);
+		this.treeObj = $("#"+id);
+		this.__data = data;
+		this.__selectNode = null;
+		this.__checkedNode = null;
+		this.__checkedNodes = [];
+		this.id_ = this.setting.data.id;
+		this.pid_ = this.setting.data.pid;
+		this.text_ = this.setting.data.text;
+		this.children_ = this.setting.data.children;
+		this.event = eventsListener;
+		if(data && data.length > 0){
+			buildTree(this,data,1,-1);
+		}
+	}
+	
+	function combineSetting(setting){
+		setting = setting ? setting : {};
+		return $.extend(defaultSetting,setting);
+	}
+	
+	Array.prototype.remove = function(b) { 
+		var a = this.indexOf(b); 
+		if (a >= 0) { 
+			this.splice(a, 1); 
+			return true; 
+		} 
+		return false; 
+	}; 
+
+	
+	function getNodeHtml(tree,data){
+		var text = data.text;
+		var html = null;
+		if(data.jb == 1){
+			html = $('<li><a href="javascript:;" class="btns first">\
+					<i class="ck-box"></i>\
+					<input class="ck-inp" type="checkbox" />\
+					<img class="icon" src="images/zs-tree-file.png" />\
+					<span class="txt">'+text+'</span>\
+					<div class="opa-box"></div>\
+				</a></li>');
+		}else{
+			html = $('<li><a href="javascript:;" class="btns">\
+					<i class="ck-box"></i>\
+					<input class="ck-inp" type="checkbox" />\
+					<img class="icon" src="images/zs-tree-file.png" />\
+					<span class="txt">'+text+'</span>\
+					<div class="opa-box"></div>\
+				</a></li>');
+		}
+		if(data.iconType == 2){
+			html.find("img").first().attr("src","images/zs-tree-trl.png");
+		}
+		var padding = 12 + (data.jb - 1) * 20;
+		html.find("a").first().css("padding","0 5px 0 "+padding+"px");
+		html.attr("class",TREE_CLASS);
+		return html;
+	}
+	
+	/**
+	 * type:事件类型
+	 */
+	function triggerClick(tree,selectNode,type,target){
+		for(var e in tree.event){
+			var f = tree.event[e];
+			for(var i = 0 ; i < f.length ; i++){
+				var eventObj = f[i];
+				if(e == type && target == eventObj.eventTarget){
+					if(type == event.LOADED){
+						if(!eventObj.callback.called){
+							eventObj.callback.called = true;
+							eventObj.callback(selectNode);
+						}
+					}else{
+						eventObj.callback(selectNode);
+					}
+				}
+			}
+		}
+	}
+	
+	function confirmTarget(tree,curData){
+		return $("[tid="+curData[tree.id_]+"]").attr("tag");
+	}
+	
+	function parseNodeDataToHtml(tree,nodeHtml,curData){
+		var t = null;
+		var type = null;
+		var target = null;
+		target = confirmTarget(tree,curData);
+		if(curData.showMore){
+			t = $('<span class="more btn"></span>');
+			type = event.MORE_CLICK;
+			doParse(tree,nodeHtml,curData,type,target);
+		}
+		if(curData.showAdd){
+			t = $('<span class="add btn"></span>');
+			type = event.ADD_CLICK;
+			doParse(tree,nodeHtml,curData,type,target);
+		}
+		if(curData.showCreate){
+			t = $('<span class="create btn"></span>');
+			type = event.CREATE_CLICK;
+			doParse(tree,nodeHtml,curData,type,target);
+		}
+		if(curData.showDel){
+			t = $('<span class="del btn"></span>');
+			type = event.DEL_CLICK;
+			doParse(tree,nodeHtml,curData,type,target);
+		}
+		
+		if(curData.checked){
+			
+		}
+		
+		function doParse(tree,nodeHtml,curData,type,target){
+			nodeHtml.find(".opa-box").append(t);
+			t.unbind("click").bind("click",function(){
+				triggerClick(tree,curData,type,target);
+				return false;
+			});
+		}
+		/*if(tree.setting.expand){
+			treeObj.css("display","block");
+		}else{
+			treeObj.css("display","none");
+		}*/
+		
+		var tmp = null;
+	/*	if(tree.setting.callback.render) tmp = tree.setting.callback.render(nodeHtml,node,tree);
+		nodeHtml = tmp ? tmp : nodeHtml;
+		node.html = nodeHtml;*/
+		nodeHtml.unbind("click").bind("click",function(){
+			tree.__selectNode = curData;
+			var tarList = $(this).find(".content").first();
+			var ul = $(this).find("ul").first();
+			var img = $(this).find("img.icon").first();
+			if(img.attr("src").indexOf("zs-tree-file") >= 0){
+				if(ul.css("display") == "block"){
+					img.attr("src","images/zs-tree-file.png");
+				}else{
+					img.attr("src","images/zs-tree-file-open.png");
+				}
+			}
+			tarList.slideToggle("fast", function(){
+				$(".zs-tree-box .container").getNiceScroll().resize();
+				$(".zs-nicescroll").getNiceScroll().resize();
+			});
+			return false;
+		});
+		
+		var ckBox = nodeHtml.find(".ck-box");
+		ckBox.unbind("click.tree").on("click.tree",function(eA){
+			eA.stopPropagation();
+			var tarA = $(this).parents("a");
+			var flag;
+			if(tarA.hasClass("selected")){
+				flag = false;
+				curData.checked = false;
+				tree.__checkedNode = null;
+				tree.__checkedNodes.remove(curData);
+				tarA.removeClass("selected");
+			}else{
+				flag = true;
+				curData.checked = true;
+				tree.__checkedNode = curData;
+				if(tree.__checkedNodes.indexOf(curData) < 0){
+					tree.__checkedNodes.push(curData);
+				}
+				tarA.addClass("selected");
+			}
+			
+			tarA.find("input[type=checkbox]").prop("checked", flag);
+//			查找父节点
+			checkParNode(tarA, flag);
+			checkedParent(curData,flag);
+			
+//			查找子节点
+			checkSonNode(tarA, flag);
+			checkedChildren(curData,flag);
+			triggerClick(tree,curData,event.CHECKED,target);
+			
+			$(".zs-tree-box").getNiceScroll().resize();
+			
+			function checkedParent(n,isCheck){
+				while(n = tree.getParent(n)){
+					if(isCheck){
+						n.checked = true;
+						if(tree.__checkedNodes.indexOf(n) < 0){
+							tree.__checkedNodes.push(n);
+						}
+					}else{
+						n.checked = false;
+						var flag = false;
+						if(n[tree.children_] && n[tree.children_]["length"] > 0){
+							var nc = n[tree.children_];
+							for(var i = 0 ; i < nc.length ; i++){
+								if(tree.__checkedNodes.indexOf(nc[i]) >= 0){
+									flag = true;
+									break;
+								}
+							}
+						}
+						if(!flag){
+							tree.__checkedNodes.remove(n);
+						}
+					}
+				}
+			}
+
+			function checkedChildren(n,isCheck){
+				if(n[tree.children_] && n[tree.children_]["length"] > 0){
+					for(var i = 0 ; i < n[tree.children_]["length"] ; i++){
+						var tmp = n[tree.children_][i];
+						if(isCheck){
+							tmp.checked = true;
+							if(tree.__checkedNodes.indexOf(tmp) < 0){
+								tree.__checkedNodes.push(tmp);
+							}
+						}else{
+							tmp.checked = false;
+							tree.__checkedNodes.remove(tmp);
+						}
+						checkedChildren(tmp,isCheck);
+					}
+				}
+			}
+		});
+		
+		function checkParNode(tarA, isCheck){
+			var parLi = tarA.parent("li");
+			var parCon = parLi.parent(".content");
+			var parA = parCon.siblings(".btns");
+			var tarInp = parA.find("input[type=checkbox]");
+			var nowLevalCheckedLen;
+			if(parCon.length !== 0){
+				nowLevalCheckedLen = parCon.children("li").children(".btns.selected").length;
+			}
+			if(parCon.length !== 0){
+				if(isCheck === true){
+					parA.addClass("selected");
+					tarInp.prop("checked", true);
+				}else{
+					if(nowLevalCheckedLen === 0){
+						parA.removeClass("selected");
+						tarInp.prop("checked", false);
+					}
+				}
+				checkParNode(parA, isCheck)
+			}
+		}
+		function checkSonNode(tarA, isCheck){
+			var childCon = tarA.siblings(".content");
+			var childA = childCon.find(".btns");
+			var childInp = childA.find("input[type=checkbox]");
+			if(childCon.length === 0){
+				return;
+			}
+			if(isCheck === true){
+				childA.addClass("selected");
+				childInp.prop("checked", true);
+			}else{
+				childA.removeClass("selected");
+				childInp.prop("checked", false);
+			}
+		}
+	}
+	
+	function buildNode(tree,curData,jb,pid){
+		var treeObj = tree.treeObj;
+		curData.jb = jb;
+		curData[tree.pid_] = pid;
+		var id = curData[tree.id_];
+		var text = curData[tree.text_];
+		var children = curData[tree.children_];
+		var nodeHtml = getNodeHtml(tree,curData);
+		nodeHtml.attr("tid",id);
+		if(jb == 1){
+			nodeHtml.attr("tag",text);
+			treeObj.append(nodeHtml);
+		}else{
+			var par = treeObj.find("[tid="+pid+"]");
+			par.find("ul").first().append(nodeHtml);
+			nodeHtml.attr("tag",par.attr("tag"));
+		}
+		parseNodeDataToHtml(tree,nodeHtml,curData);
+		var ul = null;
+		if(jb == 1){
+			ul = $('<ul class="sec-list content"></ul>');
+		}else if(jb == 2){
+			ul = $('<ul class="thi-list content"></ul>');
+		}else if(jb == 3){
+			ul = $('<ul class="foru-list content"></ul>');
+		}else if(jb == 4){
+			ul = $('<ul class="five-list content"></ul>');
+		}
+		var expandLevel = tree.setting.expandLevel;
+		if(expandLevel && expandLevel > 0  ){
+			if(expandLevel > curData.jb - 1){
+				nodeHtml.find("img.icon").attr("src","images/zs-tree-file-open.png");
+				ul.css("display","block");
+			}
+		}
+		nodeHtml.append(ul);
+		if(children && children.length > 0){
+			buildTree(tree,children,jb+1,id);
+		}
+	}
+	
+	function buildTree(tree,data,jb,pid){
+		for(var i = 0 ; i < data.length ; i++){
+			buildNode(tree,data[i],jb,pid);
+		}
+	}
+	
+
+	/**
+	 * 通过树节点的id值获得节点对象
+	 * @param id
+	 * @returns
+	 */
+	treeHelper.prototype.getNodeById = function(id){
+		if(!id || id <= 0) return null;
+		var findNode = null;
+		var that = this;
+		function doFind(data){
+			for(var i = 0 ; i < data.length ; i++){
+				if(findNode) break;
+				var tmp = data[i];
+				if(tmp[that.id_] == id){
+					findNode = tmp;
+				}else{
+					if(tmp[that.children_] && tmp[that.children_]["length"] > 0){
+						doFind(tmp[that.children_]);
+					}
+				}
+			}
+		}
+		doFind(that.__data);
+		return findNode;
+	}
+
+	/**
+	 * 添加树节点
+	 * @param data
+	 */
+	treeHelper.prototype.addNodes = function(node){
+		var parentNode = this.getNodeById(node[this.pid_]);
+		if(parentNode != null){
+			buildNode(this,node,parentNode.jb+1,parentNode[this.id_]);
+			if(!parentNode[this.children_]) parentNode[this.children_] = [];
+			parentNode[this.children_]["push"](node);
+			this.expandNode(parentNode);
+		}else{
+			buildNode(this,node,1,-1);
+			this.__data.push(node);
+		}
+		var target = confirmTarget(this,node);
+		var type = "LOADED";
+		triggerClick(this,node,type,target);
+	}
+	
+	/**
+	 * 获得父级节点
+	 * @param node
+	 * @returns
+	 */
+	treeHelper.prototype.getParent = function(node){
+		return this.getNodeById(node[this.pid_]);
+	}
+	
+	/**
+	 * 绑定事件
+	 * @param target  事件目标
+	 * @param eventType 事件类型
+	 * @param callback 回调函数
+	 */
+	treeHelper.prototype.bindEvent = function(target,eventType,callback){
+		for(var e in this.event){
+			if(e == eventType){
+				this.event[eventType]["push"]({eventTarget:target,callback:callback});
+			}
+		}
+		if(eventType == event.LOADED){
+			var node = null;
+			if(target == eventTarget.BHDK){
+				 node = this.getNodeById("bhdk");
+			}else if(target == eventTarget.YWSJ){
+				 node = this.getNodeById("ywsj")
+			}
+			if(node){
+				triggerClick(this,node,eventType,target);
+			}
+		}
+	}
+	
+	/**
+	 * 绑定事件
+	 * @param target  事件目标
+	 * @param eventType 事件类型
+	 */
+	treeHelper.prototype.triggerEvent = function(target,eventType,data){
+		triggerClick(this,data,eventType,target);
+	}
+	
+	/**
+	 * 获得数据结构
+	 * @returns
+	 */
+	treeHelper.prototype.getNodes = function(){
+		return this.__data;
+	}
+	
+	/**
+	 * 获得已选择的check节点
+	 * @returns
+	 */
+	treeHelper.prototype.getCheckedNodes = function(){
+		return this.__checkedNodes;
+	}
+	/**
+	 * 获得当前选中的树节点
+	 * @returns
+	 */
+	treeHelper.prototype.getSelectNode = function(){
+		return this.__selectNode;
+	}
+	
+	/**
+	 * 获得当前选中(check)的树节点
+	 * @returns
+	 */
+	treeHelper.prototype.getCheckedNode = function(){
+		return this.__checkedNode;
+	}
+	
+	/**
+	 * 展开所有节点
+	 * @returns
+	 */
+	treeHelper.prototype.expandAllNode = function(node){
+		var tarList = this.treeObj.find(".content");
+		tarList.show("fast", function(){
+			$(".zs-tree-box .container").getNiceScroll().resize();
+			$(".zs-nicescroll").getNiceScroll().resize();
+		});
+	}
+	/**
+	 * 展开指定节点
+	 * @returns
+	 */
+	treeHelper.prototype.expandNode = function(node){
+		var tarList = $("[tid="+node[this.id_]+"]").find(".content").first();
+		tarList.show("fast", function(){
+			$(".zs-tree-box .container").getNiceScroll().resize();
+			$(".zs-nicescroll").getNiceScroll().resize();
+		});
+	}
+	
+	/**
+	 * 收缩所有节点
+	 * @returns
+	 */
+	treeHelper.prototype.unExpandAllNode = function(node){
+		var tarList = this.treeObj.find(".content");
+		tarList.hide("show", function(){
+			$(".zs-tree-box .container").getNiceScroll().resize();
+			$(".zs-nicescroll").getNiceScroll().resize();
+		});
+	}
+	/**
+	 * 收缩指定节点
+	 * @returns
+	 */
+	treeHelper.prototype.unExpandNode = function(node){
+		var tarList = $("[tid="+node[this.id_]+"]").find(".content").first();
+		tarList.hide("fast", function(){
+			$(".zs-tree-box .container").getNiceScroll().resize();
+			$(".zs-nicescroll").getNiceScroll().resize();
+		});
+	}
+	/**
+	 * 根据树节点的ID删除该节点以及所有子元素
+	 * @param id
+	 * @returns
+	 */
+	treeHelper.prototype.removeNodeById = function(id){
+		return this.removeNode(this.getNodeById(id));
+	}
+	
+
+	/**
+	 * 根据node对象删除该节点以及所有子元素（注意node对象必须是树内部node）
+	 * @param node
+	 * @returns
+	 */
+	treeHelper.prototype.removeNode = function(node){
+		var parent = this.getParent(node);
+		if(parent){
+			parent.children.remove(node);
+		}else{
+			this.__data.remove(node);
+		}
+		$("[tid="+node[this.id_]+"]").remove();
+		return this.__data;
+	}
+
+	
+	return {
+		getTree : getTree,
+		eventTarget : eventTarget,
+		events : event
+	};
+});

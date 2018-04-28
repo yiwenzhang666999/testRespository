@@ -1,0 +1,149 @@
+				<ul class="zs-tree" id="zyjg">
+					<!--一级-->
+					<li>
+					
+					<input type="text" id="input_keypress" class="kjwz-search zs-input"/>
+					<i class="kjwz-search-btn"></i>
+					<a href="javascript:;" class="btns first">
+						<!-- <i class="ck-box"></i> -->
+						<input class="ck-inp" type="checkbox" name="" id="" value="" />
+						<!--<i class="icon first"></i>-->
+						<img class="icon" src="images/zs-tree-file.png" alt="" />
+						<span class="txt">空间位置</span>
+						<!--<div class="opa-box kjwz">
+							<span data-content="kjwz-area" class="area btn"></span>
+							<span data-content="kjwz-collect" class="collect btn"></span>
+							<span data-content="kjwz-search" class="search btn"></span>
+						</div>-->
+					</a>
+					
+					<ul class="sec-list content kjwz-content" id="dcfw_id">
+						<div class="kjwz-search-content" id="openScwz">
+								<div class="item">
+									<ul class="txt-list" id = "zqdw_query">
+									</ul>
+								</div>
+						</div>
+						<li class="kjwz-area item">
+							<a href="javascript:;" class="btns second">
+								<!-- <i class="ck-box"></i> -->
+								<input class="ck-inp" type="checkbox" name="" id="" value="" />
+								<span class="txt">调查范围</span>
+							</a>
+							<div class="content" id="kjwz-area">
+								<div class="position" id="clickHistory">
+								</div>
+							</div>
+						<li>
+						<li class="kjwz-collect item">
+							<a href="javascript:;" class="btns second">
+								<!-- <i class="ck-box"></i> -->
+								<input class="ck-inp" type="checkbox" name="" id="" value="" />
+								<span class="txt" id="collectBut">收藏点</span>
+								<div class="opa-box">
+									<span class="add tjscd btn"></span>
+								</div>
+							</a>
+							<div class="add-collect">
+								<h4 class="title">添加收藏点</h4>
+								<div class="form">3
+									<input type="text" class="zs-input" placeholder="收藏点名称" id="addScInput"/>
+									<input type="button" class="zs-btn" value="添加" id="addScButton"/>
+								</div>
+							</div>
+							<ul class="thi-list content" id="scwz_ul">
+							</ul>
+						</li>
+						<!--<div class="kjwz-search item">
+							<p class="inp-wrapper" onclick="event.stopPropagation();">
+								<input type="text" class="search-inp" placeholder="输入关键字…"/>
+								<a href="javascript:;" class="cancel" onclick="event.stopPropagation();">取消</a>
+							</p>
+							<div class="txt-list">
+								<a href="javascript:;">江西省萍乡县芦溪县</a>
+								<a href="javascript:;">浙江省杭州市铜芦县</a>
+								<a href="javascript:;">浙江省杭州市铜芦县</a>
+							</div>
+						</div>-->
+					</ul>
+				</li>
+					<!--一级-->
+					<li>
+						<a href="javascript:;" class="btns first">
+							<i class="ck-box service all"></i>
+							<input class="ck-inp" type="checkbox" name="" id="" value="" />
+							<!--<i class="icon first"></i>-->
+							<img class="icon" src="images/zs-tree-file.png" alt="" />
+							<span class="txt">影像数据</span>
+							<div class="opa-box"></div>
+						</a>
+						<ul class="sec-list content">
+							<li>
+								<a href="javascript:;" class="btns second">
+									<i class="ck-box service all"></i>
+									<input class="ck-inp" type="checkbox" name="" id="" value="" />
+									<!--<i class="icon first"></i>-->
+									<img class="icon" src="images/zs-tree-file.png" alt="" />
+									<span class="txt">江西省</span>
+									<div class="opa-box"></div>
+								</a>
+								<ul class="thi-list content">
+								<li>
+									<a href="javascript:;" class="btns third">
+										<i class="ck-box service all"></i>
+										<input class="ck-inp" type="checkbox" name="" id="" value="" />
+										<!--<i class="icon first"></i>-->
+										<img class="icon" src="images/zs-tree-file.png" alt="" />
+										<span class="txt">芦溪县</span>
+										<div class="opa-box"></div>
+									</a>
+									<ul class="foru-list content">
+										<li>
+											<a href="javascript:;" class="btns fourth">
+												<i class="ck-box service switch" layer='LXYX2015'></i>
+												<input class="ck-inp" type="checkbox" name="" id="" value="" />
+												<img class="icon" src="images/zs-tree-file-open.png" alt="" />
+												<span class="txt">2016年影像</span>
+											</a>
+											<ul class="fifth-list content">
+												<li>
+													<a href="javascript:;" class="btns fifth" zqCode="360323">
+														<i class="ck-box service switch" layer="LXYX2015"></i>
+														<input class="ck-inp" type="checkbox" name="" id="" value="" />
+														<img class="icon" src="images/zs-tree-file-open.png" alt="" />
+														<span class="txt">高分辨率影像</span>
+													</a>
+												</li>
+											</ul>
+										</li>
+										<li>
+											<a href="javascript:;" class="btns fourth">
+												<i class="ck-box service switch" layer="LXYX2017"></i>
+												<input class="ck-inp" type="checkbox" name="" id="" value="" />
+												<img class="icon" src="images/zs-tree-file-open.png" alt="" />
+												<span class="txt">2017年影像</span>
+											</a>
+											<ul class="fifth-list content">
+												<li>
+													<a href="javascript:;" class="btns fifth" zqCode="360323">
+														<i class="ck-box service switch" layer="LXYX2017"></i>
+														<input class="ck-inp" type="checkbox" name="" id="" value="" />
+														<img class="icon" src="images/zs-tree-file-open.png" alt="" />
+														<span class="txt">高分辨率影像</span>
+													</a>
+												</li>
+											</ul>
+										</li> 
+									</ul>
+								</li>
+								
+								</ul>
+							</li>	
+						</ul>
+					</li>
+					<li style="visibility :hidden;height:0px">
+						<a href="javascript:;" class="btns selected">
+							<i class="ck-box"></i>
+						</a>
+					</li>
+				</ul>

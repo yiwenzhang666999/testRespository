@@ -1,0 +1,32 @@
+/**
+ *  要素属性编辑
+ */
+define(function () {
+    'use strict';
+    var defaultStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,255,0)', width: 3 })
+    });
+    
+    function handler(f,done) {
+    	if(f){
+    		//publicObj.features.push(f);
+    		f.setStyle(defaultStyle);
+    		$(".map-tool  .selected").removeClass("selected");
+    		var MBID = f.getProperties().I_MBID;
+    		var template=null;
+    		for(var i=0;i<templates.length;i++){
+    			var item = templates[i];
+    			if(item.ID==MBID){
+    				template=item;
+    			}
+    		}
+    		done(null,f,templates[0]);
+    	}else{
+    		mini.alert("请选择一个图形！","温馨提示");
+    	}
+    }
+    return {
+        handler: handler
+    }
+});

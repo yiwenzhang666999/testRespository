@@ -1,0 +1,33 @@
+<style>	
+	.gyltjbb_tableBox table tr {
+        height:20px;
+        line-height: 20px;
+    }
+
+    .gyltjbb_tableBox table{
+        line-height: 20px;
+        background: #fff;
+    }
+
+    .gyltjbb_tableBox table td{
+        width: 150px;
+        padding:5px 0px;    
+        border:1px solid #DFDFDF;
+        overflow:hidden;
+        text-align: center;
+    }
+</style>
+<div class="fore-core-btnbox"> 
+	<input class="fore-common-btn " type="button" value="导出" id="gjj_ExcelExport" />
+	<form method = "post" style="display:none" class="gjj-tjbb_form">
+	<input class="mini-hidden tjbb_reportId" type="button" name="reportId" />
+	<input class="mini-hidden tjbb_queryJson" type="button" name="queryJson" />
+	<input class="mini-hidden tjbb_strFilter" type="button" name="strFilter" />
+	</form>
+</div>
+<div class="gyltjbb_box .tjbb_reportCon">
+	<!-- 表容器 -->
+	<div class="gyltjbb_tableBox tjbb_reportView zs-nicescroll" style="height:500px;overflow: auto;">
+	
+	</div>
+</div>

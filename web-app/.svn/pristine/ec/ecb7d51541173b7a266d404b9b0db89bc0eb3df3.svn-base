@@ -1,0 +1,517 @@
+define([
+    'map','util','config',"addTool",'selectTool','modifyTool','paramTool','analyzeTool','queryLayer','unionTool','splitTool','cutTool'
+], function (map,util,config,addTool,selectTool,modifyTool,paramTool,analyzeTool,queryLayer,unionTool,splitTool,cutTool) {
+    'use strict';
+    var geojsonFormat = new ol.format.GeoJSON();
+    var layer;//高亮元素的图层
+    var selectFeatures = [];//被选中的元素集合（feature）
+    var createFeature;//绘制的对象原型，用于更新本地layer
+    var selectTemplate;//当前选中的模板
+    var toolType;
+    //高亮图层默认颜色
+    var defaultStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,255,0)', width: 3 })
+    });
+    //选中的颜色
+    var selectStyle = new ol.style.Style({
+    	fill:new ol.style.Fill({color:"rgba(255,255,255,0)"}),
+    	stroke:new ol.style.Stroke({color:"rgb(255,0,0)",width:3})
+    });
+    var testStyle = new ol.style.Style({
+    	fill:new ol.style.Fill({color:"rgba(255,255,255,0)"}),
+    	stroke:new ol.style.Stroke({color:"rgb(0,255,0)",width: 3})
+    });
+    //初始化方法，查询
+    function init(){
+    	layer = map.getLayerByName("HIGH_LAYER");
+    	layer.setZIndex(999999);
+    	query();//初始化查询
+    }
+    //查询当前用户创建的图形，高亮
+    function query(){
+    	var callBack = {
+    			callback:function(res){
+    				if(res&&res.length>0){
+    					var f ;
+    					for(var i=0;i<res.length;i++){
+    						var data = res[i].originalObjects;
+    						f = geojsonFormat.readFeature(data.C_NR);
+    						f.setStyle(defaultStyle);
+    						f.setProperties({I_MBID:data.I_MBID,ID:data.ID});
+    						layer.getSource().addFeature(f);
+    					}
+    				}
+    			},
+    			exceptionHandler:function(err){
+    				
+    			}
+    	};
+    	var param={
+    			"selectFields":"ID,C_NR,I_MBID",
+    			"whereString":"1=1",
+    	};
+    	FsService.getEntityList("GZGL_LAYER",param,callBack);
+    }
+    /**
+     *工具条点击事件
+     * @param {string} tool
+     * @param {string} layerName
+     */
+    function start(tool) {
+    	if(tool=='revoke'&&toolType=='add'){
+    		addTool.undo();
+    		return;
+    	}else if(tool=='revoke'){
+    		return;
+    	}else{
+    		toolType=tool;
+        	toolSwitch();
+            switch (toolType) {
+                case "add"://区划
+                    addTool.setActive(true,popFun);
+                    break;
+                case "select"://选择
+                		selectTool.setActive(true,selectFun);
+                	break;
+                case "union"://合并
+                	if(selectFeatures.length>1){
+                		var unionedFeature = unionTool.union(selectFeatures);
+                		unionFun(unionedFeature);
+                	}else{
+                		alert("请选择两个以上图形，进行合并！");
+                	}
+                	break;
+                case "cut":
+                	if(selectFeatures.length===1){
+                		cutTool.setActive(true,selectFeatures[0],cutFun);
+                	}else{
+                		alert("请选择一个图形，进行分割！");
+                	}
+                	break;
+                case "modify":// 图形编辑修改
+                	if(selectFeatures.length===1){
+                		modifyTool.setActive(true,saveModifyFun,selectFeatures[0]);
+                	}else{
+                		restore();
+                		alert("请选择一个图形！");
+                	}
+                	break;
+                case "analyze":// 叠加分析
+                	if(selectFeatures.length===1){
+                		analyzeTool.execute(selectFeatures[0]);
+                	}
+                	else{
+                		var result = confirm('确定进行全部数据分析吗');  
+                	    if(result){  
+                	    	analyzeTool.execute();
+                	    }  
+                	}
+                	break;            	
+                case "param"://属性编辑
+                	if(selectFeatures.length===1){
+                		paramTool.handler(selectFeatures[0],popFun);
+                	}else{
+                		restore();
+                		alert("请选择一个图形！");
+                	}
+                	break;
+                case "del"://删除
+                	if(selectFeatures.length===1){
+                		del(selectFeatures[0]);
+                	}else{
+                		restore();
+                		alert("请选择一个图形！");
+                	}
+                	break;
+                case "trim":
+                	if(selectFeatures.length===1){
+                		splitTool.setActive(true,selectFeatures[0],trimFun,util);
+                	}else{
+                		alert("请选择一个图形，进行修边！");
+                	}
+                	break;
+                case "clear"://清除
+                	
+                	break;            	
+                default:
+                    break;
+            }
+    	}
+    }
+    function toolSwitch(){
+    	if(toolType=='param'||toolType=='del' ||toolType=='analyze'||toolType=='revoke'){
+    		return;
+    	}
+    	selectTool.setActive(false);
+    	addTool.setActive(false);
+    	modifyTool.setActive(false);
+    	cutTool.setActive(false);
+    	splitTool.setActive(false);
+    	switch(toolType){
+    	case 'add':
+    		selectFeatures=[];
+    		break;
+    	case 'select':
+    		selectFeatures=[];
+    	case 'clear':
+    		selectFeatures=[];
+    		createFeature=null;
+    		break;
+    	}
+    }
+    //选择
+    function selectFun(feature){
+    	for(var i=0;i<selectFeatures.length;i++){
+    		if(selectFeatures[i]===feature){
+    			feature.setStyle(defaultStyle);
+    			selectFeatures.splice(i,1);
+    			return;
+    		}
+    	}
+    	selectFeatures.push(feature);
+    }
+    /**
+     * 合并图形后方法
+     * */
+    function unionFun(unionedFeature){
+    	var maxAreaFeature = splitTool.getMaxArea(selectFeatures);
+    	var properties = maxAreaFeature.getProperties();
+    	delete properties.geometry;
+    	properties.AREA = util.getArea(unionedFeature.getGeometry());
+    	unionedFeature.setProperties(properties);
+    	unionedFeature.setStyle(defaultStyle);
+    	for(var i=0;i<selectFeatures.length;i++){
+    		layer.getSource().removeFeature(selectFeatures[i]);
+    	}
+    	layer.getSource().addFeature(unionedFeature);
+    	//TODO 此处添加保存方法后需要修改 ；
+    	editEnd();
+    }
+    /**
+     * 分割后方法
+     * 
+     * */
+    function cutFun(features){
+    	var property = selectFeatures[0].getProperties();
+    	delete property.geometry;
+    	
+    	for(var i=0;i<features.length;i++){
+    		features[i].setStyle(testStyle);
+    		features[i].setProperties(property);
+    	}
+    	layer.getSource().addFeatures(features);
+    	layer.getSource().removeFeature(selectFeatures[0]);
+    	//TODO 此处待添加保存方法
+    	editEnd();
+    }
+    /**
+     * 修边后方法
+     * 
+     * */
+    function trimFun(features){
+    	
+    	editEnd();
+    }
+    /**
+     * 弹窗方法
+     * @param type：类型(add)目前只有这一个标识，不是新增情况null
+     * @param feature：图形元素ol.feature
+     * @param template：模板
+     * **/
+    function popFun(type,feature,template){
+    	createFeature = feature;
+    	selectTemplate = template;
+        if(window.ldyzt_fullScreen){
+            var containerId="containerId_ibox";
+        }else{
+           var containerId=null;
+        }
+        var html = getPopHtml(feature,template);
+        var ibox = $("#public_pop").modal({
+        	title: "属性信息",
+			overlay: false,
+			showMin: false,
+			showMax: false,
+			showTop: false,
+			isDrag: true,
+			contentWidth:350,
+			type:"clone",
+			target: html||"",
+            addCallBack: function () {
+            	var iBox = this;
+                $(".zs-nicescroll").niceScroll({
+                    cursorcolor: "#777",
+                    cursorborder: "none",
+                });
+                $(".close-button").on('click',function(){
+                	$(".close-btn").click();
+                });
+                $(".save-button").on('click',function(){
+                	save(feature);
+                });
+                if(toolType&&toolType=="add"){
+                	var polygon = feature.getGeometry().getCoordinates();
+                	var coor = PL.Polylabel(polygon,"EPSG:4490");
+                	var url = config.PROXY+"?"+config.queryUrl+"?";
+                	window.area = util.getArea(feature.getGeometry());
+                	var callback = function(res){
+                		var data = typeof res == 'object' ? res : JSON.parse(res);
+                		var xian = data.xian_name||data.lin_ye_ju;
+                		var xiang = data.xiang_name||data.lin_chang;
+                		var cun = data.cun_name||data.lin_ban;
+                		var xiaoban = data.xiao_ban||'';
+                		var form = $('#popIbox_xbsx')[0];
+                		var elements = form.getElementsByTagName('input');
+                		elements.XIAN.value=(xian)||'';
+                		elements.XIANG.value=(xiang)||'';
+                		elements.CUN.value=Number(cun)?(Number(cun)):(cun||'');
+                		elements.XIAOBAN.value=Number(xiaoban)?(Number(xiaoban)):(xiaoban||'');
+                		var lngArr = util.getDFM(coor[0]);
+                		elements.LNG_D.value=lngArr[0];
+                		elements.LNG_F.value=lngArr[1];
+                		elements.LNG_M.value=lngArr[2];
+                		var latArr = util.getDFM(coor[1]);
+                		elements.LAT_D.value=latArr[0];
+                		elements.LAT_F.value=latArr[1];
+                		elements.LAT_M.value=latArr[2];
+                		elements.AREA.value=util.getArea(feature.getGeometry());
+                	}
+                	queryLayer.queryBySpace(coor,'2009',null,callback,url);
+                }
+            }
+        });
+        ibox.click();
+    }
+    //解析模板，生成表单的html
+    function getPopHtml(feature,template){
+        var arr = JSON.parse(template.C_NR);
+        var data = feature.getProperties();
+        var html = "<form id='popIbox_xbsx' style='width:300px'><table class='fore-common-form-tabs'";
+        window.optionClick=optionClick;
+        for(var i=0;i<arr.length;i++){
+            var fieldObj = arr[i];
+            html+="<tr><td class='text'>"+fieldObj.DICTNAME+"</td>";
+            var value = data[fieldObj.FIELDNAME]?data[fieldObj.FIELDNAME]:'';
+            if(fieldObj.GROUP){
+            	html+="<td class='input'>";
+            	var groupArr = fieldObj.GROUP;
+            	for(var z=0;z<groupArr.length;z++){
+            		var item = groupArr[z];
+            		var itemValue = data[item.FIELDNAME]?data[item.FIELDNAME]:'';
+            		html+="<input type='text' style='width:35px;' name= '"+item.FIELDNAME+"'value='"+itemValue+"'/> "+item.DICTNAME+" ";
+            	}
+            	html+="</td></tr>";
+            }else if(fieldObj.DICTITEM){
+                var itemArr = fieldObj.DICTITEM;
+                html+="<td class='input'>"+
+                "<input type='hidden' value='"+value+"' name='"+fieldObj.FIELDNAME+"'/>"+
+                "<select style='width:160px;' onchange='optionClick(this)'>"+
+                "<option value=''>--请选择--</option>";
+                for(var j=0;j<itemArr.length;j++){
+                    var item = itemArr[j];
+                    if(value==item.NAME){
+                    	html+="<option selected='selected' value='"+item.NAME+"'>"+item.NAME+"</option>";
+                    }else{
+                    	html+="<option value='"+item.NAME+"'>"+item.NAME+"</option>";
+                    }
+                }
+                html+="</select>"+"</td></tr>";
+            }else{
+                html+="<td class='input'>"
+                    +"<input type='text' style='width:160px;' value='"+value+"' name='"+fieldObj.FIELDNAME+"'/>"
+                    +"</td></tr>";
+            }
+        }
+        html+="</table></form>";
+        html+="<div class='fore-core-btnboxs'>"+
+		"<button class='zs-btn close-button'>关闭</button>"+
+        "<button class='zs-btn save-button'>保存</button></div>";
+        return html;
+    }
+    //select标签的change事件
+    function optionClick(e){
+    	$(e).siblings("input").val(e.value);
+    }
+    function closePop(){
+    	$(".close-btn").click();
+    }
+    /**
+     * feature：ol.feature
+     * 保存方法
+     * **/
+    function save(feature){
+    	var form = $('#popIbox_xbsx')[0];
+    	var elements = form.getElementsByTagName('input');
+    	var property = {};
+    	for(var i=0;i<elements.length;i++){
+    		var element = elements[i];
+    		property[element.name]=element.value;
+    	}
+    	property.I_MBID=selectTemplate.ID;
+    	var oldData = null;
+    	feature.setProperties(property);
+    	var geoJson = geojsonFormat.writeFeature(feature);
+    	//新增 wkt 字段 by zzq 20171205
+    	var z_wkt =new ol.format.WKT();
+    	var C_WKT=z_wkt.writeFeature(feature);
+    	var data = {"C_ZQCODE":"200000","I_USERID":1,"I_MBID":1,"C_NR":geoJson,"C_WKT":C_WKT};
+    	if(selectFeatures.length===1){
+    		oldData = {ID:feature.getProperties().ID};
+    		data.ID=feature.getProperties().ID;
+    	}
+    	var ajaxData = [oldData,data,null,null];
+    	var callBack = {
+    		callback:function(res){
+    			$(".close-btn").click();
+    			feature.setStyle(defaultStyle);
+    			if(res&&res.currentObjects.ID){
+    				feature.setProperties({ID:res.currentObjects.ID});
+    			}
+    			if(selectFeatures.length===1){
+    				selectFeatures[0].setProperties(feature.getProperties());
+    				selectFeatures = [];
+    			}
+    			editEnd();
+    		},
+    		exceptionHandler:function(err){
+    			alert(err);
+    		}
+    	};
+    	FsService.save("GZGL_LAYER",JSON.stringify(ajaxData),callBack);
+    }
+    /**
+     * 删除方法
+     * @param f ol.feature 
+     * */
+    function del(f){
+    	if(!confirm("确定删除？")){
+    		restore();
+    		return;
+    	}
+    	var ID = f.getProperties().ID;
+    	if(ID){
+    		var delFilter = {
+    				whereString:"ID = "+ID
+    		};
+    		var callBack = {
+    				callback:function(res){
+    					var feaArr = layer.getSource().getFeatures();
+    					var newFeaArr = [];
+    					for(var i=0;i<feaArr.length;i++){
+    						var feature = feaArr[i];
+    						if(feature.getProperties().ID==f.getProperties().ID){
+    							layer.getSource().removeFeature(feature);
+    						}
+    					}
+    					editEnd();
+    					
+    				},
+    				exceptionHandler:function(err){
+    					alert(err);
+    	    		}
+    		};
+    		FsService.del("GZGL_LAYER",delFilter,callBack);
+    	}
+    }
+    /**
+     * 保存编辑后要素
+     */
+    function saveModifyFun(feature){
+    	var oldData = null;
+    	feature.setProperties({AREA:util.getArea(feature.getGeometry())});
+    	var geoJson = geojsonFormat.writeFeature(feature);
+    	//新增 wkt 字段 by zzq 20171205
+    	var z_wkt =new ol.format.WKT();
+    	var C_WKT=z_wkt.writeFeature(feature);
+    	var data = {"C_ZQCODE":"200000","I_USERID":1,"I_MBID":1,"C_NR":geoJson,"C_WKT":C_WKT};
+    	if(selectFeatures.length===1){
+    		oldData = {ID:feature.getProperties().ID};
+    		data.ID=feature.getProperties().ID;
+    	}
+    	var ajaxData = [oldData,data,null,null];
+    	var callBack = {
+    		callback:function(res){
+    			if(selectFeatures.length===1){
+    				selectFeatures[0].setGeometry(feature.getGeometry());
+    			}
+    		},
+    		exceptionHandler:function(err){
+    			alert(err);
+    		}
+    	};
+    	FsService.save("GZGL_LAYER",JSON.stringify(ajaxData),callBack);
+    }   
+    /**
+    *保存，编辑，删除等编辑操作结束后的处理方法；
+    *用于清空状态；
+    */
+    function editEnd(){
+    	var tipMsg = "";
+    	switch(toolType){
+    	case 'add'://
+    		addTool.setActive(false);
+    		layer.getSource().addFeature(createFeature);
+    		tipMsg = "保存成功！";
+    		break;
+    	case 'param':
+    		selectTool.setActive(false);
+    		modifyTool.setActive(false);
+    		tipMsg = "保存成功！";
+    		break;
+    	case 'del':
+    		selectTool.setActive(false);
+    		modifyTool.setActive(false);
+    		tipMsg = "删除成功！";
+    		break;
+    	case 'union':
+    		tipMsg = "合并成功！";
+    		break;
+    	case 'cut':
+    		cutTool.setActive(false);
+    		tipMsg="分割成功！";
+    		break;
+    	case 'trim':
+    		splitTool.setActive(false);
+    		tipMsg="修边成功！";
+    		break;
+    	}
+    	createFeature=null;
+    	selectFeatures=[];
+    	restore();
+    	alert(tipMsg);
+    }
+    /**
+     * 清除
+     */
+    function clear() {
+    	if(layer.getSource().getFeatures().length>0){
+    		layer.getSource().clear();
+    	}
+    	selectTool.setActive(false);
+    	addTool.setActive(false);
+    	modifyTool.setActive(false);
+    	cutTool.setActive(false);
+    	restore();
+    }
+    function restore(){
+    	//恢复鼠标样式
+        document.getElementById("map").style.cursor = "";
+    }
+    /**
+     * 刷新修改的图层
+     */
+    function refresh(){
+        var m=map.getMap();
+        var v=m.getView();
+        var c=v.getCenter();
+        c[1]=c[1]+0.000001;
+        v.setCenter(c)
+        map.render();
+    }
+    return {
+        start: start,
+        clear: clear,
+        init:init
+    }
+});

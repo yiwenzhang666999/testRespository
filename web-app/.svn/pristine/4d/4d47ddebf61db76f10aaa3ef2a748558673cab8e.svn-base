@@ -1,0 +1,398 @@
+package com.forestar.report.controller;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.util.CellRangeAddress;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.service.BaseService;
+
+@Controller
+public class ExportController {
+	@Resource(name = "baseService")
+	public BaseService baseService;
+	public void setBaseDataService(BaseService service) {
+		this.baseService = service;
+	}
+	@RequestMapping(value = "/exportData.web")
+	@ResponseBody
+	public void exportSheets(HttpServletRequest req, HttpServletResponse res, 
+			HttpSession session,List<RowBase> dataLists,
+			Map<String,Map<String,String>> codeMaps,
+			Map<String,Map<String,String>> ptCodeMaps,
+			Map<String,String> zqCodeMap,
+			Map<String,String> rowSpans,
+			Map<String,String> colSpans,
+			Map<String,String> fieldSorts,
+			String hzfiled
+		) throws Exception {
+		IReport ir= new IReport();
+		List<List<Map<String, String>>> sheetData = new ArrayList<List<Map<String, String>>>();
+		Map result = Excel(ir,dataLists,codeMaps,zqCodeMap,ptCodeMaps,rowSpans,colSpans,fieldSorts,hzfiled);
+		
+		String jsonStr = req.getParameter("data");
+		JSONObject jsonObj = JSON.parseObject(jsonStr);
+
+		String fileName =jsonObj.getString("fileName");
+		String sheetName =jsonObj.getString("sheetName");
+		String unitName =jsonObj.getString("unitName");
+		List<Map<String, String>> list=(List<Map<String, String>>) result.get("return");
+		int[][]bodySpan=(int[][]) result.get("bodySpan");
+		String[][]headSpan=(String[][]) result.get("headSpan");
+		int sumColSpan=Integer.parseInt(result.get("sumColSpan").toString());
+		sheetData.add(list);
+		fileName = java.net.URLEncoder.encode(fileName + ".xls", "utf-8");
+		HSSFWorkbook wb = genExcel(list,sheetName,ir.getFileds().split(","),ir.getFiledNames().split(","),bodySpan,headSpan,unitName,sumColSpan);
+		
+		if (!fileName.endsWith(".xls"))fileName += ".xls";
+		res.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+		res.setContentType("application/vnd.ms-excel; charset=gb2312");
+		String path=req.getSession().getServletContext().getRealPath("/")+"upload/";
+		//判断是否upload文件夹，如果没有，则创建
+		File wjj=new File(path);
+		if (!wjj.exists()) {
+			wjj.mkdir();
+		}
+		
+		File dir = new File(path);
+		File file = new File(dir,jsonObj.getString("fileName")+".xls");
+		
+		FileOutputStream out = new FileOutputStream(file);
+		wb.write(out);
+		out.close();
+		System.out.println("报表结束时间："+new Date().getTime());
+	}
+	private HSSFWorkbook genExcel(List<Map<String, String>> dataList,
+			String moduleName, String[] queryFields,
+			String[] displayFields,int[][]bodySpan,String[][]headSpan,String unitName,int sumColSpan){
+		HSSFWorkbook wb = new HSSFWorkbook();
+		HSSFSheet sheet = wb.createSheet(moduleName == null ? "sheet1" : moduleName);
+		
+		HSSFFont headerFont = wb.createFont();
+		headerFont.setFontName("黑体");
+		headerFont.setBoldweight((short)150);
+		headerFont.setFontHeightInPoints((short)14);
+		HSSFCellStyle headerStyle = wb.createCellStyle();
+		headerStyle.setAlignment((short)2);
+		headerStyle.setVerticalAlignment((short)1);
+		headerStyle.setFont(headerFont);
+		
+		HSSFFont subheadFont = wb.createFont();
+		subheadFont.setFontName("黑体");
+		subheadFont.setBoldweight((short)150);
+		subheadFont.setFontHeightInPoints((short)13);
+		HSSFCellStyle subheadStyle = wb.createCellStyle();
+		subheadStyle.setAlignment((short)2);
+		subheadStyle.setVerticalAlignment((short)1);
+		subheadStyle.setFont(subheadFont);
+		
+		HSSFFont unitFont = wb.createFont();
+		unitFont.setFontName("黑体");
+		unitFont.setBoldweight((short)150);
+		unitFont.setFontHeightInPoints((short)13);
+		HSSFCellStyle unitStyle = wb.createCellStyle();
+		unitStyle.setAlignment((short)3);
+		unitStyle.setVerticalAlignment((short)1);
+		unitStyle.setFont(unitFont);
+		
+		HSSFFont titleFont = wb.createFont();
+		unitFont.setFontName("黑体");
+		titleFont.setFontHeightInPoints((short)13);
+		titleFont.setBoldweight((short)150);
+		HSSFCellStyle titleStyle = wb.createCellStyle();
+		titleStyle.setAlignment((short)2);
+		titleStyle.setVerticalAlignment((short)1);
+		titleStyle.setFillForegroundColor((short)31);
+		titleStyle.setFillPattern((short)1);
+		titleStyle.setFont(titleFont);
+		titleStyle.setBorderTop((short)1);
+		titleStyle.setBorderLeft((short)1);
+		titleStyle.setBorderRight((short)1);
+		titleStyle.setBorderBottom((short)6);
+		
+		HSSFCellStyle contentStyle = wb.createCellStyle();
+		contentStyle.setBorderBottom((short)1);
+		contentStyle.setBorderLeft((short)1);
+		contentStyle.setBorderRight((short)1);
+		contentStyle.setBorderTop((short)1);
+		
+		contentStyle.setAlignment((short)2);
+		contentStyle.setVerticalAlignment((short)1);
+		
+		HSSFRow row = sheet.createRow(0);
+		row.setHeightInPoints(20.0F);
+		sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, displayFields.length - 1));
+		HSSFCell cell = row.createCell(0);
+		cell.setCellValue(moduleName);
+		cell.setCellStyle(headerStyle);
+		
+		row = sheet.createRow(1);
+		row.setHeightInPoints(15.0F);
+		sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, displayFields.length - 1));
+		cell = row.createCell(0);
+		cell.setCellValue(unitName);
+		cell.setCellStyle(unitStyle);
+		
+		row = sheet.createRow(2);
+		row.setHeightInPoints(15.0F);
+		sheet.addMergedRegion(new CellRangeAddress(2, 2, 0, displayFields.length - 1));
+		cell = row.createCell(0);
+		cell.setCellValue("表格生成时间：" + DateFormatUtils.format(new Date(), "yyyy年MM月dd日 HH:mm:ss"));
+		cell.setCellStyle(subheadStyle);
+		
+		//报表表头
+		for(int i=3;i<5;i++){
+			row = sheet.createRow(i);
+			row.setHeightInPoints(15.0F);
+			for (int j = 0; j < displayFields.length; j++) {
+				cell = row.createCell(j);
+				int headrow=i-3;
+				int headcol=j;
+				if(headrow<headSpan.length&&headcol<headSpan[headrow].length){
+					String isSpan=headSpan[headrow][headcol];
+					if(isSpan!=null){
+						String isfiled=isSpan.substring(0,isSpan.length()-1);
+						if(isSpan.indexOf("r")>-1){//跨行
+							int t=Integer.parseInt(isfiled);
+							sheet.addMergedRegion(new CellRangeAddress(i,(i+t-1),j, j));
+							cell.setCellValue(displayFields[j]);
+						}else if(isSpan.indexOf("c")>-1){//跨列
+							int t=Integer.parseInt(isfiled);
+							sheet.addMergedRegion(new CellRangeAddress(i,i,j,j+t-1));
+							cell.setCellValue(displayFields[j]);
+						}else{
+							cell.setCellValue(isSpan);//显示字典项
+						}
+					}
+				}else{
+					cell.setCellValue(displayFields[j]);
+				}
+				cell.setCellStyle(titleStyle);
+				int kd=1250;
+				if(displayFields[j].length()>1){
+					kd=kd*displayFields[j].length();
+				}else{
+					kd=2500;
+				}
+				sheet.setColumnWidth(j, kd);
+			}
+		}
+		//报表数据
+		int count = 5;
+		for(int i=0;i<dataList.size();i++){
+			row = sheet.createRow(count++);
+			Map data =null;
+		    for(int j=0;j<queryFields.length;j++){
+	    		data = (Map)dataList.get(i);
+		        String key = queryFields[j];
+		        cell = row.createCell(j);
+		    	if(i==0&&j==0){
+		    		sheet.addMergedRegion(new CellRangeAddress(5, 5, j, j+sumColSpan));
+		        	cell.setCellValue("合计");
+		    	}else if(i==0&&j>0&&j<sumColSpan){
+		    		
+		    	}else{
+			        Object value = data.get(key);
+			        if (value != null) {
+						if(i<bodySpan.length&&j<bodySpan[i].length){
+							int isSpan=bodySpan[i][j];
+							if(isSpan==0){
+								if(!"0".equals(value)){
+						        	cell.setCellValue(value.toString());
+								}
+							}else if(isSpan>0){
+								int startrow=i+5;
+								int rowspan=startrow+isSpan;//ex中起始行为1，所以此处不用加1；
+								sheet.addMergedRegion(new CellRangeAddress(startrow, rowspan, j, j));
+								if(!"0".equals(value)){
+						        	cell.setCellValue(value.toString());
+								}
+							}
+						}else{
+							if(!"0".equals(value)){
+					        	cell.setCellValue(value.toString());
+							}
+						}
+			        }
+		    	}
+		        cell.setCellStyle(contentStyle);
+		    }
+		}
+		return wb;
+	}
+	public Map Excel(IReport ir,List<RowBase> dataLists,
+			Map<String,Map<String,String>> codeMaps,
+			Map<String,String> zqCodeMap,
+			Map<String,Map<String,String>> ptCodeMap,
+			Map<String,String> rowSpans,
+			Map<String,String> colSpans,
+			Map<String,String> fieldSorts,
+			String hzfiled
+		) throws ServiceException{
+		
+		long startTime=new Date().getTime();
+		long getDataStartTime=0;
+		long getDataEndTime=0;
+		long irStartTime=0;
+		long irEndTime=0;
+		System.out.println("开始时间："+startTime+"毫秒");
+		List<RowBase> dataList=dataLists;
+		Map<String,Map<String,String>> codeMap=codeMaps;
+		Map<String,String> rowSpan=rowSpans;
+		Map<String,String> colSpan=colSpans;
+		Map<String,String> fieldSort=fieldSorts;
+		Map map=null;
+		if(fieldSort==null){
+			fieldSort=new LinkedHashMap<String,String>();
+			fieldSort.put("XIAN","县");
+			fieldSort.put("XIANG","乡");
+			fieldSort.put("CUN","村");
+			fieldSort.put("MIAN_JI","面积");
+			fieldSort.put("QI_YUAN","起源");
+			fieldSort.put("DI_LEI","地类");
+		}
+		if(rowSpan==null){
+			rowSpan=new LinkedHashMap<String,String>();
+			rowSpan.put("XIAN","县");
+			rowSpan.put("XIANG","乡");
+			rowSpan.put("CUN","村");
+		}
+		if(colSpan==null){
+			colSpan=new LinkedHashMap<String,String>();
+			colSpan.put("QI_YUAN","起源");
+			colSpan.put("DI_LEI","地类");
+		}
+		if(dataList==null){
+			QueryFilter qf= new QueryFilter();
+			qf.setWhereString("OBJECTID<=100");
+//			qf.setWhereString("SQS='350200'");
+			String rows=rowSpan.keySet().toString();
+			rows=rows.substring(1,rows.length()-1).replaceAll(" ", "");
+			qf.setOrderByString(rows);
+			String fileds=fieldSort.keySet().toString();
+			fileds=fileds.substring(1,fileds.length()-1).replaceAll(" ", "");
+			qf.setSelectFields(fileds);
+			getDataStartTime=new Date().getTime();
+			System.out.println("获取数据开始时间："+getDataStartTime+"毫秒");
+			dataList=baseService.getDataTable("LXXB_P", qf);
+			getDataEndTime=new Date().getTime();
+			System.out.println("获取数据结束时间："+getDataEndTime+"毫秒");
+		}if(codeMap==null){
+			String instr="";
+			for(String code : colSpan.keySet()){
+				instr+=colSpan.get(code)+"','";
+			}
+			instr=instr.substring(0,instr.length()-3);
+			codeMap =new LinkedHashMap<String,Map<String,String>>();
+			QueryFilter qf= new QueryFilter();
+			qf.setWhereString("C_DOMAINNAME in ('"+instr+"') and L_JB>1");
+			qf.setOrderByString("C_DOMAINNAME,C_CODE");
+			List<RowBase> codeList=baseService.getDataTable("FL_SYS_ZYSJZD", qf);
+			if(codeList.size()!=0){
+				for(String code : colSpan.keySet()){
+					codeMap=getMap(codeMap,codeList,code,colSpan.get(code));
+				}
+			}
+		}
+		irStartTime=new Date().getTime();
+		System.out.println("拼装报表开始时间："+irStartTime+"毫秒");
+		map=getTempReportDataFn(ir,dataList, codeMap, zqCodeMap,ptCodeMap, rowSpan,colSpan, fieldSort,hzfiled);
+		irEndTime=new Date().getTime();
+		System.out.println("拼装报表开始时间："+irEndTime+"毫秒");
+		long endTime=new Date().getTime();
+		long time=endTime-startTime;
+		System.out.println("结束时间："+endTime+"毫秒");
+		System.out.println("运行时间："+time+"毫秒");
+		return map;
+	}
+	public Map<String,Map<String,String>> getMap(Map<String,Map<String,String>> coedmap,List<RowBase> codeList,String code,String codeName){
+		Map map=new LinkedHashMap<String,String>();
+		for(RowBase row : codeList){
+			Map temp=row.getOriginalObjects();
+			Object key=temp.get("C_CODE");
+			Object value=temp.get("C_NAME");
+			Object dname=temp.get("C_DOMAINNAME");
+			/*Object key=temp.get("C_CODE");
+			Object value=temp.get("C_DESCRIBE");
+			Object dname=temp.get("C_DOMAINNAME");*/
+			if(dname.equals(codeName)){
+				map.put(key, value);
+			}
+		}
+		coedmap.put(code, map);
+		return coedmap;
+	}
+	
+	/**
+	 * 请求报表的数据成功
+	 */
+	public Map getTempReportDataFn(IReport ir,List<RowBase> dataList,Map<String,Map<String,String>> codeMap,
+			Map<String,String> zqCodeMap,
+			Map<String,Map<String,String>> ptCodeMap,
+			Map<String,String> rowSpan,
+			Map<String,String> colSpan,
+			Map<String,String> fieldSort,
+			String hzfiled) {
+		if (null == dataList || dataList.size()==0) {
+			return null;
+		}
+		//列合并字段和字段顺序
+		String row=rowSpan.keySet().toString();
+		String [] rowumnNames=row.substring(1,row.length()-1).split(", ");
+		
+		//行合并字段和字段顺序
+		String colName=colSpan.values().toString();
+		String columnNames=colName.substring(1,colName.length()-1);
+
+		String colkey=colSpan.keySet().toString();
+		String colNames=colkey.substring(1,colkey.length()-1);
+
+		//报表字段和字段顺序
+		String cols=fieldSort.keySet().toString();
+		String [] fieldSorts=cols.substring(1,cols.length()-1).split(", ");
+
+		String SortNames=fieldSort.values().toString();
+		String [] NameSorts=SortNames.substring(1,SortNames.length()-1).split(", ");
+		int sumColSpan =cols.substring(1,cols.length()-1).split(",").length-(cols.substring(1,cols.length()-1).replace(row.toString().substring(1,row.length()-1), "")).split(", ").length;
+		//拼装表头
+		String headHtml=ir.dplitJointHead("","",dataList, fieldSorts,NameSorts,columnNames,codeMap);
+		//统计数据
+		List<Map<String, String>> TotalList= ir.TotalRow(dataList,rowumnNames,colNames,zqCodeMap,hzfiled,ptCodeMap);
+		//获取合并行列
+		int[][] bodySpan=ir.mergeBody(TotalList,rowumnNames);
+		//获取合并行列
+		String[][] headSpan=ir.mergeHead(TotalList,colNames,codeMap);
+		Map map=new HashMap();
+		map.put("return", TotalList);
+		map.put("bodySpan", bodySpan);
+		map.put("headSpan", headSpan);
+		map.put("sumColSpan", sumColSpan);
+		return map;
+	}
+}

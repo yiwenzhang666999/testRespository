@@ -1,0 +1,27 @@
+QueryFilter = {
+	selectFields : "*",
+	whereString : "",
+	groupByString : "",
+	orderByString : "",
+	fillChild : "",
+	isSpaceQueryFilter : false
+}
+
+//QueryFilter.prototype.setSelectFields = function(value){
+//	this.selectFields = value;
+//}
+//QueryFilter.prototype.setWhereString = function(value){
+//	this.whereString = value;
+//}
+//QueryFilter.prototype.setGroupByString = function(value){
+//	this.groupByString = value;
+//}
+//QueryFilter.prototype.setOrderByString = function(value){
+//	this.orderByString = value;
+//}
+//QueryFilter.prototype.setFillChild = function(value){
+//	this.fillChild = value;
+//}
+//QueryFilter.prototype.setIsSpaceQueryFilter = function(value){
+//	this.isSpaceQueryFilter = value;
+//}

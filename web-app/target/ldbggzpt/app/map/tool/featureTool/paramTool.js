@@ -1,0 +1,1 @@
+define(function(){function a(h,c){if(h){var b=h.getProperties().I_MBID;var e=null;for(var d=0;d<templates.length;d++){var g=templates[d];if(g.ID==b){e=g}}c(null,h,templates[0])}else{mini.alert("请选择一个图形！","温馨提示")}}return{handler:a}});

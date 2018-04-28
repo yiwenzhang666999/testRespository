@@ -1,0 +1,22 @@
+# 全局日志输出控制
+log4j.rootLogger=ERROR,Console,R
+# 包级别日志输出控制
+log4j.logger.com.forestar=ERROR
+log4j.logger.com.forestar.fremarker=ERROR
+log4j.logger.com.forestar.data.dao=ERROR
+log4j.logger.com.forestar.data.core.InitMetaDataTable=ERROR
+log4j.logger.org.springframework=ERROR
+log4j.logger.com.ibatis=ERROR
+
+# 日志输出为控制台Console
+log4j.appender.Console=org.apache.log4j.ConsoleAppender
+log4j.appender.Console.layout=org.apache.log4j.PatternLayout
+log4j.appender.Console.layout.ConversionPattern=%-d{yyyy-MM-dd HH:mm:ss} [%c]-[%p] %m%n
+
+# 日志输出为文件
+log4j.appender.R=org.apache.log4j.RollingFileAppender
+log4j.appender.R.layout=org.apache.log4j.PatternLayout
+log4j.appender.R.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} [%t] [%c] [%p] - %m%n
+log4j.appender.R.File=${catalina.base}/logs/fs_log.log
+log4j.appender.R.MaxFileSize=2048KB
+log4j.appender.R.MaxBackupIndex=20

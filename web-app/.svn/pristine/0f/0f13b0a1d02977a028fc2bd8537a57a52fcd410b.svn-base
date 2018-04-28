@@ -1,0 +1,151 @@
+/**
+ * 加载树形结构
+ */
+define(["treeHelper", "severZtree"], function (treeHelper, severZtree) {
+    'use strict';
+    var flag = 0;
+    var datas = [];
+    var setting = { // 控制第一层展开
+        expandLevel: 1
+    };
+    var tree = treeHelper.getTree("zyjg", setting, []);
+    function init() {
+    	var userid=-1;
+    	if(userObj&&userObj.userId){
+    		userid=userObj.userId;
+    	}
+        var treeHelper1 = treeHelper;
+        getData('FS_BUSINESS_USERBUSLAYERS', "I_USERID = '" + userid + "' And C_APPID = '" + window.appid_ +"'", treeHelper1, 'C_SHENG,C_XIAN,I_LYRORDERID'); // 变化地块 "I_USERID = '" + user_ +"' And C_APPID = '" + appId + "'";
+        getData('FS_BUSINESS_USERCUSLAYERS', "I_USERID = '" + userid + "'", treeHelper1, 'I_ID, I_LYRORDERID'); // 业务数据 
+    }
+    /**
+     * 查询数据库获取树形结构数据
+     * @param  {} tableName
+     * @param  {} whereString 查询条件
+     * @param  {} treeHelper
+     */
+    function getData(tableName, whereString, treeHelper, orderString) {
+        var queryParam = {};
+        queryParam.whereString = whereString;
+        queryParam.orderByString = orderString;
+        FsService.getEntityList(tableName, queryParam, {
+            callback: function (result) {
+                dataProcessing(result, treeHelper, tableName);
+            },
+            xceptionHandler: function (e) {
+            },
+        });
+    }
+    /**
+     * 查询数据库后数据处理
+     * @param  {} data 
+     * @param  {} treeHelper 
+     * @param  {} tableName 
+     */
+    function dataProcessing(data, treeHelper, tableName) {
+        flag += 1;
+        if (tableName == "FS_BUSINESS_USERBUSLAYERS") { // 变化地块
+            var temp1 = {};
+            temp1.id = "bhdk";
+            temp1.pid = -1;
+            temp1.text = "变化地块";
+            temp1.showAdd = true;
+            temp1.isQuery = true;
+            temp1.layerName = "变化地块";
+            temp1.type = "bhdk";
+            temp1.jb = 1;
+            temp1.children = [];
+            for (var i = 0; i < data.length; i++) {
+                var obj1 = data[i].originalObjects;
+                if (obj1.C_XIAN == '' || obj1.C_XIAN == null) { // 省
+                    var temp2 = {};
+                    temp2.id = "bhdk" + obj1.I_ID;
+                    temp2.text = obj1.C_SHENGNAME;
+                    temp2.children = [];
+                    var xianCode = ''; // 记录每一个省的县代码，使其不重复
+                    for (var j = 0; j < data.length; j++) {
+                        var obj2 = data[j].originalObjects;
+                        if (obj1.I_ID == obj2.I_PARID && xianCode != obj2.C_XIAN) { // 有子节点 
+                            var temp3 = {};
+                            xianCode = obj2.C_XIAN;
+                            temp3.id = "bhdk" + obj2.I_ID;
+                            temp3.i_id = obj2.I_ID;
+                            temp3.i_pid = obj2.I_PARID;
+                            temp3.text = obj2.C_XIANNAME;
+                            temp3._data = { xian: obj2.C_XIAN, type: 'bhdk',nd:obj2.C_WORKYEAR };
+                            temp3.showDel=true;
+                            temp3.xian = xianCode; 
+                            temp2.children.push(temp3);
+                        }
+                    }
+                    temp1.children.push(temp2);
+                }
+            }
+            // 获取三级节点以下的更多节点,组织新的树形结构
+            var oldTreeNode = temp1.children;
+            var newTreeNode = [];
+            for (var k = 0; k < oldTreeNode.length; k++) {
+                var tempNode = oldTreeNode[k].children;
+                for (var j = 0; j < tempNode.length; j++) {
+                    var pid = tempNode[j].i_pid;
+                    var temp = getChildren(pid,4,tempNode[j]._data.xian);
+                    tempNode[j].children = temp;
+                }
+                newTreeNode.push(tempNode);
+                /**
+                 * 递归获取子节点
+                 * @param  {} pid
+                 */
+                function getChildren(pid,jb,xianCode) { 
+                    var tempArray = [];
+                    for (var i = 0; i < data.length; i++) {
+                        var obj = data[i].originalObjects;
+                        var obj_pid = obj.I_PARID;
+                        if (pid == obj_pid && xianCode ==obj.C_XIAN) {
+                            tempArray.push({ id: 'bhdk' + obj.I_ID + "_tb0", text: obj.C_DATANAME,showMore: true,  iconType: (jb == 5 ? 2 : undefined), children: getChildren(obj.I_ID,jb+1,obj.C_XIAN), _data: { xian: obj.C_XIAN, type: 'bhdk', layerName:obj.C_DATANAME, isQuery: true, edit: true, nd:obj.C_WORKYEAR } });
+                        }
+                    }
+                    return tempArray;
+                }
+            }
+            datas.push(temp1);
+        } else { // 业务数据
+            var temp1 = {};
+            temp1.id = "ywsj";
+            temp1.pid = -1;
+            temp1.text = "业务数据";
+            temp1.showAdd = true;
+            temp1.children = [];
+            for (var i = 0; i < data.length; i++) {
+                var obj1 = data[i].originalObjects;
+                var temp2 = {};
+                temp2.id = obj1.I_ID;
+                temp2.layerId = obj1.I_ID;
+                temp2.text = obj1.C_DATANAME;
+                temp2.isQuery = true;
+                temp2.showDel = true;
+                temp2.edit = true;
+                temp2.type = 'z';
+                temp2.layerName = '业务数据';
+                temp2._data = { layerId: obj1.I_ID, type: 'ywsj' }
+                temp1.children.push(temp2);
+            }
+            datas.push(temp1);
+        }
+        if (flag == 2) {
+            datas.sort(function (a, b) {
+                if (a.text == "变化地块") {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            })
+            var tree = treeHelper.getTree("zyjg");
+            tree.addNodes(datas[0]);
+            tree.addNodes(datas[1]);
+        }
+    }
+    return {
+        init: init
+    }
+});

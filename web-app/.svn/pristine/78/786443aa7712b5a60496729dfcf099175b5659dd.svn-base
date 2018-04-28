@@ -1,0 +1,599 @@
+/**
+ * 查询功能；
+ * */
+define(['map', 'config', 'treeHelper', 'queryLayer','managerTool','paramTool'], function (map, config, treeHelper, queryLayer,managerTool,paramTool) {
+	'use strict';
+	var layer;//高亮图层
+	var coor;
+	var zoom;
+	var tableName = "LDXB_PY";//目前只有一个林地小班进行查询，目前写死和config里配置一样
+	var checkElements = [];
+	var queryLayer;
+	var lastSelectLayer;
+	var pop_tml = '<div id="map_popup" style="padding:45px 15px 25px 15px;" class="ol-popup">'
+		+'<a style="position:absolute;top:7px;left:15px;font-weight:bold" class="sxcx"><h5>概要信息</h5></a>'
+		+'<div style="height:2px;  width:100%; position: absolute;left: 1px;top:34px;border-bottom:solid 2px  #DDDDDD"></div>'
+    	+ '  <a href="#" id="popup-edit" style= "position: absolute;bottom: 3px;right:50px;font-size: 1em;color: green;font-weight: bold;">编辑</a>'
+		+ '<a href="#" id="popup-detail" class="ol-popup-detail"><h5>详情</h5></a>'
+		+ '<a href="#" id="popup-closer" class="ol-popup-closer"></a>'
+		+ '<div id="popup-content"></div>'
+		+ '</div>';
+	var detail_tml;
+	var shzt_status={
+			"0":"未审核",
+			"1":"通过",
+			"2":"通过（已修改）",
+			"3":"重做",
+			"-1":"没变化"
+	}
+	var decimal2 = function decimal2(value) {
+		if (typeof value === 'number' || Number(value)) {
+			if (!value) {
+				return "--"
+			} else {
+				return Math.round(parseFloat(value) * 100) / 100;
+			}
+		} else {
+			if (!value) {
+				value = "--";
+			} else {
+				if (value.trim) {
+					value = value.trim();
+				}
+				if (!value) {
+					value = "--";
+				} else {
+					if (value && value.trim()) {
+						var reg = /[\u4e00-\u9fa5]/g;
+						var strvalue = value.replace(reg, "");
+						if (strvalue != "" && Number(strvalue) == 0) {
+							value = '--';
+						} else if (Number(strvalue)) {
+							value = Number(strvalue).toFixed(2);
+						}
+					}
+				}
+
+			}
+			return value || '--';
+		}
+	};
+	var geojsonFormat = new ol.format.GeoJSON();
+	var wktFormat = new ol.format.WKT();
+	function init() {
+		initMapEvent();
+	}
+	function initMapEvent() {
+		//地图点击事件，I建查询
+		map.getMap().on('click', function (event) {
+			if (window.istest_query) {
+				zoom = event.target.getView().getZoom();
+				if (!zoom > 9) {
+					return;
+				}
+				var olMap = map.getMap();
+				coor = event.coordinate;
+				var queryParam = {};
+				queryParam.XY = coor;
+				queryParam.typename = 'ldgx:LN_YD';
+				queryParam.url = config.geoQueryUrl;
+				queryParam.success = function (res) {
+					if (res) {
+
+					}
+				};
+				//queryLayer.query(queryParam);
+				var feature = olMap.forEachFeatureAtPixel(event.pixel, function (fea, layer) {
+					if (fea && layer) {
+						return fea;
+					}
+				}, {
+						"layerFilter": function (layer) {
+							if (layer === window.test_layer) {
+								return true;
+							} else {
+								return false;
+							}
+						}
+					});
+				handler_test(feature);
+			} else {
+				 zoom = event.target.getView().getZoom();
+				//获取固定的和不固定的选中项
+				checkElements = [];
+				var tree = treeHelper.getTree("zyjg");
+				var checkedNodes = tree.getCheckedNodes();
+				for (var i = 0; i < checkedNodes.length; i++) {
+					var item = checkedNodes[i];
+					item.isHave = function () {
+						for (var i = 0; i < checkElements.length; i++) {
+							if (checkElements[i]["_data"].layerName == this.text) {
+								return true;
+							}
+						}
+						return false;
+					}
+					if (item._data && item._data.isQuery && !item.isHave()) {
+						checkElements.push(item);
+					}
+				}
+
+
+
+
+
+				//TODO 级别控制影响，应用中的小班查询
+				if (!window.startTool&&zoom>13) {
+					var ldxbCheck = $('.mapType-wrapper .mapType .mapTypeCard.ldxb .clk').attr("checked");
+					if (zoom > 14 && ldxbCheck && (lastSelectLayer == "LDXB" || lastSelectLayer == undefined)) {
+						lastSelectLayer = "LDXB";
+
+					} else if (zoom > 13 && checkElements.length > 0) {
+						if(!lastSelectLayer || lastSelectLayer=="LDXB" || checkElements.length < lastSelectLayer){
+							lastSelectLayer = checkElements.length - 1;
+						}
+					}
+					coor = event.coordinate;
+					queryByCoor(lastSelectLayer);
+				}
+			}
+
+		});
+		map.getMap().on('moveend', function (event) {
+			var center = map.getMap().getView().getCenter();
+			queryZqNameByPoint(center);
+			//queryLayer.queryZqNameByPoint(center,mapMovedCallBack);
+		});
+	}
+	//地图移动完成监听
+	function queryZqNameByPoint(center) {
+		var l = map.getMap().getView().getZoom();
+		var jb = 1;
+		if (l <= 4) {
+			jb = 3;
+		} else if (l > 4 && l <= 6) {
+			jb = 4;
+		} else if (l > 6 && l <= 8) {
+			jb = 5;
+		} else if (l > 8) {
+			jb = 6;
+		}
+
+
+
+		var arrx = (center[0] + "").split(".");
+		var arry = (center[1] + "").split(".");
+		if (arrx.length > 2 || arry.length > 2) {
+			return;
+		}
+		var cen = center[0] + "/" + center[1];
+		$.ajax({
+			type: "GET",
+			url: config.publicService + "/ws/rest/LS/address/" + jb + "/" + cen,
+			dataType: "JSON",
+			success: function (data) {
+				if (data.name == "") {
+					document.getElementById("zyjg_jb_mc").textContent = "";
+				} else {
+					document.getElementById("zyjg_jb_mc").textContent = data.name + "";
+					$("#zyjg_jb_mc").attr("code", data["code"]);
+					var tj_XianCode = data["code"].substring(0,6);
+					$("#tjzq_where").val(tj_XianCode);
+				}
+			}
+		});
+	}
+	//移动回掉函数
+	function mapMovedCallBack(res) {
+		var data = typeof res == 'object' ? res : JSON.parse(res);
+		if (data && !$.isEmptyObject(data)) {
+
+			if (data.result.addressComponent.city.length > 0 && data.result.formatted_address.length > 6) {
+				$("#ldyzt_zqName").text(data.result.formatted_address);
+			} else {
+				$("#ldyzt_zqName").text('其他地区');
+			}
+		}
+	}
+
+	//根据坐标点查询
+	function queryByCoor(index) {
+		var option = {};
+		if (index!=null||index!=undefined) {
+			if (index == 'LDXB') {
+				if (config.isLoacl) {
+            		/**
+            		 * 调用ws服务
+            		 * */
+					var url = config.publicService + "/ws/rest/DS/linbanpoi/zyjg/" + coor[0] + "/" + coor[1];
+					queryLayer.query_ws(url, callback);
+				} else{
+					option.url = /*config.PROXY+"?"+*/config.queryUrl/*+"?"*/;
+					queryLayer.queryBySpace(coor, '2009', option, handlerywh);
+				}
+			} else {
+				var element = checkElements[index];
+				var type = element._data.type;
+				var layerId = element._data.layerId;
+				var nd = element._data.year || '2017';
+				option.queryType = type;
+				option.layerId = layerId;
+				queryLayer.queryBySpace(coor, nd, option, handler);
+			}
+		} 
+	}
+    /**
+     * 回调处理
+     * @param {object} res
+     */
+	function handler(res) {
+		if (res.success) {
+			var data = JSON.parse(res.data);
+			if (data && !$.isEmptyObject(data)) {
+				var feature;
+				if(data["C_STATUS"]&&data["C_STATUS"].length>0){
+					data["C_STATUS_DESC"]=shzt_status[data["C_STATUS"]];
+				}
+				$("#popup-closer").click();
+				if (res.type == 'bhdk') {
+					var geojson = {
+						type: 'Feature',
+						geometry: JSON.parse(data.shape),
+						properties: null
+					}
+					//高亮显示
+					//var feature = wktFormat.readFeature(data.shape);
+					feature = geojsonFormat.readFeature(geojson);
+					map.getLayerByName("CREATE_LAYER").setZIndex(100000);
+					map.getLayerByName("CREATE_LAYER").getSource().clear();
+					map.getLayerByName("CREATE_LAYER").getSource().addFeature(feature);
+					var detail = {
+						C_XIANNAME: "县", C_XIANG: "乡", C_CUN: "村",
+						C_XIAOBAN: "小班", C_WORKYEAR: "年度", I_LON_DEG: "经度", I_LAT_DEG: "纬度",
+						D_AREA: "面积（公顷）", C_YSBHYY: "疑似变化原因", C_HSBHYY: "核实变化原因", C_USERNAME:"判读人",DT_CREATETIME: "判读时间",C_CHECKUSERNAME: "审核人",DT_CHECKTIME: "审核时间",C_STATUS_DESC: "审核状态"
+					};
+					var simple = { C_XIANNAME: "县", C_XIANG: "乡", C_CUN: "村", C_XIAOBAN: "小班", C_WORKYEAR: "年度",C_USERNAME:"判读人",DT_CREATETIME:"判读时间",C_CHECKUSERNAME: "审核人",DT_CHECKTIME: "审核时间",C_STATUS_DESC: "审核状态" };
+					var simple_tml = [];
+					$.each(simple, function (key, value) {
+						var dataValue = decimal2(data[key]);
+						var str = '<tr style="height:30px;">'
+							+ '<td style="text-align:left; width: 109px;border-top:0.5px solid #DDDDDD;border-bottom:0.5px solid #DDDDDD;">' + value + '</td>'
+							+ '<td style="text-align:left; border-top:0.5px solid #DDDDDD;border-bottom:0.5px solid #DDDDDD">' + dataValue + '</td></tr>'
+						simple_tml.push(str);
+					});
+					detail_tml = [];
+					$.each(detail, function (k, v) {
+						var value = decimal2(data[k]);
+						var str = '<tr>'
+							+ '<td>' + v + '</td>'
+							+ '<td><span>' + value + '</span></td></tr>';
+						detail_tml.push(str);
+					});
+				} else {
+					var geojson = data.C_OBJINFO || "";
+					//高亮显示
+					//var feature = wktFormat.readFeature(data.shape);
+					feature = geojsonFormat.readFeature(geojson);
+					map.getLayerByName("CREATE_LAYER").setZIndex(100000);
+					map.getLayerByName("CREATE_LAYER").getSource().clear();
+					map.getLayerByName("CREATE_LAYER").getSource().addFeature(feature);
+					var data = feature.getProperties();
+					delete data.geometry;
+					detail_tml = [];
+					$.each(data, function (key, val) {
+						var value = decimal2(data[key]);
+						var str = '<tr>'
+							+ '<td>' + key + '</td>'
+							+ '<td><span>' + value + '</span></td></tr>';
+						detail_tml.push(str);
+					});
+					var simple_tml = detail_tml.slice(0, 4);
+				}
+				feature.setProperties({C_STATUS:data.C_STATUS,USERID:data.I_CREATEUSERID});
+				display(simple_tml.join(""),feature,res.zqCode);
+				$(".popup_table tbody tr:even td").css('background','#f8f8f8');
+				var str = '<tr style="height:30px;">'
+					+ '<td style="text-align:left;width:109px; border-top:0.5px solid #c5e6f4;border-bottom:0.5px solid #c5e6f4;"> 字段 </td>'
+					+ '<td style="text-align:left; border-top:0.5px solid #c5e6f4;border-bottom:0.5px solid #c5e6f4 ">值</td></tr>'
+				$(".popup_table tbody").prepend(str);
+				$(".popup_table tbody tr:eq(0)").css('background','#edf8ff');
+				
+			}
+		} else {
+			detail_tml = [];
+			display("","",res.zqCode);
+		}
+	}
+	function handlerywh(res) {
+		var data = typeof res == 'object' ? res : JSON.parse(res);
+		if (data && !$.isEmptyObject(data)) {
+			$("#popup-closer").click();
+			var geojson = {
+				type: 'Feature',
+				geometry: JSON.parse(data.geojson),
+				properties: null
+			}
+			//高亮显示
+			var feature = geojsonFormat.readFeature(geojson);
+			map.getLayerByName("CREATE_LAYER").setZIndex(100000);
+			map.getLayerByName("CREATE_LAYER").getSource().clear();
+			map.getLayerByName("CREATE_LAYER").getSource().addFeature(feature);
+			//弹窗
+			var detail = config.LDXB_PY['DETAILS'];
+			var simple = config.LDXB_PY['SIMPLE'];
+			var simple_tml = [];
+			$.each(simple, function (key, val) {
+				var dataValue = decimal2(data[key]);
+				if ((key == "xian_name") && dataValue == "--") {
+					dataValue = decimal2(data.linyeju_name);
+				}
+				if (key == "xiang_name" && dataValue == "--") {
+					dataValue = decimal2(data.lin_chang_name);
+				}
+				if (key == "cun_name" && dataValue == "--") {
+					dataValue = decimal2(data.lin_ban);
+				}
+				dataValue = Number(dataValue) ? Number(dataValue) : dataValue;
+				var str = '<tr style="height:30px;">'
+					+ '<td style="text-align:left; width: 109px;border-top:0.5px solid #DDDDDD;border-bottom:0.5px solid #DDDDDD;">' + val + '</td>'
+					+ '<td style="text-align:left; border-top:0.5px solid #DDDDDD;border-bottom:0.5px solid #DDDDDD">' + dataValue + '</td></tr>'
+				simple_tml.push(str);
+			})
+			detail_tml = [];
+			$.each(detail, function (key, val) {
+				var dataValue = decimal2(data[key]);
+				if ((key == "xian_name") && dataValue == "--") {
+					dataValue = decimal2(data.linyeju_name);
+				}
+				if (key == "xiang_name" && dataValue == "--") {
+					dataValue = decimal2(data.lin_chang_name);
+				}
+				if (key == "cun_name" && dataValue == "--") {
+					dataValue = decimal2(data.lin_ban);
+				}
+				dataValue = Number(dataValue) ? Number(dataValue) : dataValue;
+				var str = '<tr>'
+					+ '<td>' + val + '</td>'
+					+ '<td><span>' + dataValue + '</span></td></tr>'
+				detail_tml.push(str);
+			})
+			display(simple_tml.join(""),"",data.xian);
+			$(".popup_table tbody tr:even td").css('background','#f8f8f8');
+			var str = '<tr style="height:30px;">'
+				+ '<td style="text-align:left; border-top:0.5px solid #c5e6f4;border-bottom:0.5px solid #c5e6f4;width: 109px;"> 字段 </td>'
+				+ '<td style="text-align:left; border-top:0.5px solid #c5e6f4;border-bottom:0.5px solid #c5e6f4 "> 值 </td></tr>'
+			$(".popup_table tbody").prepend(str);
+			$(".popup_table tbody tr:eq(0)").css('background','#edf8ff');
+		}
+	}
+    /**
+     * 展示查询结果
+     */
+	function display(content,feature,zqCode) {
+		clear();
+		$("#popups").append(pop_tml);
+		var select = $("<select id='select' style='width:160px;'></select>");
+		for (var i = 0; i < checkElements.length; i++) {
+			var element = checkElements[i];
+			if(element["_data"].xian==zqCode){
+				var value = element["_data"].layerName;
+				//var text = $(element).siblings('span').text();
+				if ((lastSelectLayer && i == lastSelectLayer) ||
+					(!lastSelectLayer && i == checkElements.length - 1)) {
+					var option = "<option selected='selected' value='" + i + "'>" + value + "</option>";
+				} else {
+					var option = "<option value='" + i + "'>" + value + "</option>";
+				}
+				select.append(option);
+			}
+		}
+		var ldxbCheck = $('.mapType-wrapper .mapType .mapTypeCard.ldxb .clk').attr("checked");
+		if(zoom>14){
+			if ((!lastSelectLayer && ldxbCheck) || (lastSelectLayer == "LDXB")) {
+				var opt = "<option selected='selected' value='LDXB'>林地小班</option>";
+				select.append(opt);
+			} else if (ldxbCheck) {
+				var opt = "<option value='LDXB'>林地小班</option>";
+				select.append(opt);
+			}
+		}
+
+		var queryPopView = $("#map_popup");
+		if (checkElements.length > 0 || ldxbCheck) {
+			queryPopView.prepend(select);
+			queryPopView.prepend("<span>图层：</span>");
+		}
+		var cont = document.getElementById('popup-content');
+		var close = document.getElementById('popup-closer');
+		var detail = document.getElementById('popup-detail');
+		var edit = document.getElementById('popup-edit');
+		var popup = new ol.Overlay({
+			element: document.getElementById("map_popup")
+		});
+		map.getMap().addOverlay(popup);
+		cont.innerHTML = "<table class='popup_table'><tbody>" + content + "</tbody></table>";
+		popup.setPosition(coor);
+		select.on('change', function (e) {
+			if (e) {
+				lastSelectLayer = e.target.value;
+				queryByCoor(e.target.value);
+			}
+
+		});
+		//点击关闭
+		close.onclick = function () {
+			popup.setPosition(undefined);
+			close.blur();
+			map.getLayerByName("CREATE_LAYER").getSource().clear();
+		}
+		//点击详情
+		detail.onclick = function () {
+			var str = '<div class="zs-nicescroll zs-data-table" style="max-height:550px;"><table  style="width:300px;"><thead><tr>'
+				+ '<td class="blue-mark">字段</td>'
+				+ '<td><span>值</span></td>'
+				+ '</tr></thead><tbody>' + detail_tml.join("") + '</tbody></table></div>';
+			if (window.ldyzt_fullScreen) {
+				var fullScreenId = "map_continer";
+			} else {
+				var fullScreenId = null;
+			}
+			var ibox = $("#public_pop").modal({
+				title: '详情',
+				overlay: true,
+				showMin: true,
+				showMax: true,
+				showTop: true,
+				isDrag: true,
+				fullScreenId: fullScreenId,
+				type: 'clone',
+				target: str,
+				contentWidth: 350,
+				addCallBack: function () {
+					$(".zs-nicescroll").niceScroll({
+						cursorcolor: "#777",
+						cursorborder: "none",
+					});
+					popup.setPosition(undefined);
+					close.blur();
+				}
+			});
+			ibox.click();
+			$(".close-btn").bind("click", function () {
+				map.getLayerByName("CREATE_LAYER").getSource().clear();
+			})
+		}
+		// 变化地块显示编辑按钮，林地小班隐藏
+		if (feature&&feature.getProperties().USERID==userObj.userId&&["1","2"].indexOf(feature.getProperties().C_STATUS)==-1) {
+			$("#popup-edit").show();
+		} else {
+			$("#popup-edit").hide();
+		}
+		edit.onclick = function () {
+			$('#popup-closer').click();
+			managerTool.changeToolType('param');
+			paramTool.handler(feature, managerTool.popFun);
+		}
+	}
+	function handler_test(feature) {
+		if (feature) {
+			$("#popup-closer").click();
+			var data = feature.getProperties();
+			delete data.geometry;
+			//弹窗
+			var detail = config.test['DETAILS'];
+			var simple = config.test['SIMPLE'];
+			var simple_tml = [];
+			$.each(simple, function (key, val) {
+				var dataValue = decimal2(data[key]);
+				if ((key == "xian_name") && dataValue == "--") {
+					dataValue = decimal2(data.linyeju_name);
+				}
+				if (key == "xiang_name" && dataValue == "--") {
+					dataValue = decimal2(data.lin_chang_name);
+				}
+				if (key == "cun_name" && dataValue == "--") {
+					dataValue = decimal2(data.lin_ban);
+				}
+				dataValue = Number(dataValue) ? Number(dataValue) : dataValue;
+				var str = '<tr>'
+					+ '<td>' + val + '</td>'
+					+ '<td style="text-align: center;"><span>' + dataValue + '</span></td></tr>'
+				simple_tml.push(str);
+			})
+			detail_tml = [];
+			$.each(detail, function (key, val) {
+				var dataValue = decimal2(data[key]);
+				if ((key == "xian_name") && dataValue == "--") {
+					dataValue = decimal2(data.linyeju_name);
+				}
+				if (key == "xiang_name" && dataValue == "--") {
+					dataValue = decimal2(data.lin_chang_name);
+				}
+				if (key == "cun_name" && dataValue == "--") {
+					dataValue = decimal2(data.lin_ban);
+				}
+				dataValue = Number(dataValue) ? Number(dataValue) : dataValue;
+				var str = '<tr>'
+					+ '<td>' + val + '</td>'
+					+ '<td><span>' + dataValue + '</span></td></tr>'
+				detail_tml.push(str);
+			})
+			display_test(simple_tml.join(""));
+			$(".popup_table tbody tr:even td").css('background','#f8f8f8');
+			var str = '<tr style="height:30px;">'
+				+ '<td style="text-align:left;width:109px; border-top:0.5px solid #c5e6f4;border-bottom:0.5px solid #c5e6f4;"> 字段 </td>'
+				+ '<td style="text-align:left; border-top:0.5px solid #c5e6f4;border-bottom:0.5px solid #c5e6f4 ">值</td></tr>'
+			$(".popup_table tbody").prepend(str);
+			$(".popup_table tbody tr:eq(0)").css('background','#edf8ff');
+		}
+	}
+    /**
+     * 展示查询结果
+     */
+	function display_test(content) {
+		clear();
+		$("#popups").append(pop_tml);
+		var cont = document.getElementById('popup-content');
+		var close = document.getElementById('popup-closer');
+		var detail = document.getElementById('popup-detail');
+		var popup = new ol.Overlay({
+			element: document.getElementById("map_popup")
+		});
+		map.getMap().addOverlay(popup);
+		cont.innerHTML = "<table class='popup_table'><tbody>" + content + "</tbody></table>";
+		popup.setPosition(coor);
+		$("#popup-edit").hide();
+		$(".popup_table td").css('text-align','left');
+		//点击关闭
+		close.onclick = function () {
+			popup.setPosition(undefined);
+			close.blur();
+			map.getLayerByName("CREATE_LAYER").getSource().clear();
+		}
+		//点击详情
+		detail.onclick = function () {
+			var str = '<div class="zs-nicescroll zs-data-table" style="max-height:550px;"><table  style="width:300px;"><thead><tr>'
+				+ '<td class="blue-mark">字段</td>'
+				+ '<td><span>值</span></td>'
+				+ '</tr></thead><tbody>' + detail_tml.join("") + '</tbody></table></div>';
+			if (window.ldyzt_fullScreen) {
+				var fullScreenId = "map_continer";
+			} else {
+				var fullScreenId = null;
+			}
+			var ibox = $("#public_pop").modal({
+				title: '详情',
+				overlay: true,
+				showMin: true,
+				showMax: true,
+				showTop: true,
+				isDrag: true,
+				fullScreenId: fullScreenId,
+				type: 'clone',
+				target: str,
+				contentWidth: 350,
+				addCallBack: function () {
+					$(".zs-nicescroll").niceScroll({
+						cursorcolor: "#777",
+						cursorborder: "none",
+					});
+					popup.setPosition(undefined);
+					close.blur();
+				}
+			});
+			ibox.click();
+			$(".close-btn").bind("click", function () {
+				map.getLayerByName("CREATE_LAYER").getSource().clear();
+			})
+			
+		}
+	}
+	function clear() {
+		var overlays = map.getMap().getOverlays().getArray();
+		var length = overlays.length;
+		for (var j = 0; j < length; j++) {
+			map.getMap().removeOverlay(overlays[0]);
+		}
+	}
+	return { init: init };
+});

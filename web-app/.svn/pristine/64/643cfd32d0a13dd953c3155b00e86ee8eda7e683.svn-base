@@ -1,0 +1,63 @@
+/**
+ * 专题展示图层控制显示
+ */
+define([
+    'managerTool','measureMap'
+], function (managerTool,measureMap) {
+    'use strict';
+    function init() {
+    	window.templates=[];
+    	queryTemplate();
+    	bindTool();
+    }
+   /**
+    * 工具条点击事绑定
+    */
+    function bindTool(){
+        $(".board-qh .tool a").on("click",function(){
+            var $target = $(this);
+            var type = $target.attr("ref").split("_")[1];
+            managerTool.start(type)
+        })
+        $(".map-tool a").on("click",function(){
+        	var $target = $(this);
+        	if($target.attr("ref")){
+        		var type = $target.attr("ref").split("_")[1];
+        		managerTool.start(type)
+        	}
+        });
+        $("#length_nav").on('click',function(){
+        	$('.tool-qc').click();
+        	measureMap.line();
+        });
+        $("#area_nav").on('click',function(){
+        	 $('.tool-qc').click();
+        	 measureMap.area();
+        });
+    }
+    /**
+     * 查询模板
+     * **/
+    function queryTemplate(){
+    	var queryFilter = {
+    			whereString:"I_USERID=1",
+    			selectFields:"ID,I_USERID,C_TYPE,C_ZQCODE,C_NR"
+    	};
+    	var callBack={
+    			callback:function(res){
+    				if(res&&res.length>0){
+    					for(var i=0;i<res.length;i++){
+    						window.templates.push(res[i].originalObjects);
+    					}
+    				}
+    			},
+    			exceptionHandler:function(err){
+    				
+    			}
+    	};
+    	FsService.getEntityList("GZGL_MUBAN",queryFilter,callBack);
+    }
+    return {
+        init: init
+    }
+});

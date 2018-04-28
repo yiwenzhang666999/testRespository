@@ -1,0 +1,107 @@
+/**
+ * 
+ */
+package com.forestar.login;
+
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.jasig.cas.client.validation.Assertion;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.forestar.core.Config;
+import com.forestar.safe.login.LoginBase;
+
+/**
+ * @author wy
+ *
+ */
+@Controller
+public class LoginController extends LoginBase {
+
+	
+	
+	// ------------------------------------------------------------------------------
+	//
+	// Spring Security框架
+	//
+	// ------------------------------------------------------------------------------
+	/**
+	 * 
+	 * <p>
+	 * 集成 Spring Security的登出功能
+	 * </p>
+	 * 
+	 * @param req
+	 * @param resp
+	 * @param model
+	 * @return String
+	 * @throws Exception 
+	 */
+	@RequestMapping(value = "/logout.do")
+	public String logout(HttpServletRequest request, HttpServletResponse response, Model model) throws Exception {
+		Assertion assertion = (Assertion)request.getSession().getAttribute("_const_cas_assertion_");
+	    if (assertion != null) {
+	    	request.getSession().invalidate();
+	        this.resoucesClient.cleanModel();
+	    }
+	    request.getSession().invalidate();
+        this.resoucesClient.cleanModel();
+	    String logout=Config.getValue("cas.server")+"/logout";
+	    String url=request.getRequestURL().toString().replace("/logout.do", "/login.do");
+        return "redirect:"+logout+"?service="+url;
+	}
+
+	/**
+	 * 
+	 * <p>
+	 * 集成 Spring Security的登录功能
+	 * </p>
+	 * 
+	 * @param request
+	 * @param response
+	 * @param model
+	 * @return String
+	 * @throws Exception 
+	 */
+	@RequestMapping(value = "/login.do")
+	public String login(HttpServletRequest request, HttpServletResponse response, Model model)
+			throws Exception {
+		try {
+			Boolean bool=validationCasRequest(request);
+			if(bool){
+				return "forward:/index.do";
+			}else{
+				return "";
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	/**
+	 * 
+	 * <p>
+	 * 跳转首页页面
+	 * </p>
+	 * 
+	 * @param request
+	 * @param response
+	 * @param model
+	 * @return String
+	 * @throws Exception 
+	 */
+	@RequestMapping(value = "/index.do")
+	public String index(HttpServletRequest request, HttpServletResponse response, Model model)
+			throws Exception {
+		// TODO 增加业务功能
+		loginLog(request); // 登录日志
+		// 权限过滤
+//		changeResources(model, request);
+		return "/index";
+	}
+}

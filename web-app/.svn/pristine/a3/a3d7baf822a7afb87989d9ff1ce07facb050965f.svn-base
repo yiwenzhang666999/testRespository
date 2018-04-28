@@ -1,0 +1,182 @@
+/**
+ * 加载树形结构
+ */
+define(["treeHelper"],
+    function (treeHelper) {
+        'use strict';
+        function init() {
+            getData('FS_BUSINESS_USERBUSLAYERS', 'zyjg_bhdk', "I_USERID = 'admin' And C_APPID = 'ZYJG'"); // 变化地块 "I_USERID = '" + userId +"' And C_APPID = '" + appId + "'";
+            getData('FS_BUSINESS_USERCUSLAYERS', 'zyjg_ywsj', "I_USERID = '400'"); // 业务数据 "I_USERID = '" + userId +"'"
+        }
+        /**
+         * 查询数据库获取树形结构数据
+         * @param  {} tableName
+         * @param  {} nodeId 节点Id
+         * @param  {} whereString 查询条件
+         */
+        function getData(tableName, nodeId, whereString) {
+            var queryParam = {};
+            queryParam.whereString = whereString;
+            queryParam.orderByString = 'I_ID, I_LYRORDERID';
+            FsService.getEntityList(tableName, queryParam, {
+                callback: function (result) {
+                    if (result.length > 0) {
+                        dataProcessing(result, nodeId);
+                    } else {
+                        alert('查询结果为空！');
+                        closeAlert();
+                    }
+                },
+                xceptionHandler: function (e) {
+                    closeAlert();
+                },
+            });
+        }
+        /**
+         * 查询数据库后数据处理
+         * @param  {} data 
+         * @param  {} nodeId 节点ID
+         */
+        function dataProcessing (data, nodeId) {
+            var treeObj = $("#" + nodeId);
+            var datas = [];
+            for (var i = 0; i < data.length; i++) {
+                var obj1 = data[i].originalObjects;
+                var temp1 = {};
+                if (obj1.C_XIAN == '' || obj1.C_XIAN == null) { // 是一级节点
+                    temp1.id = obj1.I_ID;
+                    temp1.text = obj1.C_SHENGNAME;
+                    temp1.children = [];
+                    for (var j = 0; j < data.length; j++) {
+                        var obj2 = data[j].originalObjects;
+                        if (obj1.I_ID == obj2.I_PARID) { // 有子节点
+                            var temp2 = {};
+                            temp2.id =  obj2.I_PARID;
+                            temp2.text = obj2.C_XIANNAME;
+                            if (obj2.C_DATANAME) {
+                                temp2.children = [{text : obj2.C_DATANAME, xian: obj2.C_XIAN, type:'bhdk'}];
+                            }
+                            temp1.children.push(temp2);
+                        }
+                    } 
+                    datas.push(temp1);
+                } 
+                
+            }
+            var type = treeObj.parent()[0].children[0].children[3].innerText;
+            if (type == "变化地块") {
+                loadBhdkTree(treeObj,datas)
+            } else {
+                loadYwsjTree(treeObj,datas);
+            }
+           
+        }
+        /**
+         * 加载变化地块树
+         * @param  {} treeObj 树节点对象
+         * @param  {} datas 数据
+         */
+        function loadBhdkTree (treeObj, datas) {
+            var setting = {
+                showCheck : true,
+                callback : {
+                    click : function(nodeHtml,node,innerTree){
+                        // console.log(innerTree.getCheckedNodes());
+                    },
+                    render : function(nodeHtml,node,innerTree){
+                        if (node.jb == 3) {
+                            var newDom = $('<div class = "opa-box">\
+                                <span class = "more btn" data-card = "bhdk"></span>\
+                                </div>'
+                            );
+//                            newDom.unbind('click').bind('click',function(){
+//                                $(".card.bhdk").toggle(); 
+//                                $(".card.bhdk")[0].style.top = this.parentNode.offsetTop +'px'; // 设置.card.bhdk的高度
+//                            });
+                            nodeHtml.find("a").append(newDom); 
+                            nodeHtml.find("i").addClass('data'); // 给i标签添加data类
+                            nodeHtml[0].children[0].children[0].setAttribute('xian',node.xian); // 给i标签添加xian属性
+                            nodeHtml[0].children[0].children[0].setAttribute('type','bhdk'); // 给i标签添加type属性
+                            var legend = $(".card.bhdk");
+                            newDom.unbind('click').bind('click',function(){
+                            	$(".card.bhdk").toggle();
+                                var $element = $(this);
+                                setTimeout(function(){
+                                    var max = $(window).height() -legend.outerHeight();
+                                    var top = $element.offset().top;
+                                    if(top >= max){
+                                        top = max;
+                                    }
+                                    if(top>100&&legend.outerHeight()>150){
+                                        top=top-100;
+                                    }else{
+                                        top=top-50;
+                                    }
+                                    legend.show().css("top",top+"px");
+                                },'100');
+                            })
+                    
+                        } else if (node.jb == 2) {
+                            var newDom = $('<div class = "opa-box">\
+                            <span class = "del btn" ></span>\
+                            </div>');
+                            nodeHtml.find("a").append(newDom);
+                        }
+                        return nodeHtml;
+                    },
+                }
+            };
+            treeHelper(treeObj,setting,datas);
+        }
+        /**
+         * 加载业务数据树
+         * @param  {} treeObj 树节点对象
+         * @param  {} datas 数据
+         */
+        function loadYwsjTree (treeObj, datas) {
+            var setting = {
+                showCheck : true,
+                callback : {
+                    click : function(nodeHtml,node,innerTree){
+                        // console.log(innerTree.getCheckedNodes());
+                    },
+                    render : function(nodeHtml,node,innerTree){
+                        if (node.jb == 1) {
+                            var newDom = $('<div class = "opa-box">\
+                                <span class = "more btn" data-card = "ywsj"></span>\
+                                </div>'
+                            );
+                            var legend = $(".card.ywsj");
+                            newDom.unbind('click').bind('click',function(){
+                                $(".card.ywsj").toggle(); 
+                                //$(".card.ywsj")[0].style.top = this.parentNode.offsetTop +'px'; // 设置.card.bhdk的高度
+                                var $element = $(this);
+                                setTimeout(function(){
+                                    var max = $(window).height() -legend.outerHeight() +50;
+                                    var top = $element.offset().top + 50;
+                                    if(top >= max){
+                                        top = max;
+                                    }
+                                    if(top>100&&legend.outerHeight()>150){
+                                        top=top-100;
+                                    }else{
+                                        top=top-50;
+                                    }
+                                    legend.show().css("top",top+"px");
+                                },'100');
+                            });
+                            nodeHtml.find("a").append(newDom); 
+                            nodeHtml.find("i").addClass('isQuery'); // 给i标签添加data类
+                            nodeHtml[0].children[0].children[0].setAttribute('layerName','造林数据'); // 给i标签添加xian属性
+                            nodeHtml[0].children[0].children[0].setAttribute('type','ywsj'); // 给i标签添加type属性
+                        } 
+                        return nodeHtml;
+                    },
+                }
+            };
+            treeHelper(treeObj,setting,datas);
+        }
+        return {
+            init: init
+        }
+});

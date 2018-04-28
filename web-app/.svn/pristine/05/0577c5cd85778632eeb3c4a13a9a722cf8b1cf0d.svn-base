@@ -1,0 +1,195 @@
+define([
+    'map',
+], function (map) {
+    'use strict';
+    var layer;
+    var sketch;
+    var draw; //画笔
+    var sourceProj;
+    var measureTooltip; //地图标注类
+    var measureTooltipElement; //测量后标注内容html
+    var measureTooltips = []; //测量类数组，清除方法用
+
+    var wgs84Sphere = new ol.Sphere(6378137);
+    /**
+     * 距离
+     * @param {any} line 
+     * @returns 
+     */
+    function formatLength(line) {
+        var coordinates = line.getCoordinates();
+        var length = 0;
+        for (var i = 0, ii = coordinates.length - 1; i < ii; ++i) {
+            var c1 = ol.proj.transform(coordinates[i], sourceProj, 'EPSG:4326');
+            var c2 = ol.proj.transform(coordinates[i + 1], sourceProj, 'EPSG:4326');
+            length += wgs84Sphere.haversineDistance(c1, c2);
+        }
+        var output;
+        if (length > 100) {
+            output = (Math.round(length / 1000 * 100) / 100) +
+                ' ' + 'km';
+        } else {
+            output = (Math.round(length * 100) / 100) +
+                ' ' + 'm';
+        }
+        return output;
+    }
+    /**
+     * 面积
+     * @param {any} polygon 
+     * @returns 
+     */
+    function formatArea(polygon) {
+        var area;
+        var geom = /** @type {ol.geom.Polygon} */(polygon.clone().transform(
+            sourceProj, 'EPSG:4326'));
+        var coordinates = geom.getLinearRing(0).getCoordinates();
+        area = Math.abs(wgs84Sphere.geodesicArea(coordinates));
+        var output;
+        if (area > 10000) {
+            output = (Math.round(area / 1000000 * 100) / 100) +
+                ' ' + 'km<sup>2</sup>';
+        } else {
+            output = (Math.round(area * 100) / 100) +
+                ' ' + 'm<sup>2</sup>';
+        }
+        return output;
+    }
+    //初始化测量工具
+    function addInteraction(type) {
+        if (!layer) {
+            layer = map.getLayerByName("EDIT_LAYER");
+        }
+        if (!sourceProj) {
+            sourceProj = map.getMap().getView().getProjection();
+        }
+        draw = new ol.interaction.Draw({
+            source: layer.getSource(),
+            type: (type),
+            style: new ol.style.Style({
+                fill: new ol.style.Fill({
+                    color: 'rgba(255, 255, 255, 0.2)'
+                }),
+                stroke: new ol.style.Stroke({
+                    color: "rgba(247, 85, 100,0.8)",
+                    lineDash: [10, 10],
+                    width: 2
+                }),
+                image: new ol.style.Circle({
+                    radius: 5,
+                    stroke: new ol.style.Stroke({
+                        color: 'rgba(247, 85, 100, 1)'
+                    }),
+                    fill: new ol.style.Fill({
+                        color: 'rgba(247, 85, 100, 0.5)'
+                    })
+                })
+            })
+        });
+        //添加画笔
+        map.getMap().addInteraction(draw);
+        //创建地图中距离或面积的标注类
+        createMeasureTooltip();
+        var listener;
+        draw.on('drawstart',
+            function (evt) {
+                sketch = evt.feature;
+                var tooltipCoord = evt.coordinate;
+                listener = sketch.getGeometry().on('change', function (evt) {
+                    var geom = evt.target;
+                    var output;
+                    if (geom instanceof ol.geom.Polygon) {
+                        output = formatArea(geom);
+                        //tooltipCoord = geom.getInteriorPoint().getCoordinates();
+                        var coors = geom.getCoordinates()[0];
+                        if(coors.length==1){
+                        	tooltipCoord=coors;
+                        }else{
+                        	tooltipCoord = coors[coors.length-2];
+                        }
+                    } else if (geom instanceof ol.geom.LineString) {
+                        output = formatLength(geom);
+                        tooltipCoord = geom.getLastCoordinate();
+                    }
+                    measureTooltipElement.innerHTML = output;
+                    measureTooltip.setPosition(tooltipCoord);
+                });
+            }, this);
+
+        draw.on('drawend',
+            function (evt) {
+                //
+                measureTooltipElement.className = 'tooltip tooltip-static';
+                measureTooltip.setOffset([0, -7]);
+                sketch = null;
+                measureTooltipElement = null;
+                createMeasureTooltip();
+                ol.Observable.unByKey(listener);
+                draw.setActive(false);
+            }, this);
+    }
+    function createHelpTooltip() {
+        if (helpTooltipElement) {
+            helpTooltipElement.parentNode.removeChild(helpTooltipElement);
+        }
+        helpTooltipElement = document.createElement('div');
+        helpTooltipElement.className = 'tooltip hidden';
+        helpTooltip = new ol.Overlay({
+            element: helpTooltipElement,
+            offset: [15, 0],
+            positioning: 'center-left'
+        });
+        baseMap.addOverlay(helpTooltip);
+    }
+
+    function createMeasureTooltip() {
+        if (measureTooltipElement) {
+            measureTooltipElement.parentNode.removeChild(measureTooltipElement);
+        }
+        measureTooltipElement = document.createElement('div');
+        measureTooltipElement.className = 'tooltip tooltip-measure';
+        measureTooltip = new ol.Overlay({
+            element: measureTooltipElement,
+            offset: [0, -15],
+            positioning: 'bottom-center'
+        });
+        map.getMap().addOverlay(measureTooltip);
+        measureTooltips.push(measureTooltip);
+    }
+    /**
+     * 测量距离
+     */
+    function line() {
+        clear()
+        addInteraction("LineString");
+    }
+    /**
+     * 测量面积
+     */
+    function area(){
+        clear();
+        addInteraction("Polygon");
+    }
+    /**
+     * 清除
+     */
+    function clear() {
+        if (layer) {
+            layer.getSource().clear();
+        }
+        if (measureTooltips.length > 0) {
+            for (var i = 0; i < measureTooltips.length; i++) {
+                map.getMap().removeOverlay(measureTooltips[i]);
+            }
+            measureTooltips = [];
+        }
+        if (draw) {
+            map.getMap().removeInteraction(draw);
+        }
+    }
+    return {
+        line: line,
+        area: area,
+        clear:clear
+    }
+});

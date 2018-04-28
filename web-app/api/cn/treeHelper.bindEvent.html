@@ -1,0 +1,34 @@
+<div class="apiDetail">
+<div>
+	<h2><span class="path">treeHelper.</span>bindEvent</h2>
+	<h3>概述</h3>
+	<div class="desc">
+		<p></p>
+		<div class="longdesc">
+			<p>绑定树事件。</p>
+			<p class="highlight_red">关于树的事件监听的入口。</p>
+		</div>
+	</div>
+	<h3>Function 参数说明</h3>
+	<div class="desc">
+	<h4><b>eventTarget</b><span>string</span>事件对象(treeHelper.eventTarget.BHDK,treeHelper.eventTarget.YWSJ)</h4>
+	<h4><b>eventType</b><span>string</span>事件类型(treeHelper.events.ADD_CLICK,MORE_CLICK,DEL_CLICK,CREATE_CLICK,CHECKED)</h4>
+	<h4><b>callback</b><span>function</span>回调函数</h4>
+	</div>
+	<h3>function 举例</h3>
+	<pre xmlns=""><code>var tree = treeHelper.getTree("zyjg",{expandLevel : 1},[{id:1,text:"test",children[]}]);
+tree.bindEvent(treeHelper.eventTarget.BHDK,treeHelper.events.MORE_CLICK,function(node){
+	console.log(node);
+});
+tree.bindEvent(treeHelper.eventTarget.YWSJ,treeHelper.events.ADD_CLICK,function(node){
+	alert("add---->"+node.id);
+});
+tree.bindEvent(treeHelper.eventTarget.YWSJ,treeHelper.events.CREATE_CLICK,function(node){
+	alert("create---->"+node.id);
+});
+tree.bindEvent(treeHelper.eventTarget.BHDK,treeHelper.events.DEL_CLICK,function(node){
+	alert("del---->"+node.id);
+});
+</code></pre>
+</div>
+</div>

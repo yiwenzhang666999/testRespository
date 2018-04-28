@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="ehcache.xsd"
+         updateCheck="true" monitoring="autodetect"
+         dynamicConfig="true" name="fsCacheManager">
+     <diskStore path="D:/cecweb/ehcache" />
+	<defaultCache maxElementsInMemory="10000"
+				  eternal="false"
+				  timeToIdleSeconds="120"
+				  timeToLiveSeconds="120"
+				  overflowToDisk="false"
+				  diskSpoolBufferSizeMB="30"
+				  maxElementsOnDisk="10000000"
+				  diskPersistent="false"
+				  diskExpiryThreadIntervalSeconds="120"
+				  memoryStoreEvictionPolicy="LRU" />
+    <cache name="SimplePageCachingFilter" 
+                  maxElementsInMemory="100000"
+                  eternal="false"
+                  timeToIdleSeconds="1"
+                  timeToLiveSeconds="1"
+                  overflowToDisk="false"
+                  diskSpoolBufferSizeMB="30"
+                  maxElementsOnDisk="10000000"
+                  diskPersistent="false"
+                  diskExpiryThreadIntervalSeconds="180"
+                  memoryStoreEvictionPolicy="LRU" />
+        
+     <cache name="DataCache" 
+                  maxElementsInMemory="1000000"
+                  eternal="false"
+                  timeToIdleSeconds="1"
+                  timeToLiveSeconds="1"
+                   overflowToDisk="false"
+                  diskSpoolBufferSizeMB="30"
+                  maxElementsOnDisk="10000000"
+                  diskPersistent="false"
+                  diskExpiryThreadIntervalSeconds="120"
+                  memoryStoreEvictionPolicy="LRU" />
+                  
+     <cache name="SessionCache" 
+                  maxElementsInMemory="1000000"
+                  eternal="false"
+                  timeToIdleSeconds="14400"
+                  timeToLiveSeconds="36000"
+                  overflowToDisk="false"
+                  diskSpoolBufferSizeMB="30"
+                  maxElementsOnDisk="10000000"
+                  diskPersistent="false"
+                  diskExpiryThreadIntervalSeconds="120"
+                  memoryStoreEvictionPolicy="LRU" />
+                  
+     <cache name="MedataCache" 
+                  maxElementsInMemory="1000000"
+                  eternal="false"
+                  timeToIdleSeconds="36000"
+                  timeToLiveSeconds="36000"
+                  overflowToDisk="false"
+                  diskSpoolBufferSizeMB="300"
+                  maxElementsOnDisk="10000000"
+                  diskPersistent="false"
+                  diskExpiryThreadIntervalSeconds="120"
+                  memoryStoreEvictionPolicy="LRU" />
+</ehcache>

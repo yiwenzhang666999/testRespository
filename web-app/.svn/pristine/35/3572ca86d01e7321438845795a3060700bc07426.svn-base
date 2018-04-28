@@ -1,0 +1,562 @@
+body{
+    font-family:"SourceHanSansCN-Light","SourceHanSansCN-Light", "HiraginoSansGB-W3", "noto sans CN","Hiragino Sans GB","Classic Grotesque W01",STHeiti, "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+    font-size: 1em;
+}
+.gis{
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+/* 鼠标样式 */
+.mousePositionCtrl {
+    width:400px;
+    bottom: 20px;
+     left: 45%; 
+   /*  left: 12%; */
+    color: #337fe5;
+    font-weight : bolder;
+    display: block;
+    position: absolute;
+    z-index:10000;
+}
+/* 鼠标在追踪点上的样式 */
+.inon{
+	 cursor: url(../images/guangbiao.png)12 12,auto;
+	/* cursor:wait; */
+}
+.inleave{
+	 cursor: url(../images/guangbiao1.png)12 12,auto;
+	/* cursor:help; */
+}
+/* map */
+#map{
+    width: 100%;
+    height: 100%;
+}
+.map_cursor_move{
+    cursor: url(../images/openhand.cur), default;
+}
+.map_cursor_select{
+    cursor: crosshair;
+}
+/* 图层控制样式 */
+/* 右下角菜单 */
+.mapType-wrapper .mapType .clk  span.active{
+    background-color: #89BED9;
+}
+.mapType-wrapper label {
+    display: inline-block;
+}
+
+.mapType-wrapper {
+    font-size: 14px;
+    position: absolute;
+    bottom: 20px;
+    right: 0;
+    z-index:10;
+}
+.mapType {
+    height: 76px;
+    cursor: pointer;
+    -webkit-transition-property: width, background-color;
+    -ms-transition-property: width, background-color;
+    transition-property: width, background-color;
+    -webkit-transition-duration: .4s;
+    -ms-transition-duration: .4s;
+    transition-duration: .4s;
+    width: 110px;
+    -webkit-transition-duration: .4s;
+    -ms-transition-duration: .4s;
+    transition-delay: 0s;
+}
+.mapType .mapTypeCard span {
+    background-color: #000;
+    background-color: rgba(0,0,0,0.5);
+}
+.mapType-wrapper:hover .mapType .mapTypeCard:hover span {
+    background-color: #89BEDA;
+}
+.mapType-wrapper:hover .mapType .mapTypeCard.active,
+.mapType .mapTypeCard.active {
+     border: 2px solid #337fe5
+}
+.mapType-wrapper .mapType .second {
+    background-image: url("../images/layer/yingxiang.jpg");
+}
+.mapType-wrapper .mapType .ldxb {
+    background-image: url("../images/layer/ldxb.jpg");
+}
+.mapType-wrapper .mapType .dcfw {
+    background-image: url("../images/layer/dcfw.png");
+}
+.mapType-wrapper .mapType .ygyx {
+    background-image: url("../images/layer/ygyx.jpg");
+}
+.mapType .mapTypeCard {
+    height: 60px;
+    width: 86px;
+    position: absolute;
+    border-radius: 2px;
+    top: 8px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    background-color:#000;
+    background-color: rgba(0,0,0,.2);
+    -webkit-transition-property: right, background-image;
+    -ms-transition-property: right, background-image;
+    transition-property: right, background-image;
+    -webkit-transition-duration: .4s;
+    -ms-transition-duration: .4s;
+    transition-duration: .4s;
+    -webkit-transition-delay: 0s;
+    -ms-transition-delay: 0s;
+    transition-delay: 0s;
+}
+.mapType .mapTypeCard span {
+    position: absolute;
+    bottom: -1px;
+    left: -1px;
+    right: -1px;
+    display: inline-block;
+    padding: 3px 0px 2px 0px;
+    font-size: 12px;
+    height: 12px;
+    line-height: 12px;
+    color: #fff;
+    height: 16px;
+    text-align: center;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+.mapType .mapTypeCard.active span,
+.mapType .mapTypeCard:hover span {
+    background-color: #89BEDA;
+}
+.mapType .mapTypeCard:hover .sub-menu {
+    display: block;
+}
+.mapType .mapTypeCard:hover {
+     border: 2px solid #337fe5;
+}
+.mapType .mapTypeCard:hover .switch-box {
+    visibility: visible
+}
+.mapType .second:hover .switch-box {
+    visibility: visible
+}
+.mapType .first {
+    z-index: 10;
+    right: 10px;
+    background-image: url('../images/layer/03.png');
+}
+.mapType .second {
+    z-index: 9;
+    right: 15px;
+    background-color: #fff;
+    background-color: rgba(0,0,0,.2);
+}
+.mapType .card{
+    z-index: 8;
+    right: 10px;
+}
+
+.mapType .switch-box {
+    visibility: hidden;
+    position: absolute;
+    width: 100%;
+    height: 20px;
+    line-height: 22px;
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+    background-color: #fff;
+    background: rgba(0, 0, 0, .5)
+}
+.mapType .switch-box p {
+    display: inline-block;
+}
+.mapType .switch-box input.switch {
+    display: inline-block;
+    vertical-align: middle;
+    cursor: pointer
+}
+.mapType .sub-menu {
+    display: none;
+    width: auto;
+    position: absolute;
+    left: 50%;
+    bottom: 57px;
+    transform: translateX(-50%);
+    -ms-transform: translateX(-50%);    /* IE 9 */
+    -moz-transform: translateX(-50%);   /* Firefox */
+    -webkit-transform: translateX(-50%); /* Safari 和 Chrome */
+    -o-transform: translateX(-50%);
+}
+.mapType .sub-menu label{
+    cursor: pointer;
+    width: 100%;
+}
+.mapType .sub-menu .trigon {
+  width: 0;
+  height: 0;
+  border-width: 10px;
+  border-bottom-width: 0;
+  border-style: solid;
+  margin: 0 auto;
+  border-color: #fff transparent transparent;
+}
+.mapType .sub-menu ul {
+    background-color: #fff;
+    padding: 8px;
+    border-radius: 5px;
+}
+.mapType .sub-menu li {
+    list-style: none;
+    line-height: 24px;
+}
+.mapType .sub-menu li input {
+    display: inline-block;
+    vertical-align: middle;
+}
+.mapType .sub-menu li span {
+    position: relative;
+    width: 30px;
+    height: 15px;
+    padding: 0;
+    vertical-align: middle;
+    margin: 0 4px;
+}
+.mapType .sub-menu li {
+    white-space: nowrap;
+}
+/* openlayer 扩展 control i键 */
+.ol-ikey{
+    /* left: .5em;
+    bottom: 3.5em; */
+    left: .5em;
+    top: 13px; 
+}
+
+/**
+*增加地图的提示信息样式
+*/
+.common-panel {
+    box-shadow: 3px 3px 3px rgba(0,0,0,.3);
+    background: #fff;
+    padding: 15px;
+    padding-bottom: 4px;
+    z-index: 999;
+    cursor: auto;
+    height:140px;
+}
+.common-panel .common-panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 14px;
+    color: #333;
+    padding-bottom: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    border-bottom: 1px solid #eee
+}
+.common-panel .panel-1 {
+    color: #555;
+    font-size: 13px;
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+    margin-right: 15px;
+    float: left;
+    padding-top: 6px
+}
+.panel-1 .panel-list {
+    line-height: 28px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+.panel-1 .list-title {
+    font-weight: 600
+}
+.gzjd_map_pointer {
+    cursor: pointer;
+}
+
+
+/*下拉选择器*/
+.fore-sys-select
+{
+    z-index: 2;
+    position: absolute;
+    cursor: pointer;
+}
+.fore-sys-select .trigger
+{
+    border-radius: 3px;
+    background: url(../images/fore-sys-glassbg-40.png) repeat\9;
+    background: rgba(0,0,0,.4);
+}
+.fore-sys-select .trigger:after {
+    content: '';
+    width: 100%;
+    height: 5px;
+    background: url(../images/fore-sys-glassbg-0.png) repeat;
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+}
+.fore-sys-select .trigger > .ztt_title
+{
+    font-size: 13px;
+    line-height: 30px;
+    padding: 0 50px 0 10px;
+    color: #fff;
+}
+.fore-sys-select .trigger
+{
+    position: relative;
+}
+.fore-sys-select .trigger > .icon
+{
+    position: absolute;
+    top: 13px;
+    right: 10px;
+
+    display: block;
+
+    width: 12px;
+    height: 6px;
+
+    -webkit-transition: all .3s ease-out;
+       -moz-transition: all .3s ease-out;
+        -ms-transition: all .3s ease-out;
+
+    background: #ddd;
+    background: url(../images/fore-sys-select-icon-a.png) no-repeat center center;
+}
+.fore-sys-select:hover .trigger > .icon
+{
+    top: 14px;
+
+    -webkit-transform: rotate(180deg); /* Safari 和 Chrome */
+       -moz-transform: rotate(180deg);    /* Firefox */
+        -ms-transform: rotate(180deg);     /* IE 9 */
+         -o-transform: rotate(180deg);      /* Opera */
+            transform: rotate(180deg);
+
+    background: url(../images/fore-sys-select-icon-b.png) no-repeat center center\9;
+}
+.fore-sys-select .dropdown
+{
+    position: absolute;
+    top: 35px;
+}
+
+/*专题下拉*/
+.fore-sys-select.topic-select
+{
+    font-size: 14px;
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 215px;
+    z-index: 3;
+}
+.fore-sys-select.topic-select .dropdown .select{
+color: #ff6600
+}
+.fore-sys-select.topic-select .trigger {
+    background: url(../images/fore-sys-glassbg-30.png) repeat\9;
+    background: rgba(0,0,0,.30);
+}
+/*新增：专题下拉动态背景20160713*/
+.fore-sys-select.topic-select.dark .trigger {
+    background: url(../images/fore-sys-glassbg-75.png) repeat\9;
+    background: rgba(0,0,0,.75);
+}
+.fore-sys-select.topic-select .trigger > .ztt_title
+{
+    line-height: 40px;
+
+    padding: 0 0 0 20px;
+}
+.fore-sys-select.topic-select .trigger > .icon
+{
+    top: 16px;
+    right: 15px;
+
+    width: 21px;
+    height: 11px;
+
+    background: url(../images/fore-sys-select-icon-1-a.png) no-repeat center center;
+}
+.fore-sys-select.topic-select:hover .trigger > .icon
+{
+    background: url(../images/fore-sys-select-icon-1-b.png) no-repeat center center\9;
+}
+.fore-sys-select.topic-select .dropdown
+{
+    top: 45px;
+    padding: 15px;
+    box-shadow:1px 1px 1px rgba(0,0,0,0.3);
+    border-radius: 3px;
+    background: #FFFFFF;
+}
+.fore-sys-select.topic-select .dropdown ul li
+{
+    line-height: 30px;
+    position: relative;
+    text-indent: 30px;
+    border-top: 1px solid #FFFFFF;
+}
+.fore-sys-select.topic-select .dropdown ul li:before
+{
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: block;
+    width: 5px;
+    height: 5px;
+    content: '';
+    border: 2px solid #139858;
+}
+.fore-sys-select.topic-select .dropdown ul.sec-list > li
+{
+    text-indent: 60px;
+}
+.fore-sys-select.topic-select .dropdown ul.fir-list > li:before
+{
+    border-radius: 50%;
+}
+.fore-sys-select.topic-select .dropdown ul.sec-list > li:before
+{
+    left: 40px;
+
+    background: #139858;
+}
+.fore-sys-select.topic-select .dropdown ul li.first
+{
+    border: none;
+}
+.fore-sys-select.topic-select .dropdown ul.sec-list {
+    display: none;
+}
+.fore-sys-select.topic-select .dropdown ul li a {
+	text-decoration: none;
+	color:#333333;
+}
+.fore-sys-select.topic-select .dropdown ul li a:hover{
+	text-decoration: none;
+	color: #ff6600
+}
+/*地图弹窗 */
+ .ol-popup {
+        position: absolute;
+        background-color: white;
+        -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #cccccc;
+        bottom: 12px;
+        left: -50px;
+        min-width: 250px;
+      }
+      .ol-popup:after, .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+      }
+      .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+      }
+      .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+      }
+      .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 5px;
+        right: 8px;
+      }
+    .ol-popup-detail{
+        position: absolute;
+        bottom: 3px;
+        right: 8px;
+        font-size: 1em;
+        color: green;
+        font-weight: bold;
+    }
+      .ol-popup-closer:after {
+        content: "✖";
+        color: #ccc;
+      }
+/*数据表格--样式*/
+.zs-data-table {
+	position: relative;
+	padding-bottom: 10px;
+	background: #fff;
+}
+
+.zs-data-table table {
+	/*height: 300px;
+	overflow: hidden;*/
+	width: 100%;
+	text-align: center;
+	border-collapse: collapse;
+}
+.zs-data-table table td{
+    line-height: 2.5em;
+	width:50%;
+}
+.zs-data-table thead tr {
+	height: 40px;
+	background: #edf8ff;
+	border: 1px #c5e6f4 solid;
+}
+
+.zs-data-table thead th {
+	font-weight: normal;
+	color: #333;
+}
+
+.zs-data-table tbody tr {
+    border-bottom: 1px #dedede solid;
+	border-top: 1px #dedede solid;
+	text-align: center;
+}
+
+.zs-data-table tbody tr td {
+	position: relative;
+	padding:0px 5px;
+}
+.zs-data-table tbody tr:nth-child(odd) {
+	background: #f8f8f8;
+}
+
+.zs-data-table tbody tr:nth-child(even) {
+	background: #fff;
+}
+.popup_table{
+    text-align: center;
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    border-collapse: collapse;
+}
+.popup_table tr{
+    line-height: 1.5em;
+}

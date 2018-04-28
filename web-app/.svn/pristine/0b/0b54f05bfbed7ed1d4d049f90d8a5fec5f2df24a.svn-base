@@ -1,0 +1,230 @@
+/**
+ * 
+ */
+package com.forestar.controller;
+
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.forestar.core.Config;
+import com.forestar.core.exception.ServiceException;
+import com.forestar.core.ipseek.IPUtil;
+import com.forestar.core.session.CurrentSessionHelper;
+import com.forestar.core.session.ISession;
+import com.forestar.core.session.SessionFactory;
+import com.forestar.core.util.StringUtils;
+import com.forestar.data.general.PageInfo;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.general.UpdateFilter;
+import com.forestar.data.metadata.PartitionSchema;
+import com.forestar.data.service.BaseService;
+import com.forestar.form.FormController;
+import com.forestar.joint.resouces.client.ResoucesClient;
+import com.forestar.joint.resouces.model.UserDataModel;
+import com.forestar.safe.controller.BaseController;
+
+/**
+ * @author wy
+ *
+ */
+@Controller
+@RequestMapping("/app")
+public class AppController extends BaseController {
+	Logger logger = Logger.getLogger(FormController.class);
+
+	@Autowired
+	protected ResoucesClient resoucesClient;
+
+	@Autowired
+	BaseService baseService;
+
+	@Autowired
+	PartitionSchema partitionSchema;
+
+	/**
+	 * 
+	 * <p>
+	 * 保存数据<br/>
+	 * 参数JSON格式：{tableName : tableId, jsonStr : jsonStr}
+	 * </p>
+	 * 
+	 * @param req
+	 * @param res
+	 * @throws ServiceException
+	 * @return void
+	 */
+	@RequestMapping("/save.do")
+	@ResponseBody
+	public void save(HttpServletRequest req, HttpServletResponse res) throws ServiceException {
+		String jsonStr = req.getParameter("data");
+		JSONObject jsonObj = JSON.parseObject(jsonStr);
+		String tableName = jsonObj.getString("tableName");
+		String json = jsonObj.getString("jsonStr");
+		try {
+			operationLog(tableName, "[save]方法");
+			selectSchemaByXianCode(jsonObj);
+			RowBase result = baseService.save(tableName, json);
+			OutputData(result, res);
+		} catch (Exception ex) {
+			OutputError(ex.getMessage(), res);
+		}
+	}
+
+	/**
+	 * 
+	 * <p>
+	 * 更新数据<br/>
+	 * 参数JSON格式：{tableName:tableId,updateFilter:updateFilter}
+	 * </p>
+	 * 
+	 * @param req
+	 * @param res
+	 * @throws ServiceException
+	 */
+	@RequestMapping("/update.do")
+	@ResponseBody
+	public void update(HttpServletRequest req, HttpServletResponse res) throws ServiceException {
+		String jsonStr = req.getParameter("data");
+		JSONObject jsonObj = JSON.parseObject(jsonStr);
+		String tableName = jsonObj.getString("tableName");
+		UpdateFilter updateFilter = jsonObj.getJSONObject("updateFilter").toJavaObject(UpdateFilter.class);
+		try {
+			operationLog(tableName, "[update]方法");
+			selectSchemaByXianCode(jsonObj);
+			boolean result = baseService.update(tableName, updateFilter);
+			OutputData(result, res);
+		} catch (Exception ex) {
+			OutputError(ex.getMessage(), res);
+		}
+	}
+
+	/**
+	 * 
+	 * <p>
+	 * 删除数据<br/>
+	 * 参数JSON格式：{tableName:tableId,queryFilter : queryFilter}
+	 * </p>
+	 * 
+	 * @param req
+	 * @param res
+	 * @throws ServiceException
+	 */
+	@RequestMapping("/del.do")
+	@ResponseBody
+	public void del(HttpServletRequest req, HttpServletResponse res) throws ServiceException {
+		String jsonStr = req.getParameter("data");
+		JSONObject jsonObj = JSON.parseObject(jsonStr);
+		String tableName = jsonObj.getString("tableName");
+		QueryFilter queryFilter = jsonObj.getJSONObject("queryFilter").toJavaObject(QueryFilter.class);
+		try {
+			operationLog(tableName, "[del]方法");
+			selectSchemaByXianCode(jsonObj);
+			boolean result = baseService.del(tableName, queryFilter);
+			OutputData(result, res);
+		} catch (Exception ex) {
+			OutputError(ex.getMessage(), res);
+		}
+	}
+
+	/**
+	 * 
+	 * <p>
+	 * 查询数据<br/>
+	 * 参数JSON格式：{tableName:tableId,param:param}
+	 * </p>
+	 * 
+	 * @param req
+	 * @param res
+	 * @throws ServiceException
+	 */
+	@RequestMapping("/getEntityList.do")
+	@ResponseBody
+	public void getEntityList(HttpServletRequest req, HttpServletResponse res) throws ServiceException {
+		String jsonStr = req.getParameter("data");
+		JSONObject jsonObj = JSON.parseObject(jsonStr);
+		String tableName = jsonObj.getString("tableName");
+		QueryFilter queryFilter = jsonObj.getJSONObject("param").toJavaObject(QueryFilter.class);
+		try {
+			operationLog(tableName, "[getEntityList]方法");
+			selectSchemaByXianCode(jsonObj);
+			List<RowBase> result = baseService.getEntityList(tableName, queryFilter);
+			OutputData(result, res);
+		} catch (Exception ex) {
+			OutputError(ex.getMessage(), res);
+		}
+	}
+
+	/**
+	 * 
+	 * <p>
+	 * 分页查询数据<br/>
+	 * 参数JSON格式：{tableName:tableId,queryFilter:queryFilter,pageInfo:pageInfo}
+	 * </p>
+	 * 
+	 * @param req
+	 * @param res
+	 * @throws ServiceException
+	 */
+	@RequestMapping("/pageSelect.do")
+	@ResponseBody
+	public void pageSelect(HttpServletRequest req, HttpServletResponse res) throws ServiceException {
+		String jsonStr = req.getParameter("data");
+		JSONObject jsonObj = JSON.parseObject(jsonStr);
+		String tableName = jsonObj.getString("tableName");
+		QueryFilter queryFilter = jsonObj.getJSONObject("queryFilter").toJavaObject(QueryFilter.class);
+		PageInfo pageInfo = jsonObj.getJSONObject("pageInfo").toJavaObject(PageInfo.class);
+		try {
+			operationLog(tableName, "[pageSelect]方法");
+			selectSchemaByXianCode(jsonObj);
+			List<Object> result = baseService.pageSelect(tableName, queryFilter, pageInfo);
+			OutputData(result, res);
+		} catch (Exception ex) {
+			OutputError(ex.getMessage(), res);
+		}
+	}
+
+	/**
+	 * 
+	 * <p>
+	 * 记录功能操作日志
+	 * </p>
+	 * 
+	 * @return void
+	 */
+	private void operationLog(String function, String logdes) {
+		logger.info(logdes);
+		UserDataModel userEntity = (UserDataModel) SessionFactory.getSession().getObject(ISession.UserEntity);
+		String username = "Anonymous";
+		if (userEntity != null) {
+			username = userEntity.getUsername();
+		}
+		if (Config.isOpenLog())
+			resoucesClient.addFuncLog(username, Config.getSystemCode(), function, logdes,
+					IPUtil.getIpAddr(CurrentSessionHelper.getCurrentRequest()));
+	}
+
+	/**
+	 * 根据县编码设置分表空间条件
+	 * 
+	 * @param jsonObj
+	 *            包含schemaCode编码的JSONObject
+	 */
+	private void selectSchemaByXianCode(JSONObject jsonObj) {
+		String schemaCode = jsonObj.getString("schemaCode");
+		if (StringUtils.isNotEmpty(schemaCode)) {
+			// 设置分表空间条件
+			partitionSchema.setSchemaCode(schemaCode);
+		}
+	}
+}

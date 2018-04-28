@@ -1,0 +1,356 @@
+/*插件tip样式*/
+#tiptip_holder {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 99999;
+}
+
+#tiptip_holder.tip_top {
+	padding-bottom: 5px;
+}
+
+#tiptip_holder.tip_bottom {
+	padding-top: 5px;
+}
+
+#tiptip_holder.tip_right {
+	padding-left: 5px;
+}
+
+#tiptip_holder.tip_left {
+	padding-right: 5px;
+}
+
+#tiptip_content {
+	font-size: 12px;
+	color: #fff;
+	line-height: 20px;
+	text-shadow: 0 0 2px #000;
+	padding: 4px 8px;
+	border: 1px solid #344551;
+	background-color: #344551;
+}
+
+#tiptip_arrow, #tiptip_arrow_inner {
+	position: absolute;
+	border-color: transparent;
+	border-style: solid;
+	border-width: 6px;
+	height: 0;
+	width: 0;
+}
+
+#tiptip_holder.tip_top #tiptip_arrow {
+	border-top-color: #fff;
+	border-top-color: #344551;
+}
+
+#tiptip_holder.tip_bottom #tiptip_arrow {
+	border-bottom-color: #fff;
+	border-bottom-color: #344551;
+}
+
+#tiptip_holder.tip_right #tiptip_arrow {
+	border-right-color: #fff;
+	border-right-color: #344551;
+}
+
+#tiptip_holder.tip_left #tiptip_arrow {
+	border-left-color: #fff;
+	border-left-color: #344551;
+}
+
+#tiptip_holder.tip_top #tiptip_arrow_inner {
+	margin-top: -7px;
+	margin-left: -6px;
+	border-top-color: #344551;
+	border-top-color: #344551;
+}
+
+#tiptip_holder.tip_bottom #tiptip_arrow_inner {
+	margin-top: -5px;
+	margin-left: -6px;
+	border-bottom-color: #344551;
+	border-bottom-color: #344551;
+}
+
+#tiptip_holder.tip_right #tiptip_arrow_inner {
+	margin-top: -6px;
+	margin-left: -5px;
+	border-right-color: #344551;
+	border-right-color: #344551;
+}
+
+#tiptip_holder.tip_left #tiptip_arrow_inner {
+	margin-top: -6px;
+	margin-left: -7px;
+	border-left-color: #344551;
+	border-left-color: #344551;
+}
+/* Webkit Hacks  */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+	#tiptip_content {
+		padding: 4px 8px 5px 8px;
+		background-color: #344551;
+	}
+
+	#tiptip_holder.tip_bottom #tiptip_arrow_inner {
+		border-bottom-color: #344551;
+	}
+
+	#tiptip_holder.tip_top #tiptip_arrow_inner {
+		border-top-color: #344551;
+	}
+}
+
+/*字体图标*/
+@font-face {font-family: "iconfont";
+  src: url('iconfont/iconfont.eot?t=1500947845641'); /* IE9*/
+  src: url('iconfont/iconfont.eot?t=1500947845641#iefix') format('embedded-opentype'), /* IE6-IE8 */
+  url('iconfont/iconfont.woff?t=1500947845641') format('woff'), /* chrome, firefox */
+  url('iconfont/iconfont.ttf?t=1500947845641') format('truetype'), /* chrome, firefox, opera, Safari, Android, iOS 4.2+*/
+  url('iconfont/iconfont.svg?t=1500947845641#iconfont') format('svg'); /* iOS 4.1- */
+}
+
+.iconfont {
+  font-family:"iconfont" !important;
+  font-size:16px;
+  font-style:normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-zsicon-left:before { content: "\e9ed"; }
+
+.icon-zsicon-next:before { content: "\e9ee"; }
+
+.icon-zsicon-mail:before { content: "\e9ef"; }
+
+.icon-zsicon-notice:before { content: "\e9f0"; }
+
+.icon-zsicon-plus:before { content: "\e9f1"; }
+
+.icon-zsicon-prev:before { content: "\e9f2"; }
+
+.icon-zsicon-loading:before { content: "\e9f3"; }
+
+.icon-zsicon-jump:before { content: "\e9f4"; }
+
+.icon-zsicon-lock:before { content: "\e9f5"; }
+
+.icon-zsicon-search:before { content: "\e9f6"; }
+
+.icon-zsicon-right:before { content: "\e9f7"; }
+
+.icon-zsicon-upload:before { content: "\e9f8"; }
+
+.icon-zsicon-show:before { content: "\e9f9"; }
+
+.icon-zsicon-setting:before { content: "\e9fa"; }
+
+.icon-zsicon-user:before { content: "\e9fb"; }
+
+.icon-zsicon-check:before { content: "\e9fc"; }
+
+.icon-zsicon-checked:before { content: "\e9fd"; }
+
+.icon-zsicon-android:before { content: "\e9fe"; }
+
+.icon-zsicon-attach:before { content: "\e9ff"; }
+
+.icon-zsicon-apple:before { content: "\ea00"; }
+
+.icon-zsicon-close:before { content: "\ea01"; }
+
+.icon-zsicon-delete:before { content: "\ea02"; }
+
+.icon-zsicon-del:before { content: "\ea03"; }
+
+.icon-zsicon-cloud:before { content: "\ea04"; }
+
+.icon-zsicon-github:before { content: "\ea06"; }
+
+.icon-zsicon-home:before { content: "\ea07"; }
+
+.icon-zsicon-inbox:before { content: "\ea08"; }
+
+.icon-zsicon-info:before { content: "\ea09"; }
+
+.icon-zsicon-jump-prev:before { content: "\ea0a"; }
+
+.icon-zsicon-jump-next:before { content: "\ea0b"; }
+
+.icon-zsicon-info1:before { content: "\ea0c"; }
+
+.icon-zsicon-down:before { content: "\ea05"; }
+
+.icon-zsicon-up:before { content: "\ea0d"; }
+
+.icon-zsicon-min:before { content: "\ea0e"; }
+
+.icon-zsicon-restore:before { content: "\ea0f"; }
+
+.icon-zsicon-un-top:before { content: "\ea10"; }
+
+.icon-zsicon-max:before { content: "\ea11"; }
+
+.icon-zsicon-top:before { content: "\ea12"; }
+
+.icon-zsicon-selected:before { content: "\ea13"; }
+
+.icon-zsicon-select:before { content: "\ea14"; }
+
+/*弹窗*/
+.plugin-box-model {
+	position: fixed;
+	top: 0;
+	left: 0;
+	background-color: rgb(0,0,0);
+	width: 100%;
+	height: 100%;
+	z-index: 1000;
+	opacity: 0.5;
+	box-sizing: border-box;
+}
+
+.plugin-box * {
+	box-sizing: border-box;
+}
+
+.plugin-box {
+	position: absolute;
+	background-color: #fff;
+	box-shadow: 0 2px 8px rgba(0,0,0,.2);
+	z-index: 999;
+	border-radius: 4px;
+	box-sizing: border-box;
+	display: block;
+	animation: zs-box-show 0.4s;
+	-moz-animation: zs-box-show 0.4s;
+	-webkit-animation: zs-box-show 0.4s;
+	-o-animation: zs-box-show 0.4s;
+}
+
+.plugin-box.hide {
+	animation: zs-box-remove 0.4s;
+	-moz-animation: zs-box-remove 0.4s;
+	-webkit-animation: zs-box-remove 0.4s;
+	-o-animation: zs-box-remove 0.4s;
+}
+
+.plugin-box .box-header {
+	position: relative;
+	padding: 15px;
+	background-color: #fff;
+	border-bottom: 1px #e9e9e9 solid;
+	border-radius: 4px 4px 0px 0px;
+}
+
+.plugin-box .box-header .title {
+	display: inline;
+	padding-right: 130px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	-o-text-overflow: ellipsis;
+	overflow: hidden;
+}
+
+.plugin-box .box-header .operations {
+	position: absolute;
+	top: 16px;
+	left: 0px;
+	padding: 0px 15px 0px 15px;
+	width: 100%;
+	text-align: right;
+	z-index: 2;
+}
+
+.plugin-box .box-header .operations span.ope-btn {
+	display: inline;
+	margin-top: 5px;
+	width: 17px;
+	height: 17px;
+	padding: 8px;
+	cursor: pointer;
+	font-size: 14px;
+	color: #ccc;
+}
+
+.plugin-box .box-content {
+	padding: 15px;
+}
+
+.plugin-box .box-content .content-msg {
+	word-break: break-all;
+	line-height: 24px;
+	min-width: 400px;
+	margin-bottom: 5px;
+}
+
+.plugin-box .box-footer {
+	padding: 8px 15px;
+	background-color: #fff;
+	border-top: 1px #e9e9e9 solid;
+	text-align: right;
+	border-radius: 0px 0px 4px 4px;
+}
+.plugin-box .box-footer .btn+.btn{
+	margin-left: 5px;
+}
+.zs-data-table table tbody tr td{
+	text-align:left;
+}
+.zs-data-table table thead tr td{
+	text-align:left;
+}
+
+
+/*添加时动画*/
+@keyframes zs-box-show {
+	0% {transform: scale(1.1);}
+	25% {transform: scale(0.9);}
+	50% {transform: scale(1.05);}
+	75% {transform: scale(0.95);}
+	100% {transform: scale(1);}
+}
+@-moz-keyframes zs-box-show /* Firefox */ {
+	0% {transform: scale(1.1);}
+	25% {transform: scale(0.9);}
+	50% {transform: scale(1.05);}
+	75% {transform: scale(0.95);}
+	100% {transform: scale(1);}
+}
+@-webkit-keyframes zs-box-show /* Safari and Chrome */ {
+	0% {transform: scale(1.1);}
+	25% {transform: scale(0.9);}
+	50% {transform: scale(1.05);}
+	75% {transform: scale(0.95);}
+	100% {transform: scale(1);}
+}
+@-o-keyframes zs-box-show /* Opera */ {
+	0% {transform: scale(1.1);}
+	25% {transform: scale(0.9);}
+	50% {transform: scale(1.05);}
+	75% {transform: scale(0.95);}
+	100% {transform: scale(1);}
+}
+		
+/*移除时动画*/
+@keyframes zs-box-remove {
+	50% {transform: scale(0.9); opacity: 0.5;}
+	100% {transform: scale(1.1); opacity: 0;}
+}
+@-moz-keyframes zs-box-remove {
+	50% { transform: scale(0.9); opacity: 0.5;}
+	100% {transform: scale(1.1); opacity: 0;}
+}
+@-webkit-keyframes zs-box-remove {
+	50% {transform: scale(0.9); opacity: 0.5;}
+	100% {transform: scale(1.1); opacity: 0;}
+}
+@-o-keyframes zs-box-remove {
+	50% {transform: scale(0.9); opacity: 0.5;}
+	100% {transform: scale(1.1); opacity: 0;}
+}

@@ -1,0 +1,281 @@
+var apiContent = {
+	zTree_Setting: null,
+	zTree_Node: null,
+	zTree_Function: null,
+	overlayDiv : null,
+	overlayContent : null,
+	overlayDetailDiv : null,
+	overlayCloseBtn: null,
+	overlayArrow: null,
+	contentBoxDiv : null,
+	settingDiv : null,
+	functionDiv : null,
+	overlaySearch: null,
+	searchKey: null,
+	searchResultInput: null,
+	searchPrevBtn: null,
+	searchNextBtn: null,
+	apiCache: {},
+	lastValue: "",
+	searchNodes: [],
+	searchNodesCur: 0,
+
+	_init: function() {
+		this.overlayDiv = $("#overlayDiv");
+		this.overlayContent = $("#overlayContent");
+		this.overlayDetailDiv = $("#overlayDetailDiv");
+		this.overlayCloseBtn = $("#overlayDivCloseBtn");
+		this.overlayArrow = $("#overlayDivArrow");
+		this.contentBoxDiv = $("#contentBox");
+		this.settingDiv = $("#api_setting");
+		this.functionDiv = $("#api_function");
+		this.searchKey = $(".searchKey");
+		this.overlaySearch = $(".overlaySearch");
+		this.searchResultInput = $(".searchResult");
+		this.searchPrevBtn = $(".searchPrev");
+		this.searchNextBtn = $(".searchNext");
+		var setting = {
+			view: {
+				fontCss: this.getFontCss,
+				showLine: false,
+				showIcon: this.showIcon,
+				showTitle: this.getTitle,
+				selectedMulti: false,
+				dblClickExpand: false
+			},
+			data: {
+				key: {
+					title: "tt"
+				},
+				simpleData: {
+					enable:true,
+					idKey: "id",
+					pIdKey: "pId",
+					rootPId: ""
+				}
+			},
+			callback: {
+				onNodeCreated: this.onNodeCreated,
+				beforeClick: this.beforeClick
+			}
+		};
+		var setting_nodes =[
+			{id:1, pId:0, t:"setting", name:"setting : {", open:true},
+			{id:11, pId:1, t:"expandLevel", name:"expandLevel : \"\",", iconSkin:"core", showAPI:true},
+			{id:71, pId:0, name:"}"},
+		];
+
+		var treenode_nodes =[
+			{id:1, pId:0, t:"treeNode", name:"treeNode : {", open:true},
+			{id:101, pId:1, t:"id", name:"id : 1,", iconSkin:"check", showAPI:false},
+			{id:102, pId:1, t:"text", name:"text : '节点1',", iconSkin:"core", showAPI:false},
+			{id:128, pId:1, t:"children", name:"children : [{id:....,text:...},{id:....,text:...}]", iconSkin:"check", showAPI:false},
+			{id:127, pId:1, t:"showMore", name:"showMore : true/false(是否显示'更多'按钮),", iconSkin:"core", showAPI:false},
+			{id:103, pId:1, t:"showAdd", name:"showAdd : true/false(是否显示'导入'按钮),", iconSkin:"check", showAPI:false},
+			{id:103, pId:1, t:"showCreate", name:"showCreate : true/false(是否显示'创建'按钮),", iconSkin:"check", showAPI:false},
+			{id:103, pId:1, t:"showDel", name:"showDel : true/false(是否显示'删除'按钮),", iconSkin:"check", showAPI:false},
+			{id:2, pId:0, name:"}"}
+		];
+
+		var function_nodes =[
+			{id:4, pId:0, t:"treeHelper", name:"treeHelper : {", open:true},
+			{id:402, pId:4, t:"getNodeById", name:"getNodeById (id)", iconSkin:"core", showAPI:true},
+			{id:403, pId:4, t:"appendNode", name:"appendNode (node)", iconSkin:"edit", showAPI:true},
+			{id:404, pId:4, t:"getParent", name:"getParent (node)", iconSkin:"core", showAPI:true},
+			{id:405, pId:4, t:"bindEvent", name:"bindEvent (eventTarget,eventType,callback)", iconSkin:"check", showAPI:true},
+			{id:406, pId:4, t:"getNodes", name:"getNodes ()", iconSkin:"check", showAPI:true},
+			{id:407, pId:4, t:"getSelectNode", name:"getSelectNode ()", iconSkin:"edit", showAPI:true},
+			{id:408, pId:4, t:"getCheckedNode", name:"getCheckedNode ()", iconSkin:"edit", showAPI:true},
+			{id:409, pId:4, t:"getCheckedNodes", name:"getCheckedNodes ()", iconSkin:"edit", showAPI:true},
+			{id:436, pId:4, t:"expandAllNode", name:"expandAllNode ()", iconSkin:"core", showAPI:true},
+			{id:437, pId:4, t:"expandNode", name:"expandNode (node)", iconSkin:"core", showAPI:true},
+			{id:438, pId:4, t:"removeNodeById", name:"removeNodeById (id)", iconSkin:"core", showAPI:true},
+			{id:439, pId:4, t:"removeNode", name:"removeNode (node)", iconSkin:"core", showAPI:true},
+			{id:5, pId:0, name:"}"}
+		];
+
+		apiContent.zTree_Setting = $.fn.zTree.init($("#settingTree"), $.fn.zTree._z.tools.clone(setting), setting_nodes);
+		apiContent.zTree_Node = $.fn.zTree.init($("#treenodeTree"), $.fn.zTree._z.tools.clone(setting), treenode_nodes);
+		apiContent.zTree_Function = $.fn.zTree.init($("#functionTree"), $.fn.zTree._z.tools.clone(setting), function_nodes);
+		this.bindEvent();
+	},
+	beforeClick: function (treeId, node, noClear) {
+		if (!node.showAPI) return false;
+		var o = $("#" + node.tId + "_a");
+		if (!!apiContent.apiCache[node.tId]) {
+			apiContent.tmpDiv.html(apiContent.apiCache[node.tId]);
+			apiContent.overlayShow(o, (apiContent.lastNode === node));
+		} else {
+			apiContent.overlayAjax(treeId, node);
+		}
+		apiContent.lastNode = node;
+
+		if (!noClear) {
+			apiContent.clearSelectedNode();
+		}
+		return true;
+	},
+	openAPI: function() {
+		if (apiContent.searchNodes.length > 0) {
+			var setting_zTree = $.fn.zTree.getZTreeObj("settingTree"),
+			treenode_zTree = $.fn.zTree.getZTreeObj("treenodeTree"),
+			function_zTree = $.fn.zTree.getZTreeObj("functionTree");
+			if (apiContent.searchNodesCur < 0 || apiContent.searchNodesCur > apiContent.searchNodes.length -1) {
+				apiContent.searchNodesCur = 0;
+			}
+			var node = apiContent.searchNodes[apiContent.searchNodesCur];
+
+			if (node.tId.indexOf("setting") > -1) {
+				setting_zTree.selectNode(node);
+			} else if (node.tId.indexOf("treenode") > -1) {
+				treenode_zTree.selectNode(node);
+			} else {
+				function_zTree.selectNode(node);
+			}
+			apiContent.searchCur();
+		}
+	},
+	getFontCss: function(treeId, treeNode) {
+		return (!!treeNode.highlight) ? {color:"#A60000", "font-weight":"bold"} : {color:"#333", "font-weight":"normal"};
+	},
+	getTitle: function(treeId, node) {
+		var t = [], n = node;
+		while (n && !!n.t) {
+			t.push(n.t);
+			n = n.getParentNode();
+		}
+		t = t.reverse();
+		node.tt = t.join('.');
+		return true;
+	},
+	showIcon: function(treeId, node) {
+		return (!!node.iconSkin);
+	},
+	onNodeCreated: function (e, treeId, node) {
+		var a = $("#" + node.tId + "_a");
+		if (node.showAPI) {
+			a.attr("rel", "#overlayDiv");
+		} else {
+			a.css({cursor: "default"});
+		}
+	},
+	clearSelectedNode: function() {
+		apiContent.zTree_Setting.cancelSelectedNode();
+		apiContent.zTree_Node.cancelSelectedNode();
+		apiContent.zTree_Function.cancelSelectedNode();
+	},
+	overlayAutoClose: function(e) {
+		var eId = e.target.id, eRel = e.target.getAttribute("rel"), eClass = e.target.className;
+		if (eId === "overlayDiv" || eId === "overlayDivArrow" || eClass.indexOf("searchPrev") > -1 || eClass.indexOf("searchNext") > -1 || !!eRel) return;
+		if (!$(e.target).parents("[rel]").length && !$(e.target).parents("#overlayDiv").length) {
+			apiContent.overlayClose();
+		}
+	},
+	overlayClose: function() {
+		var o = apiContent.overlayDiv;
+		o.stop();
+		apiContent.clearSelectedNode();
+		if (ie) {
+			o.hide();
+		} else {
+			setTimeout(function() {o.fadeTo("fast", 0, function(){o.hide();})}, 200);
+		}
+		$(document).unbind("click", apiContent.overlayAutoClose);
+	},
+	overlayShow: function(target, isSameNode) {
+		var w = $(window), o = apiContent.overlayDiv, a = apiContent.overlayArrow,
+		oc = apiContent.overlayContent, c = apiContent.contentBoxDiv,
+		t = target.offset().top - 30,
+		cMaxLeft = c.offset().left + c.outerWidth({margin:true}) - o.outerWidth({margin:true}) - 10,
+		l = Math.min(cMaxLeft, target.offset().left + target.width() + 40),
+		arrowT = target.offset().top + 16,
+		wMinTop = 100, footerHeight = 50, onlyFade = false,
+		wHeight = w.height(), wScrollTop=w.scrollTop(), wMaxTop = wHeight + wScrollTop - footerHeight;
+		if (!apiContent.overlayMaxTop) {
+			apiContent.overlayMaxTop = apiContent.contentBoxDiv.offset().top + apiContent.contentBoxDiv.height();
+		}
+		o.stop();
+		if (o.css("display") !== "block") {
+			o.css({top: t, left: l});
+			a.css({top:arrowT - t});
+			$(document).bind("click", apiContent.overlayAutoClose);
+		}
+		if (ie) {
+			onlyFade = true;
+			o.show();
+		} else {
+			o.fadeTo("fast", 1);
+		}
+
+		var h = apiContent.tmpDiv.outerHeight({margin:true}) + apiContent.overlaySearch.outerHeight();
+		if ((t + h) > wMaxTop) {
+			t = wMaxTop - h;
+		}
+		if ((t + h) > apiContent.overlayMaxTop) {
+			t = apiContent.overlayMaxTop - h;
+		}
+		t = Math.max(t, wScrollTop, wMinTop);
+		if ((t + h) > ($("body").height()-footerHeight-20)) {
+			o.css("padding-bottom", footerHeight + "px");
+		} else {
+			o.css("padding-bottom", "0");
+		}
+		apiContent.overlayDetailDiv.empty();
+		apiContent.overlayDetailDiv.append(apiContent.tmpDiv.children());
+		if (!onlyFade) {
+			onlyFade = (isSameNode && t === parseInt(o.css("top").replace("px", "")));
+		}
+
+		a.removeClass("reverse");
+		if ( (arrowT - t) > (h-55) ) {
+			a.addClass("reverse");
+			arrowT -= 55;
+		}
+
+		if (onlyFade) {
+			o.css({top: t, left: l});
+			oc.css({height: h});
+			a.css({top:arrowT - t});
+		} else {
+			o.animate({top: t, left: l}, {duration: "normal",easing: "swing", complete:null});
+			oc.animate({height: h}, {duration: "fast",easing: "swing", complete:null});
+			a.animate({top:arrowT - t}, {duration: "normal",easing: "linear", complete:null});
+		}
+	},
+	bindEvent: function() {
+		this.overlayCloseBtn.bind("click", apiContent.overlayClose);
+	},
+	overlayAjax: function(treeId, node) {
+		var o = $("#" + node.tId + "_a");
+		if (node.isAjax) return;
+		node.isAjax = true;
+		$.ajax({
+			type: "get",
+			url: "" + lang + "/" + node.tt.replace("$.", "") + ".html",
+			data: null,
+			dataType: "text",
+			success: function(msg) {
+				if (!apiContent.tmpDiv) {
+					var tmpDiv = $(document.createElement("div"));
+					tmpDiv.addClass("baby_overlay_tmp");
+					$("body").append(tmpDiv)
+					apiContent.tmpDiv = $(document.createElement("div"));
+					apiContent.tmpDiv.addClass("details");
+					tmpDiv.append(apiContent.tmpDiv);
+
+				} else {
+					apiContent.tmpDiv.empty();
+				}
+				apiContent.tmpDiv.html(msg);
+				apiContent.overlayShow(o, false);
+				apiContent.apiCache[node.tId] = msg;
+				node.isAjax = false;
+			},
+			error: function(XMLHttpRequest, textStatus, errorThrown) {
+				alert(ajaxMsg)
+				if (apiContent.tmpDiv) apiContent.tmpDiv.empty();
+				node.isAjax = false;
+			}
+		});
+	}
+}

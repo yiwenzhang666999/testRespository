@@ -1,0 +1,629 @@
+define(['canvasDarg','config'],function(canvasDarg,config) {
+	'use strict';
+    var regional = document.getElementById('label');
+    var getImage = document.getElementById('ditu');
+    var clipPic = document.getElementById('edit_pic');
+    var coverBox = document.getElementById('cover_box');
+    var achieve = document.getElementById('show_edit');
+    var createCanvas={};
+    var zzsize=config.zzsize;
+    var divsize=config.divsize;
+    var pos=config.pos;
+    //当前添加元素的id
+    var posid="";
+    //元素起始下标
+    var startIndex=1;
+    //初始化图片基本参数
+    var bgPagePos={};
+	function init(url) {
+		var t = this;
+		//页面放大缩小
+		$(".tool-ymsx,.tool-ymfd").on("click",bodyZoom);
+		$(".card span.wrapper").on("click",addElement);
+		$(".tool-scys").on("click",delElement);
+		$("#picture_file").on("change",newPicture);
+		//导出图片
+		$(".tool-sctp").on("click", dcImg);
+		//右侧元素列表
+		$('.sec-list.content li a span').on("click", liClick);
+		//修改元素位置
+		$("#table_ys input,#table_ys select").on("input propertychange",butClick);
+		//初始化纸张大小
+		divchange("A4");
+		//初始化底图
+		paintImage(url);
+		for(var i=0;i<4;i++){
+			$(".card span.wrapper")[i].click();
+		}
+		$(".zs-tree").find(".btns.first").click();
+    }
+	/**
+	 * 绘制底图
+	 * url	底图的base64码
+	 */
+    function paintImage(url) {
+      var t = this;
+      createCanvas = getImage.getContext("2d");
+ 
+      var img = new Image();
+      img.src = url;
+ 
+      //把传进来的图片进行等比例缩放
+      img.onload = function(){
+		var zoom=1;
+		bgPagePos.width = regional.offsetWidth-80-4;
+		bgPagePos.height = regional.offsetHeight-40-200-4;
+        if ( img.width < bgPagePos.width && img.height < bgPagePos.height||img.width > bgPagePos.width && img.height > bgPagePos.height) {
+        	var widthzoom=bgPagePos.width/img.width;
+        	var heightzoom=bgPagePos.height/img.height;
+        	zoom=widthzoom>heightzoom?heightzoom:widthzoom;//取最小值
+        }else if(img.width < bgPagePos.width && img.height > bgPagePos.height){
+        	zoom=bgPagePos.height/img.height;
+        }else if(img.width > bgPagePos.width && img.height < bgPagePos.height){
+        	zoom=bgPagePos.width/img.width;
+        }
+    	var width=img.width*zoom;
+    	var height=img.height*zoom;
+        //图片框的坐标
+        bgPagePos.x=(regional.offsetWidth - bgPagePos.width)/2;
+        if(bgPagePos.x!=0){
+            bgPagePos.x-=2;
+        }
+        bgPagePos.y = (regional.offsetHeight - bgPagePos.height) / 2+40;
+        
+        getImage.height = bgPagePos.height;
+        getImage.width = bgPagePos.width;
+        getImage.style.left = bgPagePos.x+"px";
+        getImage.style.top = bgPagePos.y+"px";
+        createCanvas.drawImage(img,(bgPagePos.width-width)/2,(bgPagePos.height-height)/2,width,height);//没用直接插入背景图片而用canvas绘制图片，是为了调整所需框内图片的大小
+        pos["ditu"]={
+    	        "jz": bgPagePos.x,
+    	        "js": bgPagePos.y,
+    	        "tpkd": bgPagePos.width,
+    	        "tpgd": bgPagePos.height,
+    	        "type": "img",
+    	        "url": getImage.toDataURL()
+        }
+//        canDrag(getImage);//底图不可拖拽
+      };
+    }
+	/**
+	 * 添加元素
+	 */
+	function addElement(e){
+		posid=$(this).attr("id");
+		//判断是否为图片，如果是，则弹出文件上传窗口
+		if(posid=="picture"){
+			$("#picture_file").trigger("click");
+		}else{
+			element(this,posid);
+		}
+	}
+	function newPicture(e){
+      var fileList = this.files[0];
+      var oFReader = new FileReader();
+      //读取文件内容
+      oFReader.readAsDataURL(fileList);
+      //当读取操作成功完成时调用.
+      oFReader.onload = function (oFREvent) { 
+    	  //把预览图片URL传给函数
+    	  element(null,posid,oFREvent.target.result);
+      };
+	}
+	function element(e,posid,url){
+		var oldpos=pos[posid];
+		var len=$(".map-wrapper [id*="+posid+"]").length;
+		var id="";
+		var text="";
+		var html="";
+		if(e){
+			html=$(e).find("span").html();
+		}else{
+			html=$(".card .selected span span").html();
+		}
+		if(oldpos.unique=="true"){
+			if(len>0){
+				alert("已有当前元素！");
+				return;
+			}
+			id=posid;
+			text=html;
+		}else{
+			id=posid+startIndex;
+			text=html+startIndex;
+		}
+		pos[id]=$.extend([],oldpos);
+		pos[id]["text"]=text;
+		if(url)pos[id]["url"]=url;
+		var li="";
+		if(oldpos.unique=="true"){
+			li='<li><a href="javascript:;" class="btns second">'+
+				'<i class="ck-box"></i>'+
+				'<input class="ck-inp" type="checkbox">'+
+				'<span class="txt" id="'+id+'">'+text+'</span>'+
+				'</a>'+
+			'</li>';
+			$('.sec-list.content').first().append(li);
+		}else if(len==0){
+			li='<li id="'+posid+'"><a href="javascript:;" class="btns second">'+
+					'<i class="ck-box"></i>'+
+					'<input class="ck-inp" type="checkbox">'+
+					'<span class="txt" >'+html+'</span>'+
+				'</a>'+
+				'<ul class="thi-list content">'+
+					'<li>'+
+						'<a href="javascript:;" class="btns third">'+
+							'<i class="ck-box"></i>'+
+							'<input class="ck-inp" type="checkbox" name="" id="" value="">'+
+							'<span class="txt" id="'+id+'">'+text+'</span>'+
+						'</a>'+
+					'</li>'+
+				'</ul>'+
+				'</li>';
+			pos[id]["text"]=text;
+			$('.sec-list.content').first().append(li);
+		}else if(len>0){
+			li='<li>'+
+					'<a href="javascript:;" class="btns third">'+
+						'<i class="ck-box"></i>'+
+						'<input class="ck-inp" type="checkbox" name="" id="" value="">'+
+						'<span class="txt" id="'+id+'">'+text+'</span>'+
+					'</a>'+
+				'</li>';
+			$('.sec-list.content #'+posid).find("ul").append(li);
+		}
+		$('.sec-list.content li a span').unbind("click").on("click", liClick);
+		startIndex++;
+		config.activeTree();
+		newCanvas(id,"当前元素属性:"+pos[id]["text"]);
+	}
+	/**
+	 * 删除元素
+	 */
+	function delElement(e){
+		var li=$(".sec-list.content .selected").parent();
+		var len=li.length;
+		if(len==0){
+			alert("请在左侧选中需要删除的元素！");
+			return;
+		}
+		if(confirm("是否删除当前选中元素？")){
+			li.each(function(e){
+				var $li=li.eq(len-e-1);
+				var id="";
+				if($li.parent().hasClass("thi-list")){
+					id=$li.find("span").attr("id");
+				}else{
+					id=$li.attr("id");
+					if(!id){//唯一元素的特殊判断
+						id=$li.find("span").attr("id");
+					}
+				}
+				var $l=$("#label #canvas"+id);
+				if($l.length>0){
+					$l.remove();
+				}
+				$li.remove()
+			})
+		}
+	}
+	/**
+	 * 修改元素位置
+	 */
+	function butClick(e){
+		var dqys=$("#dqys").attr("dqys");
+		var text=$("#dqys").text();
+		var posData=pos[dqys];
+		if(!posData)return;
+		$("#table_ys input,#table_ys select").each(function(e){
+		    var $input=$("#table_ys input,#table_ys select").eq(e);
+		    var id=$input.attr("id");
+			var value=$input.val();
+			pos[dqys][id]=value;
+		})
+		newCanvas(dqys,text);
+	}
+	function liClick(e){
+		var id=$(this).attr("id");
+		if(!id)
+			return;
+		var text=$(this).text();
+		newCanvas(id,"当前元素属性:"+text);
+	}
+	function newCanvas(id,text){
+		var posData=pos[id];
+		var name=text.replace("当前元素属性:","");
+		$("#dqys").html(text);
+		$("#dqys").attr("dqys",id);
+		var canvasid="";
+		if(id=="ditu"){
+			canvasid="ditu";
+		}else{
+			canvasid="canvas"+id;
+		}
+		$("#dqys").attr("dqyscan",canvasid);
+		if($("#"+canvasid).length>0){
+			$("#"+canvasid).remove();
+		}
+		if(!posData){
+			$("#dqys").attr("dqys","");
+			$("#dqys").attr("dqyscan","");
+			return;
+		}
+		$("#jz").val(posData.jz);
+		$("#js").val(posData.js);
+		$("#table_img").hide();
+		$("#table_text").hide();
+		if(posData.type=="img"){
+			$("#table_img").show();
+			var imgWidth=0;
+			var imgHeight=0;
+			if(posData.offsetWidth&&posData.offsetHeight){
+				imgWidth=posData.offsetWidth;
+				imgHeight=posData.offsetHeight;
+			}else{
+				imgWidth=posData.tpkd;
+				imgHeight=posData.tpgd;
+			}
+			$("#tpkd").val(imgWidth);
+			$("#tpgd").val(imgHeight);
+			$("#label").append('<canvas name="'+name+'" dqys="'+id+'" id="'+canvasid+'" width="'+imgWidth+'" height="'+imgHeight+'" style="position:absolute;left:'+posData.jz+'px;top:'+posData.js+'px;"></canvas>');
+			var tb = document.getElementById(canvasid);
+			var Canvas = tb.getContext("2d");
+			var img = new Image();
+			img.src =posData.url;
+			img.onload = function(){
+				Canvas.drawImage(img,0,0,imgWidth,imgHeight);
+//				canDrag(tb);
+//				tb.addEventListener("mousewheel",canMousewheel, false);
+			}
+		}else if(posData.type=="text"){
+			$("#table_text").show();
+			$("#font-size").val(posData["font-size"]);
+			$("input#text").val(posData.text);
+			$("#textcolor").val(posData["textcolor"]);
+			$("#zt").val(posData["zt"]);
+			$("#tpgd").val(posData["tpgd"]);
+			$("#tpkd").val(posData["tpkd"]);
+			$("#label").append('<h2 name="'+name+'" dqys="'+id+'" id="'+canvasid+'" style="position:absolute;left:'+posData.jz+'px;top:'+posData.js+'px;font-size:'+posData["font-size"]+'px;font-family:'+posData["zt"]+';color:#'+posData["textcolor"]+';">'+posData.text+'</h2>');
+			//从新计算文字高度
+			var width=$("#canvas"+id)[0].offsetWidth;
+	    	var height=$("#canvas"+id)[0].offsetHeight;
+	    	$("#tpkd").val(width);
+	    	$("#tpgd").val(height);
+	    	pos[id]["tpkd"]=width;
+	    	pos[id]["tpgd"]=height;
+			var text = document.getElementById(canvasid);
+//			canDrag(text);
+			text.addEventListener("dblclick",dbH2Click, false);
+//			text.addEventListener("mousewheel",canMousewheel, false);
+		}
+	}
+	/**
+	 * 图片缩放
+	 */
+	function canMousewheel(e){
+		var dqys=$(this).attr("dqys");
+		var text=$(this).text();
+		var zoom=parseFloat($(this).attr("zoom"))||1;
+		zoom+=event.wheelDelta/12/100;
+		if (zoom>0){
+			pos[dqys]["offsetWidth"]=parseFloat(this.offsetWidth*zoom).toFixed(1);
+			pos[dqys]["offsetHeight"]=parseFloat(this.offsetHeight*zoom).toFixed(1);
+			$(this).attr("zoom",zoom);
+			newCanvas(dqys,text);
+		}
+		e = e || window.event;
+        if (e.stopPropagation) e.stopPropagation();
+        else e.cancelBubble = true;
+        if (e.preventDefault) e.preventDefault();
+        else e.returnValue = false;
+	}
+	/**
+	 * 文字双击修改文字
+	 */
+	function dbH2Click(){
+        var text=$(this).text();
+        var input=$('<input id="textinput" type="text" class="edit" value="'+text+'">');
+        $(this).html(input);
+        $('#textinput').keypress(function(){
+        	//谷歌能识别event，火狐识别不了，所以增加了这一句，chrome浏览器可以直接支持event.keyCode
+		 	var theEvent = window.event || arguments.callee.caller.arguments[0];
+		 	var code = theEvent.keyCode;
+			if (code == 13) {
+	        	h2input(this);
+			}
+        });
+        $('#textinput').click(function(){
+            return false;
+        }); //阻止表单默认点击行为
+        
+        $('#textinput').select(); //点击自动全选中表单的内容
+
+        $('#textinput').blur(function(){
+        	h2input(this);
+        }); //表单失去焦点文本框变成文本
+	}
+	/**
+	 * 保存表单元素
+	 */
+	function h2input(e){
+		var nextxt=$(e).val();
+		var h2=$(e).parent();
+		h2.html(nextxt);
+        var dqys=h2.attr("dqys");
+        $("input#text").val(nextxt);
+		pos[dqys]["text"]=nextxt;
+	}
+	/**
+	 * 导出图片
+	 */
+	function dcImg(){
+		var data=[];
+		var img=[];
+		var text=[];
+		var $canvas=$("[id^=canvas],#ditu");
+		for(var i=0;i<$canvas.length;i++){
+		    var id=$canvas.eq(i).attr("id");
+		    var posid=id.replace("canvas","");
+			var posData=pos[posid];
+			if(posData.type=="img"){
+			    var d={
+		    		src:document.getElementById(id).toDataURL(),
+		    		pos:posData
+			    }
+			    img.push(d);
+			}else if(posData.type=="text"){
+				var d={
+		    		src:"",
+		    		pos:posData
+			    }
+				text.push(d);
+			}
+			data.push(d);
+		}
+		draw(data);
+	}
+
+	/**
+	 * 创建导出所用的canvas，并添加需要导出的页面元素
+	 * data 需要导出的页面元素
+	 */
+	function draw(data){
+		var c=document.createElement('canvas'),
+		ctx=c.getContext('2d');
+		//A4纸张大小
+		c.width=$("#label").width();
+		c.height=$("#label").height();
+		ctx.rect(0,0,c.width,c.height);
+		ctx.fillStyle='#fff';
+		ctx.fill();
+		//记录地图url
+		var img=new Image;
+		img.src=getImage.toDataURL();
+		img.onload=function(){
+			if(bgPagePos.x!=0){
+				ctx.beginPath();
+				ctx.drawImage(img,Number(bgPagePos.x),Number(bgPagePos.y),bgPagePos.width,bgPagePos.height);
+				ctx.closePath();
+				ctx.beginPath();
+				ctx.translate(0.5,0.5);
+				ctx.rect(Number(bgPagePos.x),Number(bgPagePos.y),bgPagePos.width+4,bgPagePos.height);
+				ctx.lineWidth=1;
+				ctx.strokeStyle="#000";
+				ctx.stroke();
+				ctx.closePath();
+			}
+			drawing(0,data,ctx,c);
+		}
+	}
+	/**
+	 * 递归向canvas添加需要导出的页面元素、
+	 * n 	当前下标
+	 * data 需要导出的页面元素
+	 * ctx  canvas对象
+	 * c 	canvas的dom对象
+	 */
+	function drawing(n,data,ctx,c){
+		var len=data.length;
+		var posData=data[n]["pos"];
+		if(posData.type=="img"){
+			var img=new Image;
+			img.src=data[n]["src"];
+			img.onload=function(){
+				var imgWidth=0;
+				var imgHeight=0;
+				if(posData.offsetWidth&&posData.offsetHeight){
+					imgWidth=posData.offsetWidth;
+					imgHeight=posData.offsetHeight;
+				}else{
+					imgWidth=posData.tpkd;
+					imgHeight=posData.tpgd;
+				}
+				ctx.drawImage(img,posData.jz,posData.js,imgWidth,imgHeight);
+				if(n==(len-1)){
+					$("#tttt").attr("href", c.toDataURL("image/jpeg")).attr("download", "order-1111111111.png");
+					$("#tttt")[0].click();
+				}else{
+					drawing(n+1,data,ctx,c);//递归
+				}
+			}
+		}else if(posData.type=="text"){
+			var imgWidth=0;
+			var imgHeight=0;
+			if(posData.offsetWidth&&posData.offsetHeight){
+				imgWidth=posData.offsetWidth;
+				imgHeight=posData.offsetHeight;
+			}else{
+				imgWidth=posData.tpkd;
+				imgHeight=posData.tpgd;
+			}
+			ctx.fillStyle='#'+posData["textcolor"];
+			var font=posData["font-size"]+'px '+posData["zt"];
+			ctx.font = font;
+			ctx.fillText(posData.text,posData.jz,Number(posData.js)+imgHeight);//需加上文字的高度
+			if(n==(len-1)){
+				$("#tttt").attr("href", c.toDataURL("image/jpeg")).attr("download", "order-1111111111.png");
+				$("#tttt")[0].click();
+			}else{
+				drawing(n+1,data,ctx,c);//递归
+			}
+		}
+	}
+	/**
+	 * 初始化纸张大小
+	 * zz 纸张规格
+	 */
+	function divchange(zz){
+		var width=divsize[zz]["width"];
+		var height=divsize[zz]["height"];
+		var wrapper=$(".map-wrapper");
+		var label=$("#label");
+		label.width(width);
+		label.height(height);
+	}
+	/**
+	 * 页面放大缩小
+	 */
+	function bodyZoom(e){
+		var zoom=regional.style.zoom||1;
+		if($(this).hasClass("tool-ymsx")){
+			if(zoom>0.5){
+				zoom=Number(zoom)-0.1;
+			}
+		}else{
+			if(zoom<1.5){
+				zoom=Number(zoom)+0.1;
+			}
+		}
+		regional.style.zoom=zoom;
+	}
+    /**
+     * 元素拖拽事件
+     * dqys	拖拽元素的dom对象
+     */
+    function canDrag(dqys){
+    	var draging = false;
+    	var _startPos = null;
+    	var _mousePos = null;
+    	var border=Number($(regional).css("border-width").replace("px",""))*2;
+    	var bgPagePos = {
+    	  x: regional.offsetLeft+$(".right-con")[0].offsetLeft+$(".map-wrapper")[0].offsetLeft,
+    	  y: regional.offsetTop+$(".right-con")[0].offsetTop+$(".map-wrapper")[0].offsetTop,
+    	  height: regional.offsetHeight-border,
+    	  width: regional.offsetWidth-border
+    	};
+    	var zoom=1;
+    	if(dqys.id!="ditu"){
+    		zoom=Number(regional.style.zoom.replace("%",""))/100;
+    	}
+    	var clipPos={    //裁剪框的默认尺寸与定位
+    	  x: dqys.offsetLeft,
+    	  y: dqys.offsetTop,
+    	  height: dqys.offsetHeight,
+    	  width: dqys.offsetWidth,
+    	}
+    	var ex=0;
+    	var ey=0;
+    	if(!dqys.onmousemove)
+    	dqys.onmousemove = function(e) {
+    		e = e || window.event;
+    		if ( e.pageX == null && e.clientX != null ) {
+    			var doc = document.documentElement, body = document.body;
+			    e.pageX = e.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc && doc.clientLeft || body && body.clientLeft || 0);
+			    e.pageY = e.clientY + (doc && doc.scrollTop || body && body.scrollTop);
+    		}
+    		var scrollLeft = $(".map-wrapper")[0].scrollLeft || $(".map-wrapper")[0].pageXOffset||0 ;
+    		var scrollTop = $(".map-wrapper")[0].scrollTop || $(".map-wrapper")[0].pageYOffset||0 ;
+    		//获取鼠标到背景图片的距离
+            _mousePos = {
+                left: e.pageX-bgPagePos.x+scrollLeft,
+                top: e.pageY-bgPagePos.y+scrollTop
+            }
+			//判断鼠标是否在裁剪区域里面：
+			if ( _mousePos.left > clipPos.x && _mousePos.left < clipPos.x + clipPos.width && _mousePos.top > clipPos.y && _mousePos.top < clipPos.y + clipPos.height ) {
+				this.style.cursor = 'move';
+    	           
+				this.onmousedown = function(){
+					var id=$(this).attr("id");
+					var dataPos=dataPos=pos[id];
+					if(id=="ditu"){
+						$("#table_text").hide();
+						$("#table_img").show();
+						$("#dqys").html($(this).attr("name"));
+						$("#dqys").attr("dqys",id);
+					}else{
+						id=id.replace("canvas","");
+						dataPos=pos[id];
+						$("#dqys").html("当前元素属性:"+$(this).attr("name"));
+						$("#dqys").attr("dqys",id);
+						if(dataPos.type=="img"){
+							$("#table_text").hide();
+							$("#table_img").show();
+						}else if(dataPos.type=="text"){
+							$("#table_text").show();
+							$("#table_img").hide();
+							$("#zt").val(dataPos["zt"]);
+							$("#font-size").val(dataPos["font-size"]);
+							$("input#text").val(dataPos["text"]);
+							$("#textcolor").val(dataPos["textcolor"]);
+						}
+					}
+					$("#jz").val(dataPos["jz"]);
+					$("#js").val(dataPos["js"]);
+					$("#tpkd").val(dataPos["tpkd"]);
+					$("#tpgd").val(dataPos["tpgd"]);
+					
+					draging = true;
+					//记录上一次截图的坐标
+					ex = clipPos.x; 
+					ey = clipPos.y;
+					//记录鼠标按下时候的坐标
+		            _startPos = {
+	                    left: e.pageX-bgPagePos.x+scrollLeft,
+	                    top: e.pageY-bgPagePos.y+scrollTop
+		            }
+				}
+    	 
+				if (draging) {
+					//移动时裁剪区域的坐标 = 上次记录的定位 + (当前鼠标的位置 - 按下鼠标的位置)，裁剪区域不能超出遮罩层的区域;
+					if ( ex + ( _mousePos.left - _startPos.left ) < 0 ) {
+						clipPos.x = 0;
+					} else if ( ex + ( _mousePos.left - _startPos.left ) + clipPos.width > bgPagePos.width ) {
+						clipPos.x = bgPagePos.width - clipPos.width;
+					} else {
+						clipPos.x = ex + ( _mousePos.left - _startPos.left );
+					};
+
+					if (ey + ( _mousePos.top - _startPos.top ) < 0) {
+						clipPos.y = 0;
+					} else if ( ey + ( _mousePos.top - _startPos.top ) + clipPos.height > bgPagePos.height ) {
+						clipPos.y = bgPagePos.height - clipPos.height;
+					} else {
+						clipPos.y = ey + ( _mousePos.top - _startPos.top );
+					}
+					//重新定位元素
+					this.style.left = clipPos.x+"px";
+					this.style.top = clipPos.y+"px";
+					$("#jz").val(clipPos.x);
+					$("#js").val(clipPos.y);
+					//保存当前元素位置
+					dqys=$(this).attr("dqys");
+					pos[dqys]["jz"]=clipPos.x;
+					pos[dqys]["js"]=clipPos.y;
+				}
+    	 
+			    document.body.onmouseup = function() {
+			    	draging = false;
+			    	document.onmousemove = null;
+			    	document.onmouseup = null;
+			    }
+			} else{
+				this.style.cursor = 'default';
+			}
+    	};
+    }
+    return {
+    	init:init
+    }
+});

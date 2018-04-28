@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+<title>全国林地变更工作平台</title>
+<link href="style/init.css" rel="stylesheet"/>
+<link href="style/common.css" rel="stylesheet"/>
+<link href="style/plugin.css" rel="stylesheet" type="text/css"/>
+<link href="style/skin.css" rel="stylesheet" type="text/css"/>
+<link href="style/newCss.css" rel="stylesheet" type="text/css"/>
+<script src="script/jquery-1.7.2.min.js" type="text/javascript"></script>
+<script src="script/jquery.itab-2.0.js" type="text/javascript"></script>
+<script src="script/jquery.ibox.3.0.js"></script>
+<script src="script/nicescroll.js"></script>
+<script src="script/core.js"></script>
+</head>
+<body>
+	<div class="zs-zyjg-zt-body">
+		<div class="left-con">
+			<div class="header">
+				<i class="icon"></i>
+				<span class="txt">制图</span>
+			</div>
+			<div class="tree-wrapper zs-nicescroll">
+				<ul class="zs-tree zt">
+					<!--一级-->
+					<li>
+						<a href="javascript:;" class="btns first">
+							<img class="icon" src="images/zs-tree-list.png" alt="" />
+							<span class="txt">元素列表</span>
+						</a>
+						<ul class="sec-list content">
+						</ul>
+					</li>
+					<li>
+						<a href="javascript:;" class="btns first">
+							<img class="icon" src="images/zs-tree-yssx.png" alt="" />
+							<span class="txt" id="dqys">当前元素属性:</span>
+						</a>
+						<ul class="sec-list content table-wrapper">
+							<div class="zs-data-table">
+								<div class="container">
+									<table width="100%" id="table_ys">
+										<thead>
+											<tr>
+												<th>属性</th>
+												<th>值</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td>位置横坐标(mm)</td>
+												<td><input type="text" id="jz"/></td>
+											</tr>
+											<tr>
+												<td>位置纵坐标(mm)</td>
+												<td><input type="text" id="js"/></td>
+											</tr>
+										</tbody>
+										<tbody id="table_img">
+											<tr>
+												<td>宽度(mm)</td>
+												<td><input type="text" id="tpkd"/></td>
+											</tr>
+											<tr>
+												<td>高度(mm)</td>
+												<td><input type="text" id="tpgd"/></td>
+											</tr>
+										</tbody>
+										<tbody id="table_text">
+											<tr>
+												<td>颜色</td>
+												<td>
+													<input id="textcolor" class="jscolor" value="000000">
+												</td>
+											</tr>
+											<tr>
+												<td>字体</td>
+												<td>
+													<select id="zt">
+														<option value="Adobe Ming Std">默认字体</option>
+														<option value="宋体">宋体</option>
+														<option value="仿宋">仿宋</option>
+													</select>
+												</td>
+											</tr>
+											<tr>
+												<td>文字内容</td>
+												<td><input type="text" id="text"/></td>
+											</tr>
+											<tr>
+												<td>文字大小</td>
+												<td><input type="text" id="font-size"/></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</ul>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div class="right-con">
+			<div class="zs-zt-tool">
+				<div class="card">
+					<a href="javascript:;" class="bt selected">
+						<span class="wrapper" id="title">
+							<i class="icon"></i>
+							<span class="txt">标题</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="blc">
+						<span class="wrapper" id="scale">
+							<i class="icon"></i>
+							<span class="txt">比例尺</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="zbz">
+						<span class="wrapper" id="compass">
+							<i class="icon"></i>
+							<span class="txt">指北针</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="tp" >
+						<span class="wrapper" id="tili">
+							<i class="icon"></i>
+							<span class="txt">图例</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="wz">
+						<span class="wrapper" id="text">
+							<i class="icon"></i>
+							<span class="txt">文字</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="tp" >
+						<input style="display:none;" accept="image/*" type="file" id="picture_file">
+						<span class="wrapper" id="picture">
+							<i class="icon"></i>
+							<span class="txt">图片</span>
+						</span>
+					</a>
+				</div>
+				<div class="options">
+					<a href="javascript:;" class="tool-xzmb" style="display:none;">选择模板</a>
+					<a href="javascript:;" class="tool-tjys">添加元素</a>
+					<a href="javascript:;" class="tool-scys">删除元素</a>
+					<a href="javascript:;" class="tool-ymsx">页面缩小</a>
+					<a href="javascript:;" class="tool-ymfd">页面放大</a>
+					<a href="javascript:;" class="tool-qtxs" style="display:none;">全图显示</a>
+				</div>
+				<div class="layout">
+					<a href="javascript:;" class="tool-sctp">输出图片</a>
+					<a href="javascript:;" class="tool-qp" style="display:none;">全屏</a>
+					<a href="javascript:;" id="tttt" style="display:none;" value="导出图片用，勿删！！">输出图片</a>
+				</div>
+			</div>
+			<div class="map-wrapper" style="zoom: 80%;top:56px;">
+				<div class="" id="label">
+					<canvas name="当前元素属性:底图" dqys="ditu" id="ditu"></canvas>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+<script type="text/javascript" src="script/lib/require/require-2.1.11.mini.js?v=2.0"></script>
+<script type="text/javascript" src="app/printImg/print_main.js?v=2.0"></script>
+<script type="text/javascript" src="app/printImg/print_start.js?v=2.0"></script>
+<script type="text/javascript" src="app/printImg/jscolor.min.js?v=2.0"></script>
+<script type="text/javascript" >
+base64url='${base64url!''}';
+require(['printCanvas'], function (printCanvas) {
+    'use strict';
+    var url=base64url;
+	printCanvas.init(url);
+});
+</script>
+</html>

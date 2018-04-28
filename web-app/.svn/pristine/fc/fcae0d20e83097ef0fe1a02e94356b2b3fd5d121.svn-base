@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<#include "/common/head.html">
+<script>
+	var userObj={
+			userId:"${userid!}",
+			zqCode:"${zqCode!'36'}",
+			username:"${username!''}",
+			realName:"${realname!''}",
+			superUser:"${superUser!''}",
+			userJb:"${userJb!}",
+			defineNd:"${defineNd!}",
+			functions:"${functionStr!''}"
+	};
+</script>
+
+</head>
+<body>
+	<!-- 页面顶部-导航栏 S-->
+	<#include "/common/nav.html">
+	<!-- 页面顶部-导航栏 E-->
+	<!-- 页面 主体-工作区 S-->
+	<!--[if IE]>
+	   <style>
+		#tubi{
+		position: absolute;
+	    float: right;
+	    width: 19px;
+	    height: 18px;
+	    top: 11px;
+	    right: 0;
+	    background: white;
+		}
+		#status{
+		    font-size: 100%;
+		    border:1px solid #ddd;
+		font: 12px "SourceHanSansCN-Light","SourceHanSansCN-Light", "HiraginoSansGB-W3", "noto sans CN","Hiragino Sans GB","Classic Grotesque W01",STHeiti, "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+			width:135px;
+
+			background: url(images/bott.jpg) no-repeat 103px;
+		}
+		</style>
+	<![endif]-->
+<style>
+		.btn_x{
+
+			position: absolute;
+			top: 10px;
+			right: 5px;
+			width: 24px;
+			height: 24px;
+			cursor: pointer;
+			z-index: 77;
+			background: url(images/zs-tree-del.png) no-repeat center !important;
+		}
+		#xzc{
+			display:inline-block;
+			position: relative;
+			 line-height: 40px;
+			 height: 40px;
+			 float: left;
+		}
+		#xzc p{
+				position:relative;
+			    float: left;
+			    /* width: 90px; */
+			    text-align: center;
+			    font-size: 12px;
+		}
+
+	</style>
+
+	<div class="zs-zyjg-body" id="map_continer" style="top:0px;overflow: hidden;">
+		<div class="zs-zyjg-header">
+			<div class="user">
+			<i class="logo-icon"></i>
+				<span class="name"><a href="logout.do" title="退出登录" class="fore-sys-user-exit"></a><i class="icon"></i>${realname!}</span>
+			</div>
+			<div class="tool">
+				<p class="location"><span id="zyjg_jb_mc"></span></p>
+				<div class="map-tool">
+					<div class="hintInfo">安达市大所多</div>
+					 <div id="xzc">
+							<p>
+							<i id="tubi"></i>
+								<select id="status" >
+									<option value="">
+										请选择卷帘图层
+									</option>
+									<option value="LXYX2017">
+										芦溪县2017年影像
+									</option>
+									<option value="LXYX2015">
+										芦溪县2016年影像
+									</option>
+									<option value="HBYX2017">
+										塞罕坝影像
+									</option>
+									<option value="LDYX">
+										2010版影像
+									</option>
+									<option value="YNYBYX">
+										2016版影像
+									</option>
+									<option value="SSYX">
+										2017版影像
+									</option>
+					 		   </select>
+							</p>
+
+			    	 </div>
+					<a href="javascript:;" class="tool-jl" ref="jl">卷帘</a>
+					<a href="javascript:;" id="test_query" style="background: url(images/zs-map-tool-sx.png) no-repeat 20px center;">样地查询</a>
+					<a href="javascript:;" class="tool-xz" ref="feature_select">选择</a>
+					<a href="javascript:;" class="tool-py" ref="feature_move">平移</a>
+					<a href="javascript:;" class="tool-cl" ref=''>测量
+						<div class="card">
+							<span class="selected" id="length_nav">长度测量</span>
+							<span id="area_nav">面积测量</span>
+						</div>
+					</a>
+					<a href="javascript:;" class="tool-qc" ref="feature_clear" id="qingchu">清除</a>
+					<a href="javascript:;" class="tool-sz" ref="">设置</a>
+					<!-- disable -->
+					<a href="javascript:;" class="tool-qp" id='zyjg_fullScreen'>全屏</a>
+				</div>
+				<!-- <div class="ol-full-screen ol-unselectable ol-control ">
+					<button class="ol-full-screen-false" type="button" title="全屏" style="background: red;height: 15px;width: 15px;"></button>
+		    	</div> -->
+			</div>
+			<span id="userId" style="display: none;">${userid!}</span>
+		</div>
+		<!-- 应用中心  S -->
+		<div class="zs-zyjg-body">
+		<div class="zs-apply zyjg">
+			<div class="container">
+				<div class="header">应用中心</div>
+				<div class="content">
+					<div class="item">
+					<a href="router.web?key=yzt_jygh_url">
+						<div class="inner jygh" >
+							<i class="icon"></i>
+							<p class="txt">经营规划</p>
+						</div>
+					</a>
+					</div>
+					<div class="item">
+						<a href="router.web?key=yzt_zyjg_url">
+							<div class="inner zyjg selected">
+								<i class="icon"></i>
+								<p class="txt">森林监管</p>
+							</div>
+						</a>
+					</div>
+					<div class="item">
+						<a href="router.web?key=yzt_ccys_url">
+							<div class="inner ccys" >
+								<i class="icon"></i>
+								<p class="txt">赤诚演示</p>
+							</div>
+						</a>
+					</div>
+					<div class="item">
+						<a href="router.web?key=yzt_trlgl_url">
+							<div class="inner trlgl">
+								<i class="icon"></i>
+								<p class="txt">天然林管理</p>
+							</div>
+						</a>
+					</div>
+					<div class="item">
+						<div class="inner add"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- 应用中心  E -->
+		<!-- 功能模块  S -->
+		<div class="zs-toolbar" >
+			<div class="btns">
+				<a href="javascript:;" class="tool-cx">查询</a>
+				<#if superuser || (functions?? && functions?contains( 'ZYJG_SH'))>
+				<a href="javascript:;" class="tool-sh">审核</a>
+				</#if>
+				<a href="javascript:;" class="tool-qh">区划</a>
+				<span class="tabs">
+					<a href="#bd-tj" class="tool-tj">统计</a>
+<!-- 					<a href="#bd-zt" class="tool-zt">制图</a> -->
+						<a href="javascript:;" class="tool-zt"  id="zhitu">制图</a>
+<!-- 						<a href="javascript:;" class="tool-zt selected" style="display:none;" id="chutu">出图</a> -->
+				</span>
+				<!-- <a href="javascript:;" class="tool-gd">更多</a> -->
+			</div>
+			<div class="container">
+				<!--统计-->
+				<div id="bd-tj" class="board-tj board">
+					<h2 class="header">统计</h2>
+					<span class="tj_close"></span>
+					<div class="content">
+						<div class="item">
+							<p class="title">请选择统计表</p>
+							<ul class="list "><!-- gdtj zs-nicescroll -->
+								<li class="selected" reportId="22">
+									<i class="icon"></i>
+									<p class="txt">林地面积统计表</p>
+								</li>
+								<li customId="1">
+									<i class="icon"></i>
+									<p class="txt">变化图斑叠加分析统计表</p>
+								</li>
+								<!-- <li reportId="14">
+									<i class="icon"></i>
+									<p class="txt">二、变化图斑XXXX统计表</p>
+								</li> -->
+								<li id="customReport" style="display:none">
+									<i class="icon"></i>
+									<p class="txt">自定义统计</p>
+								</li>
+							</ul>
+						</div>
+						<div class="item">
+							<p class="title">请设置统计范围</p>
+							<p class="line">
+								<input type="radio" class="zs-radio" name="bdsj" id="layer_tjfw" value="0" disabled="true" />
+									<label for="layer_tjfw">对图上选中进行统计</label>  <br>
+								<!-- <span class="selected" id="" style="">
+									<i class="ck-box" style="vertical-align: middle;display: inline-block;width: 13px;height: 13px;margin-right: 8px;border: 1px #f38e00 solid;"></i>
+									<input class="ck-inp" type="checkbox" name="" id="" value="" style="display:none">
+									<span class="txt">对图上选中进行统计</span>
+								</span> -->
+							</p>
+							<p class="line">
+								<!-- 更改为下拉框选择县级数据//数据源来自一张表中 -->
+								<input type="radio" class="zs-radio" id="zq_tjfw" name="bdsj" value="1" checked="true" />
+									<label for="zq_tjfw">对指定调查区域进行统计</label>
+								<select name="zq" id="tjzq_where">
+									<!-- 测试数据 -->
+									<option value ="360323">芦溪县</option>
+								</select>
+							</p>
+						</div>
+						<div class="bottom">
+							<input type="button" id="startReportBtn" class="zs-btn" value="开始统计" />
+							<span id="startFormBtn" style="display:none"></span>
+						</div>
+					</div>
+				</div>
+				<div id="bd-zt" class="board-zt board">
+					<h2 class="header">制图</h2>
+					<div class="content">
+						<div class="item">
+							<p class="title">纸张</p>
+							<div class="card">
+								<a href="javascript:;" class="selected">
+									<span class="paper">A4</span>
+									<span>A4</span>
+								</a>
+								<a href="javascript:;">
+									<span class="paper">A3</span>
+									<span>A3</span>
+								</a>
+								<a href="javascript:;">
+									<span class="paper"></span>
+									<span>自定义</span>
+								</a>
+							</div>
+						</div>
+						<div class="item">
+							<p class="title">方向</p>
+							<div class="card">
+								<a href="javascript:;" class="selected">
+									<span class="paper hor"></span>
+									<span>横向</span>
+								</a>
+								<a href="javascript:;">
+									<span class="paper ver"></span>
+									<span>竖向</span>
+								</a>
+							</div>
+						</div>
+						<div class="bottom">
+							<input type="button" class="zs-btn" value="开始制图" />
+						</div>
+					</div>
+				</div>
+				<div class="board-qh">
+					<p class="title">区划</p>
+					<div class="tool">
+						<a href="javascript:;" class="tool-cj" ref="feature_add">
+							<i class="icon"></i>
+							<span class="txt">创建</span>
+						</a>
+						<a href="javascript:;" class="tool-xb" ref="feature_trim">
+							<i class="icon"></i>
+							<span class="txt">修边</span>
+						</a>
+						<a href="javascript:;" class="tool-jdbj" ref="feature_modify" title="节点编辑">
+							<i class="icon"></i>
+							<span class="txt">节点</span>
+						</a>
+						<a href="javascript:;" class="tool-fg" ref="feature_cut">
+							<i class="icon"></i>
+							<span class="txt">分割</span>
+						</a>
+						<a href="javascript:;" class="tool-hb" ref="feature_union">
+							<i class="icon"></i>
+							<span class="txt">合并</span>
+						</a>
+						<a href="javascript:;" class="tool-ht disable" ref="feature_revoke">
+							<i class="icon"></i>
+							<span class="txt">回退</span>
+						</a>
+						<a href="javascript:;" class="tool-sc" ref="feature_del">
+							<i class="icon"></i>
+							<span class="txt">删除</span>
+						</a>
+						<a href="javascript:;" class="tool-sx" ref="feature_param">
+							<i class="icon"></i>
+							<span class="txt">属性</span>
+						</a>
+					</div>
+				</div>
+				<div class="is-buffer-snap">
+						<span >是否吸附</span>
+						<input class="is-snap-check" type="checkbox">
+						<i class="is-snap-i selected"></i>
+				</div>
+			</div>
+		</div>
+		<!-- 功能模块  E -->
+		<!-- 右下角图层控制 -->
+		<div class="mapType-wrapper mapToolJl">
+							<div class="mapType">
+								<div class="clk mapTypeCard first active" layer="TIAN_VEC" hide="TIAN_IMG">
+									<span class="title_span">天地图行政图</span>
+								</div>
+								<div class="clk mapTypeCard second" layer="TIAN_IMG" hide='TIAN_VEC'>
+									<span class="title_span">天地图影像图</span>
+								</div>
+								<div class="mapTypeCard card ldxb">
+									<label class="switch-box">
+										<input layer='LDXB' type="checkbox" class="clk switch" />
+										<a>林地小班</a>
+									</label>
+									<span class="title_span">林地小班</span>
+								</div>
+								<div class="mapTypeCard card dcfw">
+									<label class="switch-box">
+										<input layer='XZQH' type="checkbox" class="clk switch" />
+										<a>调查范围界</a>
+									</label>
+									<span class="title_span">调查范围界</span>
+								</div>
+								<div class="mapTypeCard card ygyx">
+									<label class="switch-box">
+										<!-- <input layer='19_cg_DOM' type="checkbox" class="clk switch" />
+										<input layer='LDYX' type="checkbox" class="clk switch" /> -->
+										<a>遥感影像</a>
+									</label>
+									<div class="sub-menu">
+			                            <ul>
+			                                <li>
+			                                    <label>
+			                                            <input layer='LDYX' type="checkbox" class="clk switch"/>
+			                                            <!-- <span style="background-color:#38a800;">&nbsp; </span> --><a>2010版影像</a>
+			                                        </label></li>
+			                                <li>
+			                                    <label>
+			                                            <input layer='YNYBYX' type="checkbox" class="clk switch"/>
+			                                            <!-- <span style="background-color:#89cd66;">&nbsp; </span> --><a>2016版影像</a>
+			                                        </label></li>
+			                                <li>
+			                                    <label>
+			                                            <input layer='SSYX' type="checkbox" class="clk switch"/>
+			                                            <!-- <span style="background-color:#febee8;">&nbsp; </span> --><a>2017版影像</a>
+			                                    </label>
+			                                </li>
+			                            </ul>
+			                            <div class="trigon"></div>
+			                        </div>
+									<span class="title_span">遥感影像</span>
+								</div>
+							</div>
+						</div>
+
+		<!-- 左侧-图层树  S -->
+		<div class="zs-tree-box zyjg mapToolJl">
+			<div class="header">
+				<!-- <i class="icon"></i>
+				<span class="txt"></span> -->
+				<i class="close"></i>
+			</div>
+			<!-- <div class="legend">
+				<img src="images/zs-legend-img.png" alt="" />
+			</div> -->
+			<!--变化地块 - 右侧选项卡-->
+			<div class="card bhdk">
+				<a href="javascript:;" class="title">图层操作</a>
+				<a href="javascript:;">渲染数据</a>
+				<a href="javascript:;">导入数据</a>
+			</div>
+			<div class="card ywsj">
+				<a href="javascript:;" class="title">图层操作</a>
+				<a href="javascript:;">渲染数据</a>
+				<a href="javascript:;">导入数据</a>
+				<a href="javascript:;">删除图层</a>
+			</div>
+			<div class="container zs-nicescroll" id="tree_container">
+				<ul class="zs-tree treeHelper" id="zyjg">
+					<!--一级-->
+					<li select = "true">
+
+					<input type="text" id="input_keypress" class="kjwz-search zs-input"/>
+					<i class="kjwz-search-btn"></i>
+					<a href="javascript:;" id="btn_fir" class="btns first">
+						<!-- <i class="ck-box"></i> -->
+						<input class="ck-inp" type="checkbox" name="" id="" value="" />
+						<!--<i class="icon first"></i>-->
+						<img class="icon" src="images/zs-tree-file-open.png" alt="" />
+						<span class="txt">空间位置</span>
+						<!--<div class="opa-box kjwz">
+							<span data-content="kjwz-area" class="area btn"></span>
+							<span data-content="kjwz-collect" class="collect btn"></span>
+							<span data-content="kjwz-search" class="search btn"></span>
+						</div>-->
+					</a>
+
+					<ul class="sec-list content kjwz-content" id="dcfw_id">
+					<li class="kjwz-collect item">
+							<a href="javascript:;" class="btns second">
+								<!-- <i class="ck-box"></i> -->
+								<input class="ck-inp" type="checkbox" name="" id="" value="" />
+								<span class="txt" id="zdjc">重点监管区</span>
+							</a>
+							<ul class="thi-list content" id="jcc">
+								<li>
+								<a  class="btns second">
+									<i class="ck-box service switch"  layer='GJZDJCQ'></i>
+									<input class="ck-inp" type="checkbox" name="" id="" value="" />
+									<img class="icon" src="images/zs-map-m-icon.png" alt="" />
+									<span class="txt">重点监测区</span>
+								</a>
+								</li>
+								<li>
+									<a  class="btns second">
+										<i class="ck-box service switch"  layer='GJZRBHQ'></i>
+										<input class="ck-inp" type="checkbox" name="" id="" value="" />
+										<img class="icon" src="images/zs-map-m-icon.png" alt="" />
+										<span class="txt">国家级自然保护区</span>
+									</a>
+								</li>
+								<li>
+									<a  class="btns second">
+										<i class="ck-box service switch"  layer='GJZRBHQ_XIAN'></i>
+										<input class="ck-inp" type="checkbox" name="" id="" value="" />
+										<img class="icon" src="images/zs-map-m-icon.png" alt="" />
+										<span class="txt">国家级自然保护区涉及县</span>
+									</a>
+								</li>
+							</ul>
+						</li>
+						<div class="kjwz-search-content" id="openScwz">
+								<div class="item">
+									<ul class="txt-list" id = "zqdw_query">
+									</ul>
+								</div>
+						</div>
+						<div class="kjwz-normal-content">
+						<li class="kjwz-area item">
+							<a href="javascript:;" class="btns second">
+								<!-- <i class="ck-box"></i> -->
+								<input class="ck-inp" type="checkbox" name="" id="" value="" />
+								<span class="txt">调查范围</span>
+							</a>
+							<div class="content" id="kjwz-area">
+								<div class="position" id="clickHistory">
+								</div>
+							</div>
+						<li>
+						<li class="kjwz-collect item">
+							<a href="javascript:;" class="btns second">
+								<!-- <i class="ck-box"></i> -->
+								<input class="ck-inp" type="checkbox" name="" id="" value="" />
+								<span class="txt" id="collectBut">收藏点</span>
+								<div class="opa-box">
+									<span class="add tjscd btn"></span>
+								</div>
+							</a>
+							<div class="add-collect">
+								<h4 class="title">添加收藏点</h4>
+								<div class="form">3
+									<input type="text" class="zs-input" placeholder="收藏点名称" id="addScInput"/>
+									<input type="button" class="zs-btn" value="添加" id="addScButton"/>
+								</div>
+							</div>
+							<ul class="thi-list content" id="scwz_ul">
+							</ul>
+						</li>
+						</div>
+						<!--<div class="kjwz-search item">
+							<p class="inp-wrapper" onclick="event.stopPropagation();">
+								<input type="text" class="search-inp" placeholder="输入关键字…"/>
+								<a href="javascript:;" class="cancel" onclick="event.stopPropagation();">取消</a>
+							</p>
+							<div class="txt-list">
+								<a href="javascript:;">江西省萍乡县芦溪县</a>
+								<a href="javascript:;">浙江省杭州市铜芦县</a>
+								<a href="javascript:;">浙江省杭州市铜芦县</a>
+							</div>
+						</div>-->
+					</ul>
+				</li>
+					<!--一级-->
+					<li>
+						<a href="javascript:;" class="btns first">
+							<i class="ck-box service all"></i>
+							<input class="ck-inp" type="checkbox" name="" id="" value="" />
+							<!--<i class="icon first"></i>-->
+							<img class="icon" src="images/zs-tree-file.png" alt="" />
+							<span class="txt">影像数据</span>
+							<div class="opa-box"></div>
+						</a>
+						<ul class="sec-list content" style="display:none">
+							<li>
+								<a href="javascript:;" class="btns second">
+									<i class="ck-box service all"></i>
+									<input class="ck-inp" type="checkbox" name="" id="" value="" />
+									<!--<i class="icon first"></i>-->
+									<img class="icon" src="images/zs-tree-file.png" alt="" />
+									<span class="txt">江西</span>
+									<div class="opa-box"></div>
+								</a>
+								<ul class="thi-list content" style="display:none">
+									<li>
+										<a href="javascript:;" class="btns third">
+											<i class="ck-box service all"></i>
+											<input class="ck-inp" type="checkbox" name="" id="" value="" />
+											<!--<i class="icon first"></i>-->
+											<img class="icon" src="images/zs-tree-file.png" alt="" />
+											<span class="txt">芦溪县</span>
+											<div class="opa-box"></div>
+										</a>
+										<ul class="foru-list content" style="display:none">
+											<li>
+												<a href="javascript:;" class="btns fourth">
+													<i class="ck-box service all"></i>
+													<input class="ck-inp" type="checkbox" name="" id="" value="" />
+													<img class="icon" src="images/zs-tree-file.png" alt="" />
+													<span class="txt">2016年影像</span>
+												</a>
+												<ul class="fifth-list content" style="display:none">
+													<li>
+														<a href="javascript:;" class="btns fifth" zqCode="360323">
+															<i class="ck-box service switch" layer="LXYX2015"></i>
+															<input class="ck-inp" type="checkbox" name="" id="" value="" />
+															<img class="icon" src="images/zs-tree-file.png" alt="" />
+															<span class="txt">高分辨率影像</span>
+														</a>
+													</li>
+												</ul>
+											</li>
+											<li>
+												<a href="javascript:;" class="btns fourth">
+													<i class="ck-box service all"></i>
+													<input class="ck-inp" type="checkbox" name="" id="" value="" />
+													<img class="icon" src="images/zs-tree-file.png" alt="" />
+													<span class="txt">2017年影像</span>
+												</a>
+												<ul class="fifth-list content" style="display:none">
+													<li>
+														<a href="javascript:;" class="btns fifth" zqCode="360323">
+															<i class="ck-box service switch" layer="LXYX2017"></i>
+															<input class="ck-inp" type="checkbox" name="" id="" value="" />
+															<img class="icon" src="images/zs-tree-file.png" alt="" />
+															<span class="txt">高分辨率影像</span>
+														</a>
+													</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+							<li>
+								<a href="javascript:;" class="btns second">
+									<i class="ck-box service switch" layer="LNYX2017"></i>
+									<input class="ck-inp" type="checkbox" name="" id="" value="" />
+									<img class="icon" src="images/zs-tree-file.png" alt="" />
+									<span class="txt">辽宁影像</span>
+								</a>
+							</li>
+
+							<li>
+								<a href="javascript:;" class="btns second">
+									<i class="ck-box service all"></i>
+									<input class="ck-inp" type="checkbox" name="" id="" value="" />
+									<!--<i class="icon first"></i>-->
+									<img class="icon" src="images/zs-tree-file.png" alt="" />
+									<span class="txt">河北</span>
+									<div class="opa-box"></div>
+								</a>
+								<ul class="thi-list content" style="display:none">
+									<li>
+										<a href="javascript:;" class="btns third hb_yxsj">
+											<i class="ck-box service switch" layer="HBYX2017"></i>
+											<input class="ck-inp" type="checkbox" name="" id="" value="" />
+											<img class="icon" src="images/zs-tree-file.png" alt="" />
+											<span class="txt">塞罕坝影像</span>
+										</a>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</li>
+					
+					<li style="visibility :hidden;height:0px">
+						<a href="javascript:;" class="btns selected">
+							<i class="ck-box"></i>
+						</a>
+					</li>
+				</ul>
+				
+			</div>
+		</div>
+		<!-- 左侧-图层树  E -->
+		<!-- 地图区 S -->
+		<canvas hidden="hidden" id="hidden_canvas"></canvas>
+		<div id="map" class="zs-map">
+		</div>
+		<div class="xian_b" style="width:100%;height:15px;background:#D1D1D1;position: absolute;bottom:18px;display:none;z-index:9;">
+			<span class="xian_test" style="width: 26px;height:26px;display: inline-block;background:url(./images/circle.png);position: absolute;left:265px;z-index:2;display:none;cursor:w-resize;text-align: center;top: -5px;">
+				<span class="xian_text"; style="position: absolute; left:70px;top:-17px" ></span>
+			</span>
+		</div>
+		<div style="position: absolute;bottom:0px;z-index:999999999;text-align: center;left:8px;font-size:12px">
+			<span >
+				GS(2018)83号 数据来源：全国林地变更调查工作平台(调查范围不含台湾省、香港和澳门特别行政区)
+			</span>
+		</div>
+		<div id="mouse-position" style="width:400px;position:absolute;z-index:99999;font-weight:bolder;left:50%;bottom:5px;color:#337fe5"></div>
+		<div id="mouse-date" style="width:400px;position:absolute;z-index:99999;font-weight:bolder;left:60%;bottom:5px;color:#337fe5;display:none"></div>
+		<!--公共弹窗时，用此div初始化 -->
+		<div id="public_pop"></div>
+		<div id="public_shdk_pop"></div>
+		<!-- 地图区 E -->
+
+		<!--地图点击查询弹窗  -->
+		<div id="popups"></div>
+		<!-- 遮罩 -->
+		<div id="myAlert_mask" style="display: none; width: 100%; height: 100%;">
+		</div>
+		<!-- loading -->
+		<div id="myAlert_" style="display: none;">
+			<div></div>
+		</div>
+	</div>
+	<!--导入时的弹窗-->
+		<#include "/module/import/import.html">
+	<!-- 页面 主体-工作区 E-->
+	<!-- 脚本引入 S-->
+	<!--<script  type="text/javascript" src="script/lib/ol/ol-4.3.min.js?v=2.0"></script>-->
+	<script  type="text/javascript" src="script/lib/ol/ol-debug.min.js"></script>
+	<script type="text/javascript" src="app/map/ol-ext.js?v=2.0"></script>
+	<script  type="text/javascript" src="app/map/ol-extend.js?v=2.0"></script>
+	<script  type="text/javascript" src="script/lib/ol/jsts.min.js?v=2.0"></script>
+	<script type="text/javascript" src="app/shapeImport/spark-md5.js?v=2.0"></script>
+	<!--查找最近的点方法  -->
+	<script  type="text/javascript" src="app/map/tool/findNeighbours.min.js?v=2.0"></script>
+	<script  type="text/javascript" src="app/fs-form.js?v=2.0"></script>
+	<script  type="text/javascript" src="app/PolyLabel.js?v=2.0"></script>
+	<script  type="text/javascript" src="script/lib/ol/proj4.js?v=2.0"></script>
+	<script type="text/javascript" src="script/lib/require/require-2.1.11.mini.js?v=2.0"></script>
+	<script type="text/javascript" src="app/index.js?v=2.0"></script>
+	<script type="text/javascript" src="app/start.js?v=2.0"></script>
+	<script type="text/javascript" src="app/shapeImport/zip.js?v=2.0"></script>
+	<script type="text/javascript" src="app/shapeImport/mime-types.js?v=2.0"></script>
+	<script type="text/javascript" src="app/shapeImport/UnZipArchive.js?v=2.0"></script>
+	<!--引入mini -->
+	<script type="text/javascript" src="script/lib/mini/mini-src.js"></script>
+<!-- 	<script type="text/javascript" src="app/zt.js?v=2.0"></script> -->
+	<!-- <script  type="text/javascript" src="script/lib/ol/filter.js?v=2.0"></script> -->
+	<!-- 脚本引入 E-->
+</body>
+</html>

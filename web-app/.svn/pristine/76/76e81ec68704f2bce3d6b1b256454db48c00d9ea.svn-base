@@ -1,0 +1,195 @@
+/**
+ * 专题展示图层控制显示
+ */
+define([
+    'map','config','queryLayer','layerFactory'
+], function (map,config,queryLayer,layerFactory) {
+    'use strict';
+    var layerObj_bhdk = {};
+    var layerObj_ywsj = {};
+    function init() {
+    	//图层控制
+        layerCtr();
+        //应用中心控制
+        functionSwitch();
+        //地图交互关闭双击
+        initInteraction();
+    }
+    /*隐藏全屏按钮*/
+    function removeFullScr(){
+    	$("#map_continer .ol-full-screen").hide();
+    }
+    /**
+     * 初始化map的交互，关闭双击放大
+     */
+    function initInteraction() {
+        var map_ = map.getMap();
+        var actions = map_.getInteractions().getArray();
+        for (var j = 0; j < actions.length; j++) {
+            var action = actions[j]
+            //关掉双击放大
+            if (action instanceof ol.interaction.DoubleClickZoom) {
+                action.setActive(false);
+            }
+        }
+    }
+    /**
+     * 图层控制
+     */
+    function layerCtr() {
+    	var ckBox = $(".zs-tree-box .ck-box.service");
+    	ckBox.on("click", function () {
+            var $target = $(this);
+            var bool_all = $target.hasClass("switch");
+            /*全选*/
+            var server_all = $target.hasClass("all");
+            //图层名称
+            var show_layer = $target.attr("layer");
+            //仅能展示一个图层
+            var hide_layer = $target.attr("hide");
+            //选中
+            var checked = $target.parent().hasClass("selected");
+            if (show_layer || server_all) {
+                if (bool_all) {        //专题图 选中
+                    if (checked) {
+                    	//显示图层方法
+                        map.showLayer(show_layer);
+                        //处理互斥
+                        if (hide_layer) {
+                            $.each(hide_layer.split(","), function (k, v) {
+                                map.hideLayer(v);
+                                //处理单选框显示
+                                var $only = $("i[layer='" + v + "']");
+                                $only.parent().removeClass("selected")
+                            });
+                        }
+                    }else{
+                    	 map.hideLayer(show_layer);
+                    }
+                }else if(server_all){//父节点
+                	//父节点选中，说明子节点至少一个选中了
+                	if(checked){
+                		//显示所有子节点服务
+                		$.each($target.parent().next().find('i.switch'),function(a,b){
+                			var layer_ = $(b).attr('layer');
+                			map.showLayer(layer_);
+                		})
+                	}else{
+                		//隐藏所有子节点服务
+                		$.each($target.parent().next().find('i.switch'),function(a,b){
+                			var layer_ = $(b).attr('layer');
+                			map.hideLayer(layer_);
+                		})
+                	}
+                }else{//底图控制
+                    map.showLayer(show_layer);
+                    map.hideLayer(hide_layer);
+                    //页面样式
+                    $target.parent().addClass("selected");
+                    $("i[layer='" + hide_layer + "']").parent().removeClass("selected");
+                }
+            }
+        });
+    	
+    	//TODO 左侧树点击勾选，渲染展示功能绑定
+    	var ckBox_data = $(".zs-tree-box .ck-box.data");
+    	ckBox_data.on('click',function(e){
+    		getData(this);
+    	});
+    	map.getMap().on('moveend',function(event){
+    		$(".zs-tree-box .ck-box.data").each(function(e){
+        		getData(this);
+    		})
+        });
+    	
+    }
+    function getData(e){
+		var zoom = map.getMap().getView().getZoom();
+		var type = $(e).attr("type");
+		if(type=="bhdk"){
+			var checked = $(e).parent().hasClass("selected");
+			var xian = $(e).attr("xian");
+			if(checked&&zoom>=14){
+				var layer = null;
+				if(layerObj_bhdk[xian]){
+					layer=layerObj_bhdk[xian];
+				}else{
+					layer = layerFactory.get_high_layer();
+					layerObj_bhdk[xian]=layer;
+					map.getMap().addLayer(layer);
+				}
+				var url = config.zq_tree_url+"/ws/rest/DS/export/zyjg/";
+				var extents = map.getMap().getView().calculateExtent();
+				url += extents[0]+"/"+extents[1]+"/"+extents[2]+"/"+extents[3]+"/"+xian;
+				queryLayer.queryByExtent(url,layerObj_bhdk,xian);
+			}else{
+				if(layerObj_bhdk[xian]){
+					layerObj_bhdk[xian].setVisible(false);
+					map.getMap().removeLayer(layerObj_bhdk[xian]);
+					delete layerObj_bhdk[xian];
+				}
+			}
+		}else if(type=="ywsj"){
+			var layerid = $(e).attr("layerid");
+			var checked = $(e).parent().hasClass("selected");
+			if(checked&&zoom>=14){
+				var layer = null;
+				if(layerObj_ywsj[layerid]){
+					layer=layerObj_ywsj[layerid];
+				}else{
+					layer = layerFactory.get_high_layer();
+					layerObj_ywsj[layerid]=layer;
+					map.getMap().addLayer(layer);
+				}
+				var url = config.zq_tree_url+"/ws/rest/DS/export/zyjg/";
+				var extents = map.getMap().getView().calculateExtent();
+				url += extents[0]+"/"+extents[1]+"/"+extents[2]+"/"+extents[3]+"/"+layerid+"/"+type;
+				queryLayer.queryByExtent(url,layerObj_ywsj,layerid);
+			}else{
+				if(layerObj_ywsj[layerid]){
+					layerObj_ywsj[layerid].setVisible(false);
+					map.getMap().removeLayer(layerObj_ywsj[layerid]);
+					delete layerObj_ywsj[layerid];
+				}
+			}
+		}
+    }
+
+    /**
+     * 应用中心切换
+     *
+     * */
+    function functionSwitch(){
+    	 var inners_func = $(".zs-apply .inner").not(".add");
+         inners_func.click(function(){
+        	 //隐藏应用面板
+        	 $(".zs-apply .btn").click();
+         });
+
+
+    }
+    /**
+     * 获取变化地块加载的图层
+     * */
+    function getLayerByName(layerName){
+    	return layerObj_bhdk[layerName]
+    }
+    /**
+     * 获取变化地块加载图层的集合
+     * */
+    function getLayers(){
+    	var layers = [];
+    	for(var obj in layerObj_bhdk){
+    		if(obj){
+    			layers.push(layerObj_bhdk[obj]);
+    		}
+    	}
+    	return layers;
+    }
+    return {
+        init: init,
+        getLayerByName:getLayerByName,
+        getLayers:getLayers,
+        getData:getData
+    }
+});

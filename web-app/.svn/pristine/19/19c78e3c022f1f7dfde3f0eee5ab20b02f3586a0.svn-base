@@ -1,0 +1,35 @@
+/**
+ * 合并 feature 图形合并
+ */
+define([
+    'map',
+], function (map) {
+    'use strict';
+    var wktFormat = new ol.format.WKT();
+    var jsts4wkt = new jsts.io.WKTReader();
+    var ol4jsts = new jsts.io.OL3Parser();
+    function union(features) {
+        var f = features[0];
+        var jsts_f = jsts4wkt.read(wktFormat.writeFeature(f));
+        for (var i = 0; i < features.length; i++) {
+            var jsts_f_ = jsts4wkt.read(wktFormat.writeFeature(features[i]));
+            jsts_f = jsts_f.union(jsts_f_);
+        }
+        var feature = new ol.Feature(ol4jsts.write(jsts_f));
+        return feature;
+    }
+    function setActive(bool){
+    	if(bool==active){
+    		return;
+    	}
+    	if(bool){
+    		
+    	}else{
+    		
+    	}
+    	active=bool;
+    }
+    return { 
+    	union: union 
+    }
+});

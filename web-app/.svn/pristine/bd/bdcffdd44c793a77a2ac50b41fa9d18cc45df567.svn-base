@@ -1,0 +1,186 @@
+/**
+ * 对应图层要素选择
+ */
+define([
+    'map',
+    'queryLayer','severZtree','ztLayerCro'
+], function (map, queryLayer,severZtree,ztLayerCro) {
+    'use strict';
+    var map_;
+    var done_;
+    var layer;
+    var selectInteraction;
+    var active = null;
+    var features=[];
+    var defaultStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,255,0)', width: 3 })
+    });
+    var selectStyle = new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,0)" }),
+        stroke: new ol.style.Stroke({ color: 'rgb(255,0,255)', width: 3 })
+    });
+    function setActive(bool,done){
+       if(bool == active){
+    	   return;
+       }
+       if(bool){
+    	   map_ = map.getMap();
+    	   if(!layer){
+    		   layer = map.getLayerByName("HIGH_LAYER");
+    	   }
+           $("#map").css("cursor", "default");
+           if(selectInteraction){
+        	   selectInteraction.setActive(bool);
+           }else{
+        	   var layers = severZtree.getLayers();
+               selectInteraction = new ol.interaction.Select({
+            	  /* condition: ol.events.condition.click,*/
+            	   layers:layers
+               });
+               map_.addInteraction(selectInteraction);
+               selectInteraction.on('select',function(e){
+            	   if(e.selected&&e.selected.length>0){
+            		  var f = e.selected[0];
+            		  var isAdd=true;
+            		  for(var i=0;i<features.length;i++){
+            			 if(features[i].getProperties().ID==f.getProperties().ID){
+            				 isAdd=false;
+            				 f.setStyle(defaultStyle);
+            				 layer.getSource().removeFeature(features[i]);
+            				 features.splice(i,1);
+            				 break;
+            			 }
+               	   	  }
+            		  if(isAdd){
+            			  features.push(f);
+            			  f.setStyle(selectStyle);
+            			  layer.getSource().addFeature(f);
+            		  }
+            		  if(typeof done == 'function'){
+            			  done(f);
+            		  }
+            	   }
+               });
+           }
+       }else{
+    	   if(map_){
+    		   selectInteraction.setActive(bool);
+    	   }
+       }
+       active=bool;
+    }
+    function getSelecteds(){
+    	return features;
+    }
+    function clear(){
+    	if(map_&&selectInteraction){
+ 		   selectInteraction.setActive(false);
+ 		   map_.removeInteraction(selectInteraction);
+ 	   }
+ 	   for(var i=0;i<features.length;i++){
+ 		   features[i].setStyle(defaultStyle);
+ 	   }
+ 	   if(layer&&features){
+ 		   for(var i=0;i<features.length;i++){
+ 			   layer.getSource().removeFeature(features[i]);
+ 		   }
+ 	   }
+ 	   features= [];
+ 	   selectInteraction = null;
+ 	   active=false;
+    }
+    ol.interaction.Select.handleEvent = function(mapBrowserEvent) {
+    	  if (!this.condition_(mapBrowserEvent)) {
+    	    return true;
+    	  }
+    	  var add = this.addCondition_(mapBrowserEvent);
+    	  var remove = this.removeCondition_(mapBrowserEvent);
+    	  var toggle = this.toggleCondition_(mapBrowserEvent);
+    	  var set = !add && !remove && !toggle;
+    	  var map = mapBrowserEvent.map;
+    	  var features = this.featureOverlay_.getSource().getFeaturesCollection();
+    	  var deselected = [];
+    	  var selected = [];
+    	  if (set) {
+    	    // Replace the currently selected feature(s) with the feature(s) at the
+    	    // pixel, or clear the selected feature(s) if there is no feature at
+    	    // the pixel.
+    	    ol.obj.clear(this.featureLayerAssociation_);
+    	    map.forEachFeatureAtPixel(mapBrowserEvent.pixel,
+    	        (
+    	          /**
+    	           * @param {ol.Feature|ol.render.Feature} feature Feature.
+    	           * @param {ol.layer.Layer} layer Layer.
+    	           * @return {boolean|undefined} Continue to iterate over the features.
+    	           */
+    	          function(feature, layer) {
+    	            if (this.filter_(feature, layer)) {
+    	              selected.push(feature);
+    	              this.addFeatureLayerAssociation_(feature, layer);
+    	              return !this.multi_;
+    	            }
+    	          }).bind(this), {
+    	          layerFilter: this.layerFilter_,
+    	          hitTolerance: this.hitTolerance_
+    	        });
+    	    var i;
+    	    for (i = features.getLength() - 1; i >= 0; --i) {
+    	      var feature = features.item(i);
+    	      var index = selected.indexOf(feature);
+    	      /*if (index > -1) {
+    	        // feature is already selected
+    	        selected.splice(index, 1);
+    	      } else {*/
+    	        features.remove(feature);
+    	        deselected.push(feature);
+    	      /*}*/
+    	    }
+    	    if (selected.length !== 0) {
+    	      features.extend(selected);
+    	    }
+    	  } else {
+    	    // Modify the currently selected feature(s).
+    	    map.forEachFeatureAtPixel(mapBrowserEvent.pixel,
+    	        (
+    	          /**
+    	           * @param {ol.Feature|ol.render.Feature} feature Feature.
+    	           * @param {ol.layer.Layer} layer Layer.
+    	           * @return {boolean|undefined} Continue to iterate over the features.
+    	           */
+    	          function(feature, layer) {
+    	            if (this.filter_(feature, layer)) {
+    	              if ((add || toggle) &&
+    	                !ol.array.includes(features.getArray(), feature)) {
+    	                selected.push(feature);
+    	                this.addFeatureLayerAssociation_(feature, layer);
+    	              } else if ((remove || toggle) &&
+    	                ol.array.includes(features.getArray(), feature)) {
+    	                deselected.push(feature);
+    	                this.removeFeatureLayerAssociation_(feature);
+    	              }
+    	              return !this.multi_;
+    	            }
+    	          }).bind(this), {
+    	          layerFilter: this.layerFilter_,
+    	          hitTolerance: this.hitTolerance_
+    	        });
+    	    var j;
+    	    for (j = deselected.length - 1; j >= 0; --j) {
+    	      features.remove(deselected[j]);
+    	    }
+    	    features.extend(selected);
+    	  }
+    	  if (selected.length > 0 || deselected.length > 0) {
+    	    this.dispatchEvent(
+    	        new ol.interaction.Select.Event(ol.interaction.Select.EventType_.SELECT,
+    	            selected, deselected, mapBrowserEvent));
+    	  }
+    	  return ol.events.condition.pointerMove(mapBrowserEvent);
+    	};
+    return {
+        setActive:setActive,
+        getSelecteds:getSelecteds,
+        clear:clear
+    }
+});

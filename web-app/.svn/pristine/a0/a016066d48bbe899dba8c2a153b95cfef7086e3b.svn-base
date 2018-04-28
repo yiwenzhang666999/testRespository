@@ -1,0 +1,309 @@
+define(function () {
+	var globalSetting = {};
+	var id_ = null;
+	var text_ = null;
+	var children_ = null;
+	var pid_ = null;
+	var innerTree = null;
+	var defaultSetting = {
+		showCheck : true,
+		data : {
+			id : "id",
+			text : "text",
+			pid : "pid",
+			children : "children"
+		},
+		callback : {}
+	}
+	
+	Array.prototype.remove = function(b) { 
+		var a = this.indexOf(b); 
+		if (a >= 0) { 
+			this.splice(a, 1); 
+			return true; 
+		} 
+		return false; 
+	}; 
+	
+	function getNodeHtml(data){
+		var text = data.text;
+		var html = null;
+		if(data.jb == 1){
+			html = $('<li><a href="javascript:;" class="btns second">\
+					<i class="ck-box"></i>\
+					<input class="ck-inp" type="checkbox" />\
+					<img class="icon" src="images/zs-tree-file-open.png" />\
+					<span class="txt">'+text+'</span>\
+				</a></li>');
+		}else if(data.jb == 2){
+			html = $('<li><a href="javascript:;" class="btns third">\
+					<i class="ck-box"></i>\
+					<input class="ck-inp" type="checkbox" />\
+					<img class="icon" src="images/zs-tree-file-open.png" />\
+					<span class="txt">'+text+'</span>\
+				</a></li>');
+		}else if(data.jb == 3){
+			html = $('<li><a href="javascript:;" class="btns fourth">\
+					<i class="ck-box"></i>\
+					<input class="ck-inp" type="checkbox" />\
+					<img class="icon" src="images/zs-tree-file-open.png" />\
+					<span class="txt">'+text+'</span>\
+				</a></li>');
+		}else if(data.jb == 4){
+			html = $('<li><a href="javascript:;" class="btns fifth">\
+					<i class="ck-box"></i>\
+					<input class="ck-inp" type="checkbox" />\
+					<img class="icon" src="images/zs-tree-trl.png"/>\
+					<span class="txt">'+text+'</span>\
+				</a></li>');
+		}
+		if(!globalSetting.showCheck){
+			html.find(".ck-box").hide();
+		}
+		return html;
+	}
+	
+	function combineSetting(setting){
+		setting = setting ? setting : {};
+		return $.extend(defaultSetting,setting);
+	}
+	
+	function buildNode(tmp,treeObj,jb,parent){
+		tmp.jb = jb;
+		tmp.parent = parent;
+		var id = tmp[id_];
+		var text = tmp[text_];
+		var children = tmp[children_];
+		var nodeHtml = getNodeHtml(tmp);
+		tmp.parentHtml = treeObj;
+		callbackBuildTree(nodeHtml,tmp,innerTree);
+		treeObj.append(nodeHtml);
+		if(children && children.length > 0){
+			var ul = null;
+			if(jb == 1){
+				ul = $('<ul class="thi-list content"></ul>');
+			}else if(jb == 2){
+				ul = $('<ul class="foru-list content"></ul>');
+			}else if(jb == 3){
+				ul = $('<ul class="five-list content"></ul>');
+			}
+			nodeHtml.append(ul);
+			buildTree(ul,children,jb+1,tmp);
+		}
+	}
+	
+	function buildTree(treeObj,data,jb,parent){
+		for(var i = 0 ; i < data.length ; i++){
+			buildNode(data[i],treeObj,jb,parent);
+		}
+	}
+	
+	function callbackBuildTree(nodeHtml,node,innerTree){
+		var tmp = null;
+		if(globalSetting.callback.render) tmp = globalSetting.callback.render(nodeHtml,node,innerTree);
+		nodeHtml = tmp ? tmp : nodeHtml;
+		node.html = nodeHtml;
+		nodeHtml.unbind("click").bind("click",function(){
+			innerTree.selectNode = node;
+			if(globalSetting.callback.click)globalSetting.callback.click(nodeHtml,node,innerTree);
+			var tarList = $(this).find(".content").first();
+			tarList.slideToggle("fast", function(){
+				$(".zs-tree-box .container").getNiceScroll().resize();
+				$(".zs-nicescroll").getNiceScroll().resize();
+			});
+			return false;
+		});
+		
+		var ckBox = nodeHtml.find(".ck-box");
+		ckBox.unbind("click.tree").on("click.tree",function(event){
+			event.stopPropagation();
+			var tarA = $(this).parents("a");
+			var flag;
+			if(tarA.hasClass("selected")){
+				flag = false;
+				innerTree.checkedNodes.remove(node);
+				tarA.removeClass("selected");
+			}else{
+				flag = true;
+				innerTree.checkedNodes.push(node);
+				tarA.addClass("selected");
+			}
+			tarA.find("input[type=checkbox]").prop("checked", flag);
+//			查找父节点
+			checkParNode(tarA, flag);
+			checkedParent(node,flag);
+//			查找子节点
+			checkSonNode(tarA, flag);
+			checkedChildren(node,flag);
+			$(".zs-tree-box").getNiceScroll().resize();
+		});
+		
+		function checkedParent(n,isCheck){
+			while(n = n.parent){
+				if(isCheck){
+					innerTree.checkedNodes.push(n);
+				}else{
+					innerTree.checkedNodes.remove(n);
+				}
+			}
+		}
+
+		function checkedChildren(n,isCheck){
+			if(n[children_] && n[children_]["length"] > 0){
+				for(var i = 0 ; i < n[children_]["length"] ; i++){
+					var tmp = n[children_][i];
+					if(isCheck){
+						innerTree.checkedNodes.push(tmp);
+					}else{
+						innerTree.checkedNodes.remove(tmp);
+					}
+					checkedChildren(tmp,isCheck);
+				}
+			}
+			
+		}
+		
+		function checkParNode(tarA, isCheck){
+			var parLi = tarA.parent("li");
+			var parCon = parLi.parent(".content");
+			var parA = parCon.siblings(".btns");
+			var tarInp = parA.find("input[type=checkbox]");
+			var nowLevalCheckedLen;
+			if(parCon.length !== 0){
+				nowLevalCheckedLen = parCon.children("li").children(".btns.selected").length;
+			}
+			if(parCon.length !== 0){
+				if(isCheck === true){
+					parA.addClass("selected");
+					tarInp.prop("checked", true);
+				}else{
+					if(nowLevalCheckedLen === 0){
+						parA.removeClass("selected");
+						tarInp.prop("checked", false);
+					}
+				}
+				checkParNode(parA, isCheck)
+			}
+		}
+		function checkSonNode(tarA, isCheck){
+			var childCon = tarA.siblings(".content");
+			var childA = childCon.find(".btns");
+			var childInp = childA.find("input[type=checkbox]");
+			if(childCon.length === 0){
+				return;
+			}
+			if(isCheck === true){
+				childA.addClass("selected");
+				childInp.prop("checked", true);
+			}else{
+				childA.removeClass("selected");
+				childInp.prop("checked", false);
+			}
+		}
+	}
+	
+	
+	/**
+	 * 树元素操作API对象,包括基本的节点添加，删除，编辑，以及树的构建
+	 */
+	function treeHelper(treeObj,setting,data){
+		innerTree = this;
+		globalSetting = combineSetting(setting);
+		this.treeObj = treeObj;
+		this.data = data;
+		this.selectNode = null;
+		this.checkedNodes = [];
+		pid_ = globalSetting.data.pid;
+		id_ = globalSetting.data.id;
+		text_ = globalSetting.data.text;
+		children_ = globalSetting.data.children;
+		buildTree(treeObj,data,1,null);
+	}
+	/**
+	 * 通过树节点的id值获得节点对象
+	 * @param id
+	 * @returns
+	 */
+	treeHelper.prototype.findNode = function(id){
+		if(!id || id <= 0) return null;
+		var findNode = null;
+		function doFind(data){
+			for(var i = 0 ; i < data.length ; i++){
+				if(findNode) break;
+				var tmp = data[i];
+				if(tmp[id_] == id){
+					findNode = tmp;
+				}else{
+					if(tmp[children_] && tmp[children_]["length"] > 0){
+						doFind(tmp[children_]);
+					}
+				}
+			}
+		}
+		doFind(this.data);
+		return findNode;
+	}
+
+	/**
+	 * 添加树节点
+	 * @param data
+	 */
+	treeHelper.prototype.appendNode = function(node){
+		var parentNode = this.findNode(node[pid_]);
+		if(parentNode != null){
+			buildNode(node,parentNode.html.find("ul").first(),parentNode.jb+1,parentNode);
+			if(!parentNode[children_]) parentNode[children_] = [];
+			parentNode[children_]["push"](node);
+		}else{
+			buildNode(node,this.treeObj,1,null);
+			this.data.push(node);
+		}
+	}
+	/**
+	 * 获得数据结构
+	 * @returns
+	 */
+	treeHelper.prototype.getData = function(){
+		return this.data;
+	}
+	
+	/**
+	 * 获得已选择的check节点
+	 * @returns
+	 */
+	treeHelper.prototype.getCheckedNodes = function(){
+		return this.checkedNodes;
+	}
+	/**
+	 * 获得当前选中的树节点
+	 * @returns
+	 */
+	treeHelper.prototype.getSelectNode = function(){
+		return this.selectNode;
+	}
+	/**
+	 * 根据树节点的ID删除该节点以及所有子元素
+	 * @param id
+	 * @returns
+	 */
+	treeHelper.prototype.removeNodeById = function(id){
+		return this.removeNode(this.findNode(id));
+	}
+	/**
+	 * 根据node对象删除该节点以及所有子元素（注意node对象必须是树内部node）
+	 * @param node
+	 * @returns
+	 */
+	treeHelper.prototype.removeNode = function(node){
+		var parent = node.parent;
+		if(parent){
+			parent.children.remove(node);
+		}else{
+			this.data.remove(node);
+		}
+		node.html.remove();
+		return this.data;
+	}
+
+	return treeHelper;
+});

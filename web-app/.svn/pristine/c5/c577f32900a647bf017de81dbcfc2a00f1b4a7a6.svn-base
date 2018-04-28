@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+<title>全国林地变更工作平台</title>
+<link href="style/init.css" rel="stylesheet"/>
+<link href="style/common.css" rel="stylesheet"/>
+<link href="style/plugin.css" rel="stylesheet" type="text/css"/>
+<link href="style/skin.css" rel="stylesheet" type="text/css"/>
+<link href="style/newCss.css" rel="stylesheet" type="text/css"/>
+<script src="script/jquery-1.7.2.min.js" type="text/javascript"></script>
+<script src="script/jquery.itab-2.0.js" type="text/javascript"></script>
+<script src="script/jquery.ibox.3.0.js"></script>
+<script src="script/nicescroll.js"></script>
+<script src="script/core.js"></script>
+</head>
+<script>
+	var userObj={
+			userId:"${userid!}",
+			zqCode:"${zqCode!}",
+			username:"${username!}",
+			realName:"${realname!}",
+			superUser:"${superUser!}",
+			userJb:"${userJb!}"
+	};
+</script>
+<body>
+	<div class="zs-zyjg-zt-body">
+		<div class="left-con">
+			<div class="header">
+				<i class="icon"></i>
+				<span class="txt">制图</span>
+			</div>
+			<div class="tree-wrapper zs-nicescroll">
+				<div class="tab idTabs">
+					<a href="#ys"><i class="icon ms"></i>元素</a>
+					<a href="#tc"><i class="icon bl"></i>图层</a>
+				</div>
+				<div class="tab-container">
+					<div id="ys">
+						<#include "left_ys.html">
+					</div>
+					<div id="tc">
+						<#include "left_tc.html">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="right-con">
+			<div class="zs-zt-tool">
+				<div class="card">
+					<a href="javascript:;" class="bt selected">
+						<span class="wrapper" id="title">
+							<i class="icon"></i>
+							<span class="txt">标题</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="blc">
+						<span class="wrapper" id="scale">
+							<i class="icon"></i>
+							<span class="txt">比例尺</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="zbz">
+						<span class="wrapper" id="compass">
+							<i class="icon"></i>
+							<span class="txt">指北针</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="tp" >
+						<span class="wrapper" id="tili">
+							<i class="icon"></i>
+							<span class="txt">图例</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="wz">
+						<span class="wrapper" id="text">
+							<i class="icon"></i>
+							<span class="txt">文字</span>
+						</span>
+					</a>
+					<a href="javascript:;" class="tp" >
+						<input style="display:none;" accept="image/*" type="file" id="picture_file">
+						<span class="wrapper" id="picture">
+							<i class="icon"></i>
+							<span class="txt">图片</span>
+						</span>
+					</a>
+				</div>
+				<div class="options">
+					<a href="javascript:;" class="tool-xzmb">选择模板</a>
+					<a href="javascript:;" class="tool-tjys">添加元素</a>
+					<a href="javascript:;" class="tool-scys">删除元素</a>
+					<a href="javascript:;" class="tool-ymsx">页面缩小</a>
+					<a href="javascript:;" class="tool-ymfd">页面放大</a>
+					<a href="javascript:;" class="tool-qtxs" style="display:none;">全图显示</a>
+				</div>
+				<div class="layout">
+					<a href="javascript:;" class="tool-gcmb">保存模板</a>
+					<a href="javascript:;" class="tool-sctp">输出图片</a>
+					<a href="javascript:;" class="tool-qp">全屏</a>
+					<a href="javascript:;" id="tttt" style="display:none;" value="导出图片用，勿删！！">输出图片</a>
+				</div>
+			</div>
+<!-- 			<div class="map-wrapper" style="zoom: 80%;top:56px;"> -->
+			<div class="map-wrapper">
+				<div class="" id="label">
+<!-- 					<canvas name="当前元素属性:底图" dqys="ditu" id="ditu"></canvas> -->
+				</div>
+			</div>
+					<!-- 右下角图层控制 -->
+		<div class="mapType-wrapper">
+							<div class="mapType">
+								<div class="clk mapTypeCard first active" layer="TIAN_VEC" hide="TIAN_IMG">
+									<span class="title_span">天地图行政图</span>
+								</div>
+								<div class="clk mapTypeCard second" layer="TIAN_IMG" hide='TIAN_VEC'>
+									<span class="title_span">天地图影像图</span>
+								</div>
+								<div class="mapTypeCard card ldxb">
+									<label class="switch-box">
+										<input layer='LDXB' type="checkbox" class="clk switch" />
+										<a>林地小班</a>
+									</label>
+									<span class="title_span">林地小班</span>
+								</div>
+								<div class="mapTypeCard card dcfw">
+									<label class="switch-box">
+										<input layer='XZQH' type="checkbox" class="clk switch" />
+										<a>调查范围界</a>
+									</label>
+									<span class="title_span">调查范围界</span>
+								</div>
+								<div class="mapTypeCard card ygyx">
+									<label class="switch-box">
+										<!-- <input layer='19_cg_DOM' type="checkbox" class="clk switch" />
+										<input layer='LDYX' type="checkbox" class="clk switch" /> -->
+										<a>遥感影像</a>
+									</label>
+									<div class="sub-menu">
+			                            <ul>
+			                                <li>
+			                                    <label>
+			                                            <input layer='LDYX' type="checkbox" class="clk switch"/>
+			                                            <!-- <span style="background-color:#38a800;">&nbsp; </span> --><a>2010版影像</a>
+			                                        </label></li>
+			                                <li>
+			                                    <label>
+			                                            <input layer='YNYBYX' type="checkbox" class="clk switch"/>
+			                                            <!-- <span style="background-color:#89cd66;">&nbsp; </span> --><a>2016版影像</a>
+			                                        </label></li>
+			                                <li>
+			                                    <label>
+			                                            <input layer='SSYX' type="checkbox" class="clk switch"/>
+			                                            <!-- <span style="background-color:#febee8;">&nbsp; </span> --><a>2017版影像</a>
+			                                    </label>
+			                                </li>
+			                            </ul>
+			                            <div class="trigon"></div>
+			                        </div>
+									<span class="title_span">遥感影像</span>
+								</div>
+							</div>
+						</div>
+		</div>
+	</div>
+</body>
+<script  type="text/javascript" src="script/lib/ol/ol-debug.js"></script>
+<script  type="text/javascript" src="script/lib/ol/jsts.min.js?v=2.0"></script>
+<script  type="text/javascript" src="app/fs-form.js?v=2.0"></script>
+<script  type="text/javascript" src="app/PolyLabel.js?v=2.0"></script>
+<script  type="text/javascript" src="script/lib/ol/proj4.js?v=2.0"></script>	
+<script type="text/javascript" src="script/lib/require/require-2.1.11.mini.js?v=2.0"></script>
+<!-- <script type="text/javascript" src="app/index.js?v=2.0"></script> -->
+<!-- <script type="text/javascript" src="app/start.js?v=2.0"></script> -->
+<script type="text/javascript" src="app/printImg/print_main.js?v=2.0"></script>
+<script type="text/javascript" src="app/printImg/print_start.js?v=2.0"></script>
+<script type="text/javascript" src="app/printImg/jscolor.min.js?v=2.0"></script>
+</html>

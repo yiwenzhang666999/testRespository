@@ -1,0 +1,280 @@
+/**
+ *
+ */
+define([
+    'map','style','treeHelper'
+], function (map_,style,treeHelper) {
+    'use strict';
+    var layer;
+    var interaction_draw;
+    var stop =false;
+    var isStop=false;
+    /**
+     * 图层画 点、线、面
+     * @param {string} type  'Point', 'LineString', 'LinearRing', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection', 'Circle'.
+     * @param {function} callBack
+     */
+    function draw(type, callBack) {
+        var map=map_.getMap();
+        if (!layer) {
+            layer = map_.getLayerByName("DRAW_LAYER");
+        }
+        //
+        var source = layer.getSource();
+        source.clear();
+        clear();
+        //
+        interaction_draw = new ol.interaction.Draw({
+            source: source,
+            type: type,
+            snapTolerance:5,//结束点吸附距离 像素
+            bufferLayerName:"tableName",//吸附查询时的 表名
+            bufferTolerance:15,//吸附查询时的 距离
+            style: style.getDefaultStyleFunction()
+        });
+        map.addInteraction(interaction_draw);
+        interaction_draw.on('drawend', function (evt) {
+        	setTimeout(function(){
+        		layer.getSource().clear();
+        	},0)
+        	if(stop){
+        		stop=false;
+        		return;
+        	}
+            map.render();
+            map.removeInteraction(interaction_draw);
+            interaction_draw=null;
+            callBack(evt);
+        });
+        interaction_draw.on('drawstart',function(evt){
+        	//TODO 查询服务和判断逻辑待定
+        	if(1==1){return}
+        	if(!window.startTool){
+        		return;
+        	}
+        	var coor=evt.feature.getGeometry().getFirstCoordinate();
+        	var data = {
+        			X:coor[0],Y:coor[1],
+        			userId:userObj.userId
+        	}
+        	$.ajax({
+        		url:"pdsfcj.do",
+        		type:"post",
+        		data:{jsonStr:JSON.stringify(data)},
+        		success:function(res){
+        			stop=true;
+        			if(res.success){
+        				var zqCode = res.code;
+        				var layerName = res.layerName;
+        				if(getLayerTreeChecked(zqCode,layerName)){
+        					stop=false;
+        					isStop=false;
+        				}else{
+        					//清除捕捉吸附图层
+        					isStop=true;
+        					map_.getLayerByName("BUFFER_LAYER").getSource().clear();
+        					interaction_draw.finishDrawing();
+        					alert("您未勾选"+(res.name?res.name:'')+"的数据！");
+        				}
+        			}else{
+        				isStop=true;
+        				//清除捕捉吸附图层
+        				map_.getLayerByName("BUFFER_LAYER").getSource().clear();
+        				interaction_draw.finishDrawing();
+        				alert("您未创建"+(res.name?res.name:'')+"的数据！");
+        			}
+        		},
+        		error:function(err){
+        			console.error(err);
+        		}
+        		
+        	});
+        });
+    }
+    function getLayerTreeChecked(zqCode,layerName){
+    	var tree = treeHelper.getTree("zyjg");
+    	var checkedNodes = tree.getCheckedNodes();
+    	for(var i=0;i<checkedNodes.length;i++){
+    		var item = checkedNodes[i];
+    		if(item._data&&item._data.xian&&item._data.xian==zqCode){
+    			return 1;
+    		}
+    	}
+    	return 0;
+    }
+    /**
+    * 清除地图交互
+    */
+    function clear() {
+        var ia = map_.getMap().getInteractions().getArray();
+        for (var i = 0; i < ia.length; i++) {
+            if (ia[i] instanceof ol.interaction.Draw || ia[i] instanceof ol.interaction.Select) {
+               /*ia[i].setActive(false)*/
+            	map_.getMap().removeInteraction(ia[i]);
+            	interaction_draw=null;
+            }
+        }
+        map_.getLayerByName("BUFFER_LAYER").getSource().clear();
+    }
+   
+    /**
+     * 移出最后一个绘制点
+     * */
+    function removeLastPoint(){
+    	if(interaction_draw&&interaction_draw.a&&interaction_draw.a&&interaction_draw.a[0].length>1){
+    		interaction_draw.removeLastPoint();
+    	}else if(interaction_draw&&interaction_draw.sketchCoords_
+    			&&interaction_draw.sketchCoords_
+    			&&interaction_draw.sketchCoords_[0].length>1){
+    		interaction_draw.removeLastPoint();
+    	}
+    }
+    ol.interaction.Draw.prototype.clearOverlay_=function(){
+    	this.overlay_.getSource().clear();
+    }
+    /**
+     * 扩展
+     * */
+    ol.interaction.Draw.prototype.updateSketchFeatures_ = function() {
+    	  var sketchFeatures = [];
+    	  if (this.sketchFeature_) {
+    	    sketchFeatures.push(this.sketchFeature_);
+    	  }
+    	  if (this.sketchLine_) {
+    	    sketchFeatures.push(this.sketchLine_);
+    	  }
+    	  if (this.sketchPoint_) {
+    	    sketchFeatures.push(this.sketchPoint_);
+    	  }
+    	  if(this.sketchCoords_){
+    		  var inflectionPoints = this.getInflectionPoint();
+    		  for(var i=0;i<inflectionPoints.length;i++){
+    			  sketchFeatures.push(inflectionPoints[i]);
+    		  }
+    	  }
+    	  var overlaySource = this.overlay_.getSource();
+    	  overlaySource.clear(true);
+    	  overlaySource.addFeatures(sketchFeatures);
+    	};
+    	/**
+    	 * 扩展 点吸附（openlayers）
+    	 * */
+    	ol.interaction.Draw.prototype.atFinish_ = function(event) {
+    		  var at = false;
+    		  if (this.sketchFeature_) {
+    		    var potentiallyDone = false;
+    		    var potentiallyFinishCoordinates = [this.finishCoordinate_];
+    		    if (this.mode_ === ol.interaction.Draw.Mode_.LINE_STRING) {
+    		      potentiallyDone = this.sketchCoords_.length > this.minPoints_;
+    		    } else if (this.mode_ === ol.interaction.Draw.Mode_.POLYGON) {
+    		      potentiallyDone = this.sketchCoords_[0].length >
+    		          this.minPoints_;
+    		      potentiallyFinishCoordinates = [this.sketchCoords_[0][0],
+    		        this.sketchCoords_[0][this.sketchCoords_[0].length - 2]];
+    		    }
+    		    if (potentiallyDone) {
+    		      var map = event.map;
+    		      for (var i = 0, ii = potentiallyFinishCoordinates.length; i < ii; i++) {
+    		    	  /**
+    		    	   * potentiallyFinishCoordinates
+    		    	   * 次数组只有两个值，第一个为起始点第二个为最后一点；
+    		    	   * 此处重写方法，改变判断，起始点有吸附，在范围内即可，
+    		    	   * 最后一点没有吸附，必须是重合点才回吸附，用这种方式达成双击的结束效果；
+    		    	   * */
+    		        var finishCoordinate = potentiallyFinishCoordinates[i];
+    		        var finishPixel = map.getPixelFromCoordinate(finishCoordinate);
+    		        var pixel = event.pixel;
+    		        //event中没有改变吸附后的像素点；
+    		        //var pixel = map.getPixelFromCoordinate(event.coordinate);
+    		        var dx = pixel[0] - finishPixel[0];
+    		        var dy = pixel[1] - finishPixel[1];
+    		        if(i==0){
+    		        	var snapTolerance = this.freehand_ ? 1 : this.snapTolerance_;
+    		        	at = Math.sqrt(dx * dx + dy * dy) <= snapTolerance;
+    		        }else if(i==1){
+    		        	at=Math.sqrt(dx * dx + dy * dy)<=0.1;
+    		        }
+    		        if (at) {
+    		          this.finishCoordinate_ = finishCoordinate;
+    		          break;
+    		        }
+    		      }
+    		    }
+    		  }
+    		  return at;
+    		};
+    	/**
+    	 * 获取节点
+    	 * */
+    ol.interaction.Draw.prototype.getInflectionPoint=function(){
+    	var coords = [];
+    	var sketchCoords = [];
+    	if(this.mode_===ol.interaction.Draw.Mode_.POINT){
+    		
+    	}else if(this.mode_===ol.interaction.Draw.Mode_.LINE_STRING){
+    		sketchCoords = this.sketchCoords_;
+    	}else if(this.mode_===ol.interaction.Draw.Mode_.POLYGON){
+    		sketchCoords = this.sketchCoords_[0];
+    	}else if(this.mode_===ol.interaction.Draw.Mode_.CIRCLE){
+    		
+    	}else{
+    		
+    	}
+  	  	var length = sketchCoords.length;
+  	  	for(var z=0;z<length;z++){
+  	  		var item = sketchCoords[z];
+  	  		if(!coords.isHaveArr(item)){
+  	  			coords.push(item);
+  	  		}
+  	  	}
+  	  	var pointFeatureArr = [];
+  	  	for(var i=0;i<coords.length;i++){
+  	  		var point = new ol.geom.Point(coords[i]);
+  	  		var fea = new ol.Feature({geometry:point});
+	  	  	var style = new ol.style.Style({
+		          image: new ol.style.Circle({
+		            radius: 4,
+		            stroke: new ol.style.Stroke({
+		              color: 'rgba(70,70,70,1)',
+		              width: 1
+		            }),
+		            fill: new ol.style.Fill({
+		              color: 'rgba(255,255,255,1)'
+		            })
+		          })
+		        });
+	  	  	fea.setStyle(style);
+  	  	    pointFeatureArr.push(fea);
+  	  	}
+  	  return pointFeatureArr;
+    }
+    //查找数组中是否包含，另一个点数组；
+    Array.prototype.isHaveArr = function(arr){
+    	for(var i=0;i<this.length;i++){
+    		if(this[i].indexOf(arr[0])>0&&this[i].indexOf(arr[1])>0){
+    			return true;
+    		}
+    	}
+    	return false;
+    }
+    ol.geom.GeometryType = {
+    		  POINT: 'Point',
+    		  LINE_STRING: 'LineString',
+    		  LINEAR_RING: 'LinearRing',
+    		  POLYGON: 'Polygon',
+    		  MULTI_POINT: 'MultiPoint',
+    		  MULTI_LINE_STRING: 'MultiLineString',
+    		  MULTI_POLYGON: 'MultiPolygon',
+    		  GEOMETRY_COLLECTION: 'GeometryCollection',
+    		  CIRCLE: 'Circle'
+    		};
+    function getIsStop(){
+    	return isStop;
+    }
+    return {
+        draw:draw,
+        removeLastPoint:removeLastPoint,
+        clear:clear,
+        getIsStop:getIsStop//是否停止绘制
+    }
+});

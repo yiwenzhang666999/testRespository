@@ -1,0 +1,297 @@
+//----------------------------------------------------------------------------------
+//制图使用的判断
+    var bool_zt=true;
+    
+    //点击开始绘图
+    function button_click()
+    {
+  	  $("#zhitu").hide();
+	  	var mousekey=0;
+	    var x=0;
+	    var y=0;
+	      $("#chutu").show();
+  	  //禁用地图点击拖动
+  	  disableMove();
+  	  //鼠标按下开始绘图
+  	    $(document).bind("mousedown", function (e) { 
+  	    	if(bool_zt)
+ 	    		{
+	   	    		mousekey = true;  
+	       	        //var currObj = e.originalEvent.srcElement; //这里是获取当前鼠标所在对象  
+	       	        $('body').css("cursor", "default").append('<div id="testDiv" draggable="true"  class="resizeMe" style="position:absolute;border-color:#FF0000;border:2px dashed;"><div id="innerNice"></div></div>');  
+	       	        x = e.pageX;  
+	       	        y = e.pageY;  
+	       	       // $('#testDiv').css({ top: e.pageY, left: e.pageX }).fadeTo(12, 0.2);//点击后开始拖动并透明; 
+ 	    		}
+  	        
+  	    }).mousemove(function (e) {  
+  	    	//鼠标移动事件
+  	    	if(bool_zt)
+  	        if (mousekey) {  
+  	            $('#testDiv').css({ top: e.pageY > y ? y : e.pageY, left: e.pageX > x ? x : e.pageX, height: Math.abs(e.pageY - y), width: Math.abs(e.pageX - x) }).html("");  
+  	        }  
+  	    }).mouseup(function () {
+  	    	if(bool_zt)
+ 	    		{
+  	    		document.onmousedown = doDown;
+  	    		document.onmouseup   = doUp;
+  	    		document.onmousemove = doMove;
+  	    		//鼠标抬起事件
+  	    		x = y = mousekey = 0;  
+      	        bool_zt=false;
+      	        onMove();
+      	        //给div初始化拖动事件
+      	        //拖动开始
+      	        testDiv.ondragstart=function(e){  
+				        //记录开始时记录初始位置
+				        offsetX= e.offsetX;  
+				        offsetY= e.offsetY;  
+				    }  
+					testDiv.ondrag=function(e){  
+						//拖动中
+				        var x= e.pageX;  
+				        var y= e.pageY;  
+				        //drag事件最后一刻，无法读取鼠标的坐标，pageX和pageY都变为0 
+				        //鼠标移出可移动位置，将移动目标变为0点位置
+				        if(x==0 && y==0){  
+				            return; //不处理拖动最后一刻X和Y都为0的情形  
+				        }  
+				        x-=offsetX;  
+				        y-=offsetY;  
+						testDiv.style.border = "2px dashed ";
+						 testDiv.style.opacity = '0.4'; 
+				  //给移动目标初始化位置
+				        testDiv.style.left=x+'px';  
+				        testDiv.style.top=y+'px';  
+				    }  
+					testDiv.ondragend=function(){  
+					testDiv.style.border = "2px dashed rgba(255, 0, 0, 0.8)";
+					testDiv.style.opacity = '1'; 
+				        //结束处理的事件  
+				    }
+					//拖动结束
+					$(document).unbind("mousedown");
+					$(document).unbind("mousemove");
+					$(document).unbind("mouseup");
+ 	    		}
+  	        
+  	    });    
+    }
+    //进行下一步，将截取出的图形赋值给隐藏的canvas
+    function chutu_click()
+    {
+	      var div_div = $("#testDiv")[0];
+	      if(bool_zt)
+	    	  {
+	    	  alert("请选择出图范围");
+	    	  return;
+	    	  }
+	      var can=document.getElementsByClassName("ol-unselectable")[0];
+	      var canvas_2d =can.getContext("2d");
+	      //取出图片
+	      //var imgData = new Image;
+	      //canvas_2d.crossOrigin = 'anonymous';
+	      var imgData = canvas_2d.getImageData(div_div.offsetLeft,div_div.offsetTop-40,div_div.offsetWidth,div_div.offsetHeight);
+	      
+	      var hide_canvas=document.getElementById("hidden_canvas");
+	      //设置canvas的宽和高
+	      hide_canvas.width = div_div.offsetWidth; 
+	      hide_canvas.height = div_div.offsetHeight;
+	      var v=hide_canvas.getContext("2d");
+	      //将图片给隐藏的canvas，用来取得url
+	      v.putImageData(imgData,0,0);
+	      //要给孙润的url
+	      var dataUrl = hide_canvas.toDataURL();
+//	      window.open(dataUrl,200,200,0,0);
+	      //创建表单提交到制图页面，并新窗口打开
+//	      console.log(dataUrl);
+	      formSubmit(dataUrl);
+	      $("#testDiv").remove();
+	      $("#zhitu").show();
+	      $("#chutu").hide();
+	      bool_zt = true;
+    }
+    function formSubmit(dataUrl){
+		var url="zyjgZt.do";
+		var form=$("<form>");//定义一个form表单
+	  	form.attr("style","display:none");
+	  	form.attr("target","_blank");
+	  	form.attr("method","post");
+	  	form.attr("action",url);
+	    var input=$("<input>");
+	    input.attr("name","base64url");
+	    input.attr("value",dataUrl);
+		form.append(input);
+	  	$("body").append(form);//将表单放置在web中
+	  	form.submit();//表单提交
+    }
+    
+    
+    //启用地图拖动的方法
+    function onMove(){
+  	  var array = window.map.getMap().getInteractions().getArray()
+  	  for(var i =0;i<array.length;i++)
+ 		  {
+ 		  	var element = array[i];
+ 		 	if(element instanceof ol.interaction.DragPan) 
+ 		 		{
+ 		 			element.setActive(true);
+		             return;
+ 		 		}
+ 		  }
+    }
+	//禁用地图拖动方法
+	    function disableMove(){
+	  	  var array = window.map.getMap().getInteractions().getArray();
+	  	  for(var i =0;i<array.length;i++)
+	 		  {
+	 		  	var element = array[i];
+	 		 	if(element instanceof ol.interaction.DragPan) 
+	 		 		{
+	 		 			element.setActive(false);
+			             return;
+	 		 		}
+	 		  }
+	    }
+          
+          //-----------------------------------------------------------------------------------
+          //边线拖动开始
+          var theobject = null; 
+
+			function resizeObject() {
+				this.el        = null; 
+				this.dir    = "";      
+				this.grabx = null;     
+				this.graby = null;
+				this.width = null;
+				this.height = null;
+				this.left = null;
+				this.top = null;
+			}
+				
+			
+			//计算点的位置
+			function getDirection(el) {
+				var xPos;
+				var yPos;
+				var offset;
+				dir = "";
+			
+				xPos = window.event.offsetX;
+				yPos = window.event.offsetY;
+			
+				offset = 8; //The distance from the edge in pixels
+			
+				if (yPos<offset) dir += "n";
+				else if (yPos > el.offsetHeight-offset) dir += "s";
+				if (xPos<offset) dir += "w";
+				else if (xPos > el.offsetWidth-offset) dir += "e";
+			
+				return dir;
+			}
+			//鼠标按下事件
+			function doDown(e) {
+				var div_id = e.srcElement.id;
+				if(div_id=="testDiv")
+				{
+					var el = getReal(event.srcElement, "className", "resizeMe");
+					
+					if (el == null) {
+						theobject = null;
+						return;
+					}		
+					
+					dir = getDirection(el);
+					if (dir == "") return;
+					
+					theobject = new resizeObject();
+					
+					theobject.el = el;
+					theobject.dir = dir;
+					
+					theobject.grabx = window.event.clientX;
+					theobject.graby = window.event.clientY;
+					theobject.width = el.offsetWidth;
+					theobject.height = el.offsetHeight;
+					theobject.left = el.offsetLeft;
+					theobject.top = el.offsetTop;
+					
+					window.event.returnValue = false;
+					window.event.cancelBubble = true;
+				}
+			}
+			//鼠标抬起
+			function doUp(e) {
+				var div_id = e.srcElement.id;
+				if(div_id=="testDiv")
+				{
+					if (theobject != null) {
+						theobject = null;
+					}
+				}
+			}
+			//鼠标移动
+			function doMove(e) {
+				var div_id = e.srcElement.id;
+				
+						var el;
+						var xPos;
+						var yPos;
+						var str;
+						var xMin;
+						var yMin;
+						var str;
+						xMin = 8; 
+						yMin = 8; 
+						
+						el = getReal(event.srcElement, "className", "resizeMe");
+						
+						if (el.className == "resizeMe") {
+							str = getDirection(el);
+							
+							if (str == "" && el.className == "resizeMe") 
+								str = "move";
+							else 
+								str += "-resize";
+							el.style.cursor = str;
+						}
+						
+						if(theobject != null) {
+							if (dir.indexOf("e") != -1)
+								theobject.el.style.width = Math.max(xMin, theobject.width + 
+										window.event.clientX - theobject.grabx) + "px";
+							if (dir.indexOf("s") != -1)
+								theobject.el.style.height = Math.max(yMin, theobject.height + 
+										window.event.clientY - theobject.graby) + "px";
+							
+							if (dir.indexOf("w") != -1) {
+								theobject.el.style.left = Math.min(theobject.left + 
+										window.event.clientX - theobject.grabx, theobject.left + theobject.width - xMin) + "px";
+								theobject.el.style.width = Math.max(xMin, theobject.width - 
+										window.event.clientX + theobject.grabx) + "px";
+							}
+							if (dir.indexOf("n") != -1) {
+								theobject.el.style.top = Math.min(theobject.top + 
+										window.event.clientY - theobject.graby, theobject.top + theobject.height - yMin) +"px";
+								theobject.el.style.height = Math.max(yMin, theobject.height - 
+										window.event.clientY + theobject.graby) + "px";
+							}
+							window.event.returnValue = false;
+							window.event.cancelBubble = true;
+						} 
+					
+				}
+					function getReal(el, type, value) {
+						var temp;
+						temp = el;
+						while ((temp != null) && (temp.tagName != "BODY")) {
+							if (eval("temp." + type) == value) {
+								el = temp;
+								return el;
+							}
+							temp = temp.parentElement;
+						}
+						return el;
+					}
+					 
+//边线移动结束--------------------------------------------------------------------------------------

@@ -1,0 +1,421 @@
+package com.forestar.report.controller;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.forestar.core.exception.ServiceException;
+import com.forestar.data.general.QueryFilter;
+import com.forestar.data.general.RowBase;
+import com.forestar.data.service.BaseService;
+
+@Controller
+public class iReportController {
+	@Resource(name = "baseService")
+	public BaseService baseService;
+	public String fileds;
+	
+	@RequestMapping(value = "/ReportData.web")
+	@ResponseBody
+	public Map ReportData(HttpServletRequest request, HttpServletResponse response,String TableName,String unitName,List<RowBase> dataLists,Map<String,Map<String,String>> codeMaps,Map<String,String> rowSpans,Map<String,String> colSpans,Map<String,String> fieldSorts,Boolean isHeads) throws ServiceException{
+		Map map=getReportHtml(TableName,unitName,dataLists, codeMaps, rowSpans, colSpans, fieldSorts,isHeads);
+		return map;
+	}
+	public Map getReportHtml(String TableName,String unitName,List<RowBase> dataLists,Map<String,Map<String,String>> codeMaps,Map<String,String> rowSpans,Map<String,String> colSpans,Map<String,String> fieldSorts,Boolean isHeads) throws ServiceException{
+		long startTime=new Date().getTime();
+		long getDataStartTime=0;
+		long getDataEndTime=0;
+		long irStartTime=0;
+		long irEndTime=0;
+		System.out.println("开始时间："+startTime+"毫秒");
+		List<RowBase> dataList=dataLists;
+		Map<String,Map<String,String>> codeMap=codeMaps;
+		Map<String,String> rowSpan=rowSpans;
+		Map<String,String> colSpan=colSpans;
+		Map<String,String> fieldSort=fieldSorts;
+		Boolean isHead = isHeads;
+		String html="";
+		if(fieldSort==null){
+			fieldSort=new LinkedHashMap<String,String>();
+//			fieldSort.put("XIAN","县");
+//			fieldSort.put("XIANG","乡");
+//			fieldSort.put("CUN","村");
+//			fieldSort.put("MIAN_JI","面积");
+//			fieldSort.put("LD_QS","林地权属");
+//			fieldSort.put("QI_YUAN","起源");
+//			fieldSort.put("BH_DJ","林地保护等级");
+			
+			fieldSort.put("SQS","市");
+			fieldSort.put("XSQ","县");
+			fieldSort.put("XZC","乡");
+			fieldSort.put("CGQ","村");
+			fieldSort.put("XBMJ","面积");
+			fieldSort.put("LDZLDJ","林地质量等级");
+			fieldSort.put("QY","起源");
+			fieldSort.put("DMLX","地貌类型");
+		}
+		if(rowSpan==null){
+			rowSpan=new LinkedHashMap<String,String>();
+			rowSpan.put("SQS","市");
+			rowSpan.put("XSQ","县");
+			rowSpan.put("XZC","乡");
+			rowSpan.put("CGQ","村");
+		}
+		if(colSpan==null){
+			colSpan=new LinkedHashMap<String,String>();
+//			colSpan.put("LD_QS","林地权属");
+//			colSpan.put("QI_YUAN","起源");
+//			colSpan.put("BH_DJ","林地保护等级");
+			colSpan.put("LDZLDJ","林地质量等级");
+			colSpan.put("QY","起源");
+			colSpan.put("DMLX","地貌类型");
+		}
+		if(dataList==null){
+			QueryFilter qf= new QueryFilter();
+//			qf.setWhereString("OBJECTID<=100");
+//			qf.setWhereString("SQS='350700'");
+			qf.setWhereString("SQS='350600'");
+			String rows=rowSpan.keySet().toString();
+			rows=rows.substring(1,rows.length()-1).replaceAll(" ", "");
+			qf.setOrderByString(rows);
+			String fileds=fieldSort.keySet().toString();
+			fileds=fileds.substring(1,fileds.length()-1).replaceAll(" ", "");
+			qf.setSelectFields(fileds);
+			getDataStartTime=new Date().getTime();
+			System.out.println("获取数据开始时间："+getDataStartTime+"毫秒");
+			dataList=baseService.getDataTable("ZYXB_PY", qf);
+			getDataEndTime=new Date().getTime();
+			System.out.println("获取数据结束时间："+getDataEndTime+"毫秒");
+		}
+		if(codeMap==null){
+			String instr="";
+			for(String code : colSpan.keySet()){
+				instr+=colSpan.get(code)+"','";
+			}
+			instr=instr.substring(0,instr.length()-3);
+			codeMap =new LinkedHashMap<String,Map<String,String>>();
+			QueryFilter qf= new QueryFilter();
+//			qf.setWhereString("C_DOMAINNAME in ('"+instr+"') and L_JB>1");
+//			qf.setOrderByString("C_DOMAINNAME,C_CODE");
+			qf.setWhereString("C_DOMAINNAME in ('"+instr+"') and I_JB>0");
+			qf.setOrderByString("C_DESCRIBE,C_CODE");
+			List<RowBase> codeList=baseService.getDataTable("FL_SYS_ZYSJZD", qf);
+			if(codeList.size()!=0){
+				for(String code : colSpan.keySet()){
+					codeMap=getMap(codeMap,codeList,code,colSpan.get(code));
+				}
+				irStartTime=new Date().getTime();
+				System.out.println("拼装报表开始时间："+irStartTime+"毫秒");
+				html=getTempReportDataFn(TableName,unitName,dataList, codeMap, rowSpan,colSpan, fieldSort,isHead);
+				irEndTime=new Date().getTime();
+				System.out.println("拼装报表开始时间："+irEndTime+"毫秒");
+			}
+		}else{
+			html=getTempReportDataFn(TableName,unitName,dataList, codeMap, rowSpan,colSpan, fieldSort,isHead);
+		}
+		
+		long endTime=new Date().getTime();
+		long time=endTime-startTime;
+		/*html+="<span>开始时间："+startTime+"毫秒</span></br>";
+		html+="<span>获取数据开始时间："+getDataStartTime+"毫秒</span></br>";
+		html+="<span>获取数据结束时间："+getDataEndTime+"毫秒</span></br>";
+		html+="<span>获取数据用时："+(getDataEndTime-getDataStartTime)+"毫秒</span></br>";
+		html+="<span>拼装报表开始时间："+irStartTime+"毫秒</span></br>";
+		html+="<span>拼装报表开始时间："+irEndTime+"毫秒</span></br>";
+		html+="<span>拼装报表用时："+(irEndTime-irStartTime)+"毫秒</span></br>";
+		html+="<span>结束时间："+endTime+"毫秒</span></br>";
+		html+="<span>运行时间："+time+"毫秒</span>";*/
+		Map map=new LinkedHashMap();
+		map.put("html", html);
+		map.put("start", startTime);
+		map.put("endTime", endTime);
+		map.put("time", time);
+		System.out.println("结束时间："+endTime+"毫秒");
+		System.out.println("运行时间："+time+"毫秒");
+		return map;
+	}
+	
+	public Map<String,Map<String,String>> getMap(Map<String,Map<String,String>> coedmap,List<RowBase> codeList,String code,String codeName){
+		Map map=new LinkedHashMap<String,String>();
+		for(RowBase row : codeList){
+			Map temp=row.getOriginalObjects();
+//			Object key=temp.get("C_CODE");
+//			Object value=temp.get("C_NAME");
+//			Object dname=temp.get("C_DOMAINNAME");
+			Object key=temp.get("C_CODE");
+			Object value=temp.get("C_DESCRIBE");
+			Object dname=temp.get("C_DOMAINNAME");
+			if(dname.equals(codeName)){
+				map.put(key, value);
+			}
+		}
+		coedmap.put(code, map);
+		return coedmap;
+	}
+	
+	/**
+	 * 请求报表的数据成功
+	 */
+	public String getTempReportDataFn(String TableName,String unitName,List<RowBase> dataList,Map<String,Map<String,String>> codeMap,
+			Map<String,String> rowSpan,
+			Map<String,String> colSpan,
+			Map<String,String> fieldSort,Boolean isHead) {
+		if (null == dataList || dataList.size()==0) {
+			return "没有符合条件的报表数据，请检查查询条件！";
+		}
+		//列合并字段和字段顺序
+		String row=rowSpan.keySet().toString();
+		String [] rowumnNames=row.substring(1,row.length()-1).split(", ");
+		//行合并字段和字段顺序
+		String colName=colSpan.values().toString();
+		String columnNames=colName.substring(1,colName.length()-1);
+
+		String colkey=colSpan.keySet().toString();
+		String colNames=colkey.substring(1,colkey.length()-1);
+
+		//报表字段和字段顺序
+		String cols=fieldSort.keySet().toString();
+		String [] fieldSorts=cols.substring(1,cols.length()-1).split(", ");
+
+		String SortNames=fieldSort.values().toString();
+		String [] NameSorts=SortNames.substring(1,SortNames.length()-1).split(", ");
+		
+		//拼装表头
+		String headHtml="";
+		String html = "";
+		headHtml=dplitJointHead(TableName,unitName,dataList, fieldSorts,NameSorts,columnNames,codeMap);
+		//统计数据
+		List<Map> TotalList= TotalRow(dataList,rowumnNames,colNames);
+		//获取合并行列
+		int[][] crSpan=mergeBody(TotalList,rowumnNames);
+		//拼装表体
+		String bodyHtml=dplitJointBody(TotalList, fieldSorts,crSpan);
+		if(!isHead){
+			html="<table>"+headHtml+bodyHtml+"</table>";
+		}else{
+			html=bodyHtml;
+		}
+		//System.out.println(html);
+		return html;
+	}
+	public List<Map> TotalRow(List<RowBase> dataList,String []rowSpan,String colSpan){
+		List<Map> TotalList=new ArrayList<Map>();
+		Map<String,Map<String,String>> rowMap=new LinkedHashMap<String,Map<String,String>>();
+		//第一条数据
+		String key="";
+		HashMap fristRow=dataList.get(0).getOriginalObjects();
+		//唯一值key
+		for(int i=0;i<rowSpan.length;i++){
+			key+=fristRow.get(rowSpan[i]);
+		}
+		Map map=new LinkedHashMap();
+		String[] filed=fileds.split(",");
+		//表单字段
+		for(int i=0;i<filed.length;i++){
+			//最终字段值
+			Object value="";
+			//取报表顺序字段中的有效字段名
+			int index=filed[i].lastIndexOf("_");
+			String f1=filed[i];
+			if(index>-1){
+				f1=filed[i].substring(0,index);
+			}
+			//判断是否存在字典项字段
+			if(colSpan.indexOf(f1)>-1){
+				Object code=fristRow.get(f1);
+				if(code!=null&&filed[i].indexOf(code.toString())>-1)
+					value=fristRow.get("MIAN_JI");
+				else
+					value=0;
+			}else{
+				value=fristRow.get(filed[i]);
+			}
+			map.put(filed[i],value);
+		}
+		rowMap.put(key, map);
+		//从第二条数据开始，依次对比key
+		for(int j=1;j<dataList.size();j++){
+			//第一条数据
+			key="";
+			HashMap row=dataList.get(j).getOriginalObjects();
+			//唯一值key
+			for(int i=0;i<rowSpan.length;i++){
+				key+=row.get(rowSpan[i]);
+			}
+			map=new LinkedHashMap();
+			//表单字段
+			for(int i=0;i<filed.length;i++){
+				//最终字段值
+				Object value=0;
+				//取报表顺序字段中的有效字段名
+				int index=filed[i].lastIndexOf("_");
+				String f1=filed[i];
+				if(index>-1){
+					f1=filed[i].substring(0,index);
+				}
+				//判断是否存在字典项字段
+				if(colSpan.indexOf(f1)>-1){
+					if(rowMap.get(key)!=null){
+						Object v=rowMap.get(key).get(filed[i]);
+						if(v!=null){
+							value=Double.parseDouble(v.toString());
+						}else{
+							value=0;
+						}
+					}
+					Object code=row.get(f1);
+					if(code!=null&&filed[i].indexOf(code.toString())>-1){
+						Object mj=row.get("MIAN_JI");
+						if(mj!=null){
+							value=Double.parseDouble(value.toString())+Double.parseDouble(mj.toString());
+						}else{
+							value=Double.parseDouble(value.toString());
+						}
+						if(rowMap.get(key)!=null){
+							rowMap.get(key).put(filed[i],value.toString());
+						}
+					}
+				}else{
+					value=row.get(filed[i]);
+				}
+				map.put(filed[i],value);
+			}
+			//如果存在相同key，则内部数据相加
+			if(rowMap.get(key)==null){
+				rowMap.put(key, map);
+			}
+		}
+		//存储合计数据
+		for(String rowkey : rowMap.keySet()){
+			TotalList.add(rowMap.get(rowkey));
+		}
+		return TotalList;
+	}
+	public String dplitJointHead(String TableName,String unitName,List<RowBase> dataList,String [] fieldSorts,
+			String [] NameSorts,String colNames,
+			Map<String,Map<String,String>> codeMap){
+		String thead="<thead id='ReportThead'>";
+		fileds="";
+		//长度的计算
+		int trLength = 0;
+		for(int i=0;i<2;i++){
+			String tr="<tr>";
+			for(int j=0;j<NameSorts.length;j++){
+				String td="";
+				if(colNames.indexOf(NameSorts[j])>-1){
+					for(String key : codeMap.keySet()){
+						if(i==0){//此处只判断两层表头
+							td="<td colspan='"+codeMap.get(fieldSorts[j]).size()+"'>"+NameSorts[j]+"</td>";
+						}else{
+							Map map=codeMap.get(fieldSorts[j]);
+							int k=1;
+							for(Object mapkey :map.keySet()){
+								td+="<td><div class='tdStyle'>"+map.get(mapkey)+"</div></td>";
+								fileds+=fieldSorts[j]+"_"+mapkey+",";
+								k++;
+								trLength++;
+							}
+							break;
+						}
+					}
+				}else{
+					if(i==0){//此处只判断两层表头
+						td="<td rowspan='2'><div class='tdStyle'>"+NameSorts[j]+"</div></td>";
+						fileds+=fieldSorts[j]+",";
+						trLength++;
+					}
+				}
+				tr+=td;
+			}
+			tr+="</tr>";
+			thead+=tr;
+		}
+		thead+="<tr>";
+		String []filed=fileds.split(",");
+		//展示表格的表头下部字段的添加
+		for(int i=0;i<filed.length;i++){
+			thead+="<td>"+filed[i]+"</td>";
+		}
+		thead+="</tr>";
+		thead+="</thead>";
+		String headName ="<tr><td colspan='"+trLength+"'>"+TableName+"</td></tr>";
+		headName +="<tr><td colspan='"+trLength+"'>"+unitName+"</td></tr>";
+		int theadIndex = thead.indexOf("'ReportThead'>")+14;
+		StringBuffer sb = new StringBuffer();
+		thead = sb.append(thead).insert(theadIndex,headName).toString();
+		return thead;
+	}
+	public String dplitJointBody(List<Map> dataList,String [] columnNames,int[][] crcol){
+		//获得当前报表的tbody对象
+		String tbody="<tbody id='ReportTbody'>";
+		//创建tr标签数组
+		String[] trArr = new String[dataList.size()];
+		//遍历结果,拼接body
+		for(int i=0;i<dataList.size();i++){
+			Object tdText="";
+			//创建tr标签
+			trArr[i] = "<tr>";
+			//trArr[i].align = "center";//注释样式用CSS来定义
+		    //创建单元格数组
+		    Map tdArr = dataList.get(i);
+		    String[] filed=fileds.split(",");
+		    //根据报表字段和字段顺序读取数据
+			for(int j=0;j<filed.length;j++){
+			    tdText=tdArr.get(filed[j].trim());
+		    	//替换空值
+		    	if(tdText==null){
+		    		tdText="";
+		    	}
+		    	//创建每个单元格
+		    	String td="";
+		    	if(i<crcol.length&&j<crcol[i].length){
+			    	int isSpan=crcol[i][j];
+			    	if(isSpan==0){
+				    	td = "<td>"+tdText+"</td>";
+			    	}else if(isSpan>0){
+				    	td = "<td rowspan='"+(isSpan+1)+"'>"+tdText+"</td>";
+			    	}
+		    	}else{
+		    		td = "<td>"+tdText+"</td>";
+		    	}
+			    //添加到单元格数组
+			    trArr[i]+=td;
+		    }
+			trArr[i] += "</tr>";
+			//添加到页面表格tBoby
+			tbody+=trArr[i];
+		}
+		tbody+="</tbody>";
+		return tbody;
+	}
+	public int[][] mergeBody(List<Map> TotalList,String[] rowSpan){
+		int[][] merge=new int[TotalList.size()][rowSpan.length];
+		for(int i=(TotalList.size()-2);i>=0;i--){
+			Map map1=TotalList.get(i);
+			Map map2=TotalList.get(i+1);
+			for(int j=(rowSpan.length-1);j>=0;j--){
+				Object t1=map1.get(rowSpan[j]);
+				Object t2=map2.get(rowSpan[j]);
+				if(t1.equals(t2)){
+					int temp=merge[i+1][j];
+					merge[i+1][j]=-1;
+					merge[i][j]=temp+1;
+				}else{
+					merge[i][j]=0;
+				}
+			}
+		}
+		return merge;
+	}
+}
